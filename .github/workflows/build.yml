@@ -65,7 +65,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
           $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          cmake -S skse -B skse/build -G "Visual Studio 17 2022" -A x64 `
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $vsMajor = [int](& $vswhere -latest -products * -property installationVersion).Split('.')[0]
+          $generator = switch ($vsMajor) { 18 { "Visual Studio 18 2026" } 17 { "Visual Studio 17 2022" } default { throw "Unexpected Visual Studio $vsMajor" } }
+          Write-Output "Using $generator"
+          cmake -S skse -B skse/build -G $generator -A x64 `
             "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md *>&1 | Tee-Object -FilePath configure.log
           if ($LASTEXITCODE -ne 0) {
             $msg = (Get-Content configure.log | Select-String -Pattern "error|Error|CMake Error" -Context 0,4 | Select-Object -First 30 | Out-String)
