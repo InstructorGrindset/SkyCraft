@@ -76,6 +76,7 @@ public final class LootRules {
 				}
 			}
 			List<Drop> drops = new ArrayList<>();
+			int problemsBefore = problems.size();
 			for (String d : line.substring(eq + 1).split(",")) {
 				String part = d.strip();
 				if (part.isEmpty()) {
@@ -100,7 +101,9 @@ public final class LootRules {
 				drops.add(new Drop(bits[0], min, max));
 			}
 			if (words.isEmpty() || drops.isEmpty()) {
-				problems.add("line " + n + ": needs at least one word and one drop");
+				if (problems.size() == problemsBefore) {
+					problems.add("line " + n + ": needs at least one word and one drop");
+				}
 				continue;
 			}
 			out.add(new Rule(List.copyOf(words), List.copyOf(drops)));
