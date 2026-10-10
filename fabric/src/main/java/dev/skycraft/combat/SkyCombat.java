@@ -81,12 +81,14 @@ public final class SkyCombat {
 			pickUpNearby(player);
 		}
 		if (SkyLink.readActors(ACTORS)) {
+			dev.skycraft.loot.SkyLoot.onActors(level, ACTORS, server.getTickCount());
 			sync(level);
 		}
 		// Hits land during the tick (melee, sweeps, arrows, fire); send one combined hit per actor.
 		for (SkyrimActorEntity proxy : PROXIES.values()) {
 			float[] hit = proxy.takeHit();
 			if (hit != null && (hit[0] > 0.0F || hit[3] > 0.0F)) {
+				dev.skycraft.loot.SkyLoot.recordHit(proxy.formId(), server.getTickCount());
 				SkyLink.pushEvent(
 					Proto.EV_HIT_ACTOR, proxy.formId(), hit[0], hit[1], hit[2], hit[3], Float.floatToRawIntBits(hit[4]), Float.floatToRawIntBits(hit[5])
 				);
@@ -174,6 +176,7 @@ public final class SkyCombat {
 	}
 
 	private static void removeAll() {
+		dev.skycraft.loot.SkyLoot.reset();
 		if (PROXIES.isEmpty()) {
 			return;
 		}
