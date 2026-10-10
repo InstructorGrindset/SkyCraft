@@ -11,6 +11,8 @@ permissions:
 jobs:
   fabric:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,13 +39,70 @@ jobs:
         id: ver
         run: echo "version=$(grep '^version=' fabric/gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fabric
+          path: fabric/build/libs/skycraft-${{ steps.ver.outputs.version }}.jar
+
+  skse:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-cache
+          key: vcpkg-${{ hashFiles('skse/vcpkg.json') }}
+          restore-keys: vcpkg-
+
+      - name: Build the SKSE plugin
+        shell: pwsh
+        env:
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+        run: |
+          New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake -S skse -B skse/build -G "Visual Studio 17 2022" -A x64 `
+            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md *>&1 | Tee-Object -FilePath configure.log
+          if ($LASTEXITCODE -ne 0) {
+            $msg = (Get-Content configure.log | Select-String -Pattern "error|Error|CMake Error" -Context 0,4 | Select-Object -First 30 | Out-String)
+            $msg = $msg -replace "%","%25" -replace "`r","" -replace "`n","%0A"
+            Write-Output "::error title=Configure failed::$msg"
+            exit 1
+          }
+          cmake --build skse/build --config RelWithDebInfo --target SkyCraft -- /m *>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) {
+            $msg = (Get-Content build.log | Select-String -Pattern ": error |: fatal error " | Select-Object -First 40 | Out-String)
+            $msg = $msg -replace "%","%25" -replace "`r","" -replace "`n","%0A"
+            Write-Output "::error title=Build failed::$msg"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skse
+          path: |
+            skse/build/RelWithDebInfo/SkyCraft.dll
+            skse/build/RelWithDebInfo/SkyCraft.pdb
+
+  release:
+    needs: [fabric, skse]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
       - name: Publish the test release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.ver.outputs.version }}-build${{ github.run_number }}
-          name: SkyCraft ${{ steps.ver.outputs.version }} (build ${{ github.run_number }})
+          tag_name: v${{ needs.fabric.outputs.version }}-build${{ github.run_number }}
+          name: SkyCraft ${{ needs.fabric.outputs.version }} (build ${{ github.run_number }})
           prerelease: true
           target_commitish: ${{ github.sha }}
           body: Test build from the dev branch, commit ${{ github.sha }}.
-          files: |
-            fabric/build/libs/skycraft-${{ steps.ver.outputs.version }}.jar
+          files: out/*
