@@ -51,23 +51,39 @@ namespace skycraft
 		float lookDx = 0.0f;
 		float lookDy = 0.0f;
 
-		// G on something Skyrim can activate (door, NPC, container, item, furniture) activates it in
-		// Skyrim. Furniture (chairs, beds, crafting stations, pull-bar levers) hands the player to
-		// Skyrim while it's used (Game.cpp, SkyrimTakeover).
-		void ActivateSkyrimTarget()
+		// What asked Skyrim to activate its crosshair target.
+		enum class ActivateBy
+		{
+			kG,      // the G key
+			kClick,  // a right click Minecraft had no use for (proto::kEvActivate)
+		};
+
+		// A right click activates at most once per this many seconds of unpaused play.
+		constexpr float kClickActivateInterval = 0.4f;
+		float           clickCooldown = 0.0f;
+
+		// G (or a right click Minecraft had no use for) on something Skyrim can activate (door, NPC,
+		// container, item, furniture) activates it in Skyrim. Furniture (chairs, beds, crafting
+		// stations, pull-bar levers) hands the player to Skyrim while it's used (Game.cpp,
+		// SkyrimTakeover). The crosshair is read now, when the key or click arrives. True if there
+		// was something to activate.
+		bool ActivateSkyrimTarget(ActivateBy a_by)
 		{
 			auto* pick = RE::CrosshairPickData::GetSingleton();
 			auto* player = RE::PlayerCharacter::GetSingleton();
 			if (!pick || !player) {
-				return;
+				return false;
 			}
 			auto target = pick->GetActiveTarget().get();
 			if (!target || target.get() == player) {
-				logger::info("G: nothing to activate under the crosshair");
-				return;
+				if (a_by == ActivateBy::kG) {
+					logger::info("G: nothing to activate under the crosshair");
+				}
+				return false;  // most right clicks land on nothing Skyrim can activate: stay quiet
 			}
 			target->ActivateRef(player, 0, nullptr, 0, false);
-			logger::info("activated {:08X} ({})", target->GetFormID(), target->GetDisplayFullName());
+			logger::info("{}activated {:08X} ({})", a_by == ActivateBy::kClick ? "right click " : "", target->GetFormID(), target->GetDisplayFullName());
+			return true;
 		}
 
 		void OpenWaitMenu()
@@ -146,7 +162,7 @@ namespace skycraft
 									if (code == kDikG || code == kDikH || code == kDikO) {
 										if (down) {
 											if (code == kDikG) {
-												ActivateSkyrimTarget();
+												ActivateSkyrimTarget(ActivateBy::kG);
 											} else if (code == kDikH) {
 												OpenWaitMenu();
 											} else {
@@ -272,6 +288,19 @@ namespace skycraft
 		void ReleaseAll()
 		{
 			Link::Get().PushInput(proto::kInReleaseAll, 0);
+		}
+
+		void UpdateClickActivate(bool a_clicked, float a_delta)
+		{
+			// Counted in frames the game runs, so time spent in a menu that pauses it doesn't count:
+			// the second click of a double click on a chest, read after its menu closes, is dropped.
+			clickCooldown = std::max(0.0f, clickCooldown - std::max(a_delta, 0.0f));
+			if (!a_clicked || clickCooldown > 0.0f || State().mcScreenOpen || Game::SkyrimMenuOpen()) {
+				return;
+			}
+			if (ActivateSkyrimTarget(ActivateBy::kClick)) {
+				clickCooldown = kClickActivateInterval;
+			}
 		}
 
 		void SetActivatePromptKey(bool a_minecraftControls)

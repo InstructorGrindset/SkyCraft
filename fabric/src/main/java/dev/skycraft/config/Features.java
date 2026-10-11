@@ -21,7 +21,8 @@ public final class Features {
 		TIME_SYNC("time_sync", "Minecraft's clock follows Skyrim's"),
 		BED_SLEEP("bed_sleep", "a night in a Minecraft bed passes the night in Skyrim"),
 		DEEP_CREATURES("deep_creatures", "Skyrim creatures spawn in dark tunnels you dug (skycraft-deep.txt)"),
-		BREACH_DOORS("breach_doors", "a hidden antechamber under each dungeon entrance; dig in and open its sealed door to enter the dungeon");
+		BREACH_DOORS("breach_doors", "a hidden antechamber under each dungeon entrance; dig in and open its sealed door to enter the dungeon"),
+		CLICK_TO_ACTIVATE("click_to_activate", "right click with nothing usable in hand activates Skyrim doors, containers and NPCs like G does");
 
 		public final String key;
 		public final String about;
@@ -35,26 +36,35 @@ public final class Features {
 	public static final String FILE = "skycraft-features.txt";
 	public static final String DEFAULT_TEXT = defaultText();
 
-	private static Map<Feature, Boolean> switches;
+	private static volatile Map<Feature, Boolean> switches;
 
 	private Features() {
 	}
 
-	/** Whether this feature is switched on. */
+	/** Whether this feature is switched on. Any thread: the server asks, and so does the client (click_to_activate). */
 	public static boolean on(Feature feature) {
+		Map<Feature, Boolean> map = switches;
+		if (map == null) {
+			map = load();
+		}
+		return map.getOrDefault(feature, true);
+	}
+
+	private static synchronized Map<Feature, Boolean> load() {
 		if (switches == null) {
 			List<String> problems = new ArrayList<>();
-			switches = parse(Config.read(FILE, DEFAULT_TEXT), problems);
+			Map<Feature, Boolean> map = parse(Config.read(FILE, DEFAULT_TEXT), problems);
 			problems.forEach(p -> SkyCraft.LOG.warn("SkyCraft: {} {}", FILE, p));
 			List<String> off = new ArrayList<>();
-			switches.forEach((f, v) -> {
+			map.forEach((f, v) -> {
 				if (!v) {
 					off.add(f.key);
 				}
 			});
 			SkyCraft.LOG.info("SkyCraft: features {}", off.isEmpty() ? "all on" : "off: " + String.join(", ", off));
+			switches = map;
 		}
-		return switches.getOrDefault(feature, true);
+		return switches;
 	}
 
 	/** Parses {@code key = on|off} lines. Unknown keys and values go to {@code problems}. */

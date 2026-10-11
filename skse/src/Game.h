@@ -100,6 +100,10 @@ namespace skycraft
 		void ConsumeLook(float& a_dx, float& a_dy);
 		// Tells MC to release everything (input focus moved to Skyrim).
 		void ReleaseAll();
+		// Main thread, once per frame Minecraft drives the player (Combat::PerFrame). a_clicked: a
+		// right click Minecraft had no use for arrived this frame (proto::kEvActivate). Activates what
+		// Skyrim's crosshair is on now, as G does, at most once per 0.4 s; nothing there, nothing done.
+		void UpdateClickActivate(bool a_clicked, float a_delta);
 	}
 
 	namespace Input

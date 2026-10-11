@@ -144,6 +144,12 @@ Minecraft has priority. These keys still go to Skyrim:
 Every other key is Minecraft's: **E** inventory, **F5** camera, **T** chat, **/** commands,
 **Shift** crouch/sneak, and so on.
 
+**Right click** is Minecraft's use button first: it places blocks, eats, draws bows, raises shields
+and trades with merchants (empty hand). When Minecraft has no use for a click (empty hand, a sword
+or pickaxe, nothing to place), it activates what Skyrim's crosshair is on, like **G**. Only a fresh
+click counts, so holding right click to draw a bow or block stays Minecraft's. Switch it off with
+`click_to_activate = off` in `config/skycraft-features.txt`.
+
 ## Known limitations
 
 - If something goes wrong, `Documents\My Games\Skyrim Special Edition\SKSE\SkyCraft.log` says what.

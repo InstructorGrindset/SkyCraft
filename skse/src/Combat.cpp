@@ -873,6 +873,7 @@ namespace skycraft
 						Breach::Enter(a_player, ev.formId);
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
+					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
 				}
 				pendingExplosions.clear();
 				pendingFlings.clear();
@@ -892,8 +893,12 @@ namespace skycraft
 			}
 
 			proto::McEvent ev;
+			bool           clickActivate = false;
 			while (link.PopEvent(ev)) {
 				switch (ev.type) {
+				case proto::kEvActivate:
+					clickActivate = true;
+					break;
 				case proto::kEvHitActor:
 					ApplyHit(a_player, ev);
 					break;
@@ -927,6 +932,7 @@ namespace skycraft
 					break;
 				}
 			}
+			Input::UpdateClickActivate(clickActivate, a_delta);
 			UpdateFlings(a_delta);
 			Spawn::Update(a_player, a_delta);
 			Breach::Update(a_player, a_delta);
