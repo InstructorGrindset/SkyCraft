@@ -4,6 +4,9 @@ Creates the shared mapping, streams a flat floor + a staircase of collision, hol
 bit, prints Minecraft's reported player state, and saves the overlay frame to a PNG.
 
     python tools/fake_skyrim.py [seconds] [out.png]
+
+SKYCRAFT_TOWN (default Whiterun) and SKYCRAFT_PLACE (PlaceFlags: 1 interior, 2 dungeon, 4 town;
+default 4) set where the fake player is; SKYCRAFT_PLACE=3 makes it a dungeon interior.
 """
 
 import mmap
@@ -23,6 +26,7 @@ OFF_OVL_HDR = 0x340
 OFF_IN = 0x1000
 OFF_ACTORS = 0x12000
 OFF_EVENTS = 0x17000
+OFF_ITEMS = 0x1B100
 OFF_ENTITIES = 0x1C000
 OFF_COL = 0x20000
 COL_BYTES = 32 << 20
@@ -36,6 +40,13 @@ COL_DATA = COL_BYTES - 0x80
 W, H = 1280, 720
 FLOOR_Y = 100  # blocks
 X0 = 100000    # test area origin (blocks); must be a multiple of 8
+TOWN = os.environ.get("SKYCRAFT_TOWN", "Whiterun")
+PLACE = int(os.environ.get("SKYCRAFT_PLACE", "4"), 0)
+
+# McEvent types (skycraft_protocol.h)
+EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE = range(1, 9)
+SRC_CONTAINER = 2
+TAG_ORE_INGOT = 1 << 3
 
 
 def tick():
@@ -51,12 +62,13 @@ class Link:
         ctypes.windll.kernel32.GetTickCount64.restype = ctypes.c_uint64
         self.m = mmap.mmap(-1, SIZE, tagname=NAME)
         self.m[0:0x100] = bytes(0x100)
-        self.m[OFF_SKY:OFF_SKY + 0x40] = bytes(0x40)
+        self.m[OFF_SKY:OFF_SKY + 0x100] = bytes(0x100)  # SkyState is 0x68 bytes
         self.m[OFF_OVL:OFF_OVL + 0x100] = bytes(0x100)
         self.m[OFF_IN:OFF_IN + 0x80] = bytes(0x80)
         self.m[OFF_COL:OFF_COL + 0x80] = bytes(0x80)
         self.m[OFF_ACTORS:OFF_ACTORS + 0x40] = bytes(0x40)
         self.m[OFF_EVENTS:OFF_EVENTS + 0x80] = bytes(0x80)
+        self.m[OFF_ITEMS:OFF_ITEMS + 0x80] = bytes(0x80)
         self.m[OFF_ENTITIES:OFF_ENTITIES + 0x40] = bytes(0x40)
         self.m[OFF_RENDER:OFF_RENDER + 0x80] = bytes(0x80)
         struct.pack_into("<IIII", self.m, 0, MAGIC, VERSION, os.getpid(), 0)
@@ -64,6 +76,8 @@ class Link:
         self.sky_seq = 0
         self.col_head = 0
         self.actor_seq = 0
+        self.item_head = 0
+        self.game_hour = 12.0
         self.events = []
         self.sections = 0
         self.atlas = None
@@ -77,7 +91,15 @@ class Link:
         head, tail = struct.unpack_from("<Q", self.m, OFF_EVENTS)[0], struct.unpack_from("<Q", self.m, OFF_EVENTS + 0x40)[0]
         while tail < head:
             typ, form, a, b, c, d, flags = struct.unpack_from("<IIffffI", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32)
-            print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
+            if typ == EV_TAKE_ITEM:
+                print(f"  event from Minecraft: take item {form:08X} x {int(a)} (converted)")
+            elif typ == EV_SLEEP:
+                self.game_hour = (self.game_hour + a) % 24.0
+                print(f"  event from Minecraft: slept {a:.1f} h, game hour now {self.game_hour:.2f}")
+            elif typ == EV_SPAWN_CREATURE:
+                print(f"  event from Minecraft: spawn creature kind {form} at ({a:.1f},{b:.1f},{c:.1f}), despawn {d:.0f} blocks, max {flags} (ignored)")
+            else:
+                print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
             self.events.append(typ)
             tail += 1
         struct.pack_into("<Q", self.m, OFF_EVENTS + 0x40, tail)
@@ -117,9 +139,10 @@ class Link:
             tail += (8 + n + 7) & ~7
         struct.pack_into("<Q", self.m, base + 0x40, tail)
 
-    def write_actor(self, form, x, y, z):
+    def write_actor(self, form, x, y, z, vendor=0, name="Test Bandit"):
+        """One hostile actor; vendor is its VendorBuys mask (0: not a merchant)."""
         struct.pack_into("<I", self.m, OFF_ACTORS, self.actor_seq * 2 + 1)
-        rec = struct.pack("<IIfffffffHH24s", form, 1, x, y, z, 90.0, 0.6, 1.8, 1.0, 10, 0, b"Test Bandit")
+        rec = struct.pack("<IIfffffffHH24s", form, 1, x, y, z, 90.0, 0.6, 1.8, 1.0, 10, vendor, name.encode("utf-8")[:23])
         struct.pack_into("<I", self.m, OFF_ACTORS + 4, 1)
         self.m[OFF_ACTORS + 0x40:OFF_ACTORS + 0x40 + 64] = rec
         self.actor_seq += 1
@@ -129,12 +152,26 @@ class Link:
         (beat,) = struct.unpack_from("<Q", self.m, 0x18)
         return beat != 0 and tick() - beat < 3000
 
-    def write_sky(self, flags, pos, yaw, pitch, teleport_seq, epoch):
+    def write_sky(self, flags, pos, yaw, pitch, teleport_seq, epoch, town=None, place=None):
         self.sky_seq += 1
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2 - 1)
         struct.pack_into("<IIIdddffIIIf", self.m, OFF_SKY + 4, flags, 0x3C, epoch, pos[0], pos[1], pos[2],
-                         yaw, pitch, teleport_seq, W, H, 12.0)
+                         yaw, pitch, teleport_seq, W, H, self.game_hour)
+        town = TOWN if town is None else town
+        place = PLACE if place is None else place
+        struct.pack_into("<32sII", self.m, OFF_SKY + 0x40, town.encode("utf-8")[:31], place, 0)  # town[32] NUL-padded, place, reserved
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2)
+
+    def push_item(self, form, count, tags, name, material=0, source=SRC_CONTAINER, chest=1, container=0):
+        """Skyrim -> MC: an item the player just got (ItemEvent). Dropped if Minecraft is a full ring behind."""
+        (tail,) = struct.unpack_from("<Q", self.m, OFF_ITEMS + 0x40)
+        if self.item_head - tail >= 64:
+            return False
+        struct.pack_into("<IiIBBBB28sI", self.m, OFF_ITEMS + 0x80 + (self.item_head % 64) * 48, form, count, tags, material, source, chest, 0,
+                         name.encode("utf-8")[:27], container)
+        self.item_head += 1
+        struct.pack_into("<Q", self.m, OFF_ITEMS, self.item_head)
+        return True
 
     def read_mc(self):
         raw = self.m[OFF_MC:OFF_MC + 0x68]
@@ -360,6 +397,11 @@ def main():
                 checked = 5
                 kinds, sel = read_world_entities(link)
                 print(f"world entities after walking over it: {kinds}")
+            # Loot: two Iron Ingots out of a chest; Minecraft's rules decide (EV_TAKE_ITEM back if converted).
+            if 19.0 <= t and checked == 5:
+                checked = 6
+                queued = link.push_item(0x0005ACE4, 2, TAG_ORE_INGOT, "Iron Ingot", container=0x000ABC01)
+                print(f"looted 2 x Iron Ingot from a chest in {TOWN!r} (place flags {PLACE:#x}): {'sent' if queued else 'item ring full'}")
             if 10 <= t and not saved:
                 frame = link.acquire_overlay()
                 if frame:

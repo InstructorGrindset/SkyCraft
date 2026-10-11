@@ -11,6 +11,7 @@
 // Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted.
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace skycraft::proto
@@ -95,6 +96,7 @@ namespace skycraft::proto
 		std::uint32_t reserved;
 	};
 	static_assert(sizeof(SkyState) == 0x68);
+	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60);  // Proto.SS_*
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t
@@ -239,6 +241,7 @@ namespace skycraft::proto
 		char          name[24];    // display name, UTF-8, NUL-terminated (truncated)
 	};
 	static_assert(sizeof(ActorRecord) == 64);
+	static_assert(offsetof(ActorRecord, level) == 36 && offsetof(ActorRecord, vendor) == 38 && offsetof(ActorRecord, name) == 40);  // SkyLink.readActors
 
 	// What a merchant trades in, from their vendor faction's buy/sell keyword list.
 	enum VendorBuys : std::uint16_t
@@ -387,6 +390,7 @@ namespace skycraft::proto
 		std::uint32_t container;  // FormID of the reference it came from (chest, corpse), 0 if none
 	};
 	static_assert(sizeof(ItemEvent) == 48);
+	static_assert(offsetof(ItemEvent, chest) == 14 && offsetof(ItemEvent, name) == 16 && offsetof(ItemEvent, container) == 44);  // SkyLink.drainItems
 	static_assert(kOffItemRing >= kOffEventRing + kEventRingDataOff + sizeof(McEvent) * kEventRingEntries);
 	static_assert(kOffItemRing + kItemRingDataOff + sizeof(ItemEvent) * kItemRingEntries <= kOffWorldEntities);
 
