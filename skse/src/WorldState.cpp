@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace skycraft::WorldState
 {
@@ -139,6 +141,63 @@ namespace skycraft::WorldState
 		if (a_player && a_player->GetParentCell() && a_player->GetParentCell()->IsInteriorCell()) {
 			a_flags |= proto::kPlaceInterior;
 		}
+	}
+
+	std::uint32_t Carried(RE::PlayerCharacter* a_player)
+	{
+		// The Elder Scrolls (BOOK records, read from Skyrim.esm and Dawnguard.esm with their EditorIDs and
+		// names): quest items, so they never convert and Minecraft can't see them. Looked up by file and
+		// local FormID, so the load order doesn't matter; a missing Dawnguard just leaves its three out.
+		struct ScrollForm
+		{
+			RE::FormID       local;
+			std::string_view file;
+		};
+		static constexpr ScrollForm kElderScrolls[] = {
+			{ 0x02D513, "Skyrim.esm" },     // DA04ElderScroll, "Elder Scroll" ("Elder Scroll (Dragon)" with Dawnguard)
+			{ 0x048782, "Skyrim.esm" },     // DA04ElderScrollFurled
+			{ 0x0126DC, "Dawnguard.esm" },  // DLC1ElderScrollDragon, "Elder Scroll (Dragon)"
+			{ 0x011A13, "Dawnguard.esm" },  // DLC1ElderScrollSun, "Elder Scroll (Sun)"
+			{ 0x0118F9, "Dawnguard.esm" },  // DLC1ElderScrollBlood, "Elder Scroll (Blood)"
+		};
+		static std::vector<RE::TESBoundObject*> scrolls;
+		static bool                             resolved = false;
+		static std::uint32_t                    cached = 0;
+		static auto                             nextCheck = std::chrono::steady_clock::time_point{};
+		if (!a_player) {
+			return 0;
+		}
+		if (!resolved) {
+			resolved = true;
+			if (auto* data = RE::TESDataHandler::GetSingleton()) {
+				for (const auto& s : kElderScrolls) {
+					if (auto* book = data->LookupForm<RE::TESObjectBOOK>(s.local, s.file)) {
+						scrolls.push_back(book);
+					}
+				}
+			}
+			logger::info("SkyCraft-portal: {} Elder Scroll forms to look for in the player's inventory", scrolls.size());
+		}
+		// The inventory once a second is plenty: the portal at the Time-Wound asks when the player steps in.
+		const auto now = std::chrono::steady_clock::now();
+		if (now < nextCheck) {
+			return cached;
+		}
+		nextCheck = now + std::chrono::seconds(1);
+		std::uint32_t flags = 0;
+		if (!scrolls.empty()) {
+			const auto inventory = a_player->GetInventory([](RE::TESBoundObject& a_obj) { return std::ranges::find(scrolls, &a_obj) != scrolls.end(); });
+			for (const auto& [item, entry] : inventory) {
+				if (entry.first > 0) {
+					flags |= proto::kCarryElderScroll;
+				}
+			}
+		}
+		if (flags != cached) {
+			logger::info("SkyCraft-portal: the player {} an Elder Scroll", (flags & proto::kCarryElderScroll) ? "now carries" : "no longer carries");
+		}
+		cached = flags;
+		return cached;
 	}
 
 	void PassTime(float a_hours)

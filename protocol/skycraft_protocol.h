@@ -95,10 +95,11 @@ namespace skycraft::proto
 		float         gameHour;
 		char          town[32];  // the city/town/settlement the player is in (or their location's name), UTF-8, NUL-terminated
 		std::uint32_t place;     // PlaceFlags
-		std::uint32_t reserved;
+		std::uint32_t carried;   // CarriedFlags. Was the reserved field (always 0), so an older plugin reads as "carries nothing"
 	};
 	static_assert(sizeof(SkyState) == 0x68);
-	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60);  // Proto.SS_*
+	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
+	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t
@@ -106,6 +107,15 @@ namespace skycraft::proto
 		kPlaceInterior = 1u << 0,  // an interior cell
 		kPlaceDungeon = 1u << 1,   // a cave, crypt, ruin, mine, camp, lair, ... (LocTypeDungeon and kin)
 		kPlaceTown = 1u << 2,      // inside a city, town or settlement
+	};
+
+	// Quest items in the Skyrim player's inventory that Minecraft asks about (SkyState::carried; they never
+	// convert, so Minecraft can't see them itself). Added within version 13: the field was reserved and zero.
+	enum CarriedFlags : std::uint32_t
+	{
+		kCarryElderScroll = 1u << 0,  // an Elder Scroll (Skyrim.esm DA04ElderScroll 0x02D513 and its furled copy
+		                              // 0x048782; Dawnguard.esm DLC1ElderScrollDragon 0x0126DC, Sun 0x011A13,
+		                              // Blood 0x0118F9): opens the portal at the Time-Wound onto Home
 	};
 	static_assert(kOffSkyState + sizeof(SkyState) <= kOffMcState);
 

@@ -130,6 +130,105 @@ class PortalStoreTest {
 		assertEquals(-1, PortalStore.sideOf(PortalStore.AXIS_Z, -7, 20, -7.2, 21.0));
 	}
 
+	@Test
+	void dimensionPortalsRoundTripAndKeepToTheirWorld() {
+		PortalStore s = new PortalStore();
+		Portal mirror = s.add(TAMRIEL, 0, 0, 64, 0, PortalStore.AXIS_X, 2, 3, 1, "Whiterun");
+		Portal nether = s.addIn(PortalKeys.NETHER, 0, 64, 0, PortalStore.AXIS_X, 2, 3, -1, "The Nether");
+		Portal wilds = s.addIn(PortalKeys.TAMRIEL_WILDS, 90, 72, 307, PortalStore.AXIS_X, 2, 3, -1, "Tamriel Wilds");
+		assertEquals(PortalStore.Bind.BOUND, s.bind(mirror.id(), nether.id()));
+		assertTrue(s.get(mirror.id()).inMirror());
+		assertFalse(s.get(nether.id()).inMirror());
+		// The same blocks in the mirror and in the Nether are different portals.
+		assertSame(s.get(mirror.id()), s.at(TAMRIEL, 1, 65, 0));
+		assertSame(s.get(mirror.id()), s.anyAt(1, 65, 0));
+		assertSame(s.get(nether.id()), s.in(PortalKeys.NETHER, 1, 65, 0));
+		assertNull(s.in(PortalKeys.TAMRIEL_WILDS, 1, 65, 0));
+		assertEquals(List.of(s.get(mirror.id())), s.touching(-1, 63, 0));
+		assertEquals(List.of(s.get(nether.id())), s.touching(PortalKeys.NETHER, -1, 63, 0));
+		assertEquals(List.of(s.get(wilds.id())), s.overlapping(PortalKeys.TAMRIEL_WILDS, 91, 72, 307, PortalStore.AXIS_X, 2, 3));
+		assertTrue(s.overlapping(PortalKeys.NETHER, 91, 72, 307, PortalStore.AXIS_X, 2, 3).isEmpty());
+		assertEquals("2 minecraft:the_nether 0 0 64 0 X 2 3 -1 1 The Nether", PortalStore.format(s.get(nether.id())));
+		List<String> problems = new ArrayList<>();
+		PortalStore back = PortalStore.parse(s.lines(), problems);
+		assertTrue(problems.isEmpty(), problems.toString());
+		assertEquals(s.get(mirror.id()), back.get(mirror.id()));
+		assertEquals(s.get(nether.id()), back.get(nether.id()));
+		assertEquals(s.get(wilds.id()), back.get(wilds.id()));
+		assertEquals(new PortalStore.Target.ToPortal(nether.id()), back.lead(back.get(mirror.id())));
+		assertEquals(new PortalStore.Target.ToPortal(mirror.id()), back.lead(back.get(nether.id())));
+		assertNull(back.lead(back.get(wilds.id())));
+	}
+
+	@Test
+	void oneWayOpeningsLeadToAnArrivalAndCountAsBound() {
+		PortalStore s = new PortalStore();
+		Portal wound = s.add(TAMRIEL, 0, 800, 513, 682, PortalStore.AXIS_Z, 2, 3, 1, "Throat of the World");
+		Portal other = s.add(TAMRIEL, 0, 0, 64, 0, PortalStore.AXIS_X, 2, 3, 1, "Riverwood");
+		assertEquals(PortalStore.Bind.BOUND, s.openOneWay(wound.id(), PortalKeys.HOME));
+		assertTrue(s.leads(s.get(wound.id())));
+		assertFalse(s.get(wound.id()).bound());
+		assertEquals(new PortalStore.Target.ToArrival(PortalKeys.HOME), s.lead(s.get(wound.id())));
+		assertEquals(PortalStore.Bind.ALREADY_BOUND, s.bind(wound.id(), other.id()));
+		assertEquals(PortalStore.Bind.ALREADY_BOUND, s.openOneWay(wound.id(), PortalKeys.NETHER));
+		assertEquals(PortalStore.Bind.MISSING, s.openOneWay(99, PortalKeys.HOME));
+		List<String> problems = new ArrayList<>();
+		PortalStore back = PortalStore.parse(s.lines(), problems);
+		assertTrue(problems.isEmpty(), problems.toString());
+		assertEquals(PortalKeys.HOME, back.oneWay(wound.id()));
+		// Gone: the opening goes with it.
+		back.remove(wound.id());
+		assertNull(back.oneWay(wound.id()));
+		assertTrue(back.lines().stream().noneMatch(l -> l.startsWith("oneway")));
+	}
+
+	@Test
+	void arrivalsVisitsAndEndingsAreKept() {
+		PortalStore s = new PortalStore();
+		java.util.UUID steve = java.util.UUID.fromString("00000000-0000-0000-0000-00000000beef");
+		assertNull(s.arrival(PortalKeys.NETHER));
+		s.setArrival(PortalKeys.NETHER, new PortalStore.Arrival(4.5, 71.0, -7.5, 0.0f));
+		assertTrue(s.visit(PortalKeys.NETHER));
+		assertFalse(s.visit(PortalKeys.NETHER));
+		assertFalse(s.visit("not a dimension"));
+		assertTrue(s.seeEnding(steve));
+		assertFalse(s.seeEnding(steve));
+		List<String> problems = new ArrayList<>();
+		PortalStore back = PortalStore.parse(s.lines(), problems);
+		assertTrue(problems.isEmpty(), problems.toString());
+		assertEquals(new PortalStore.Arrival(4.5, 71.0, -7.5, 0.0f), back.arrival(PortalKeys.NETHER));
+		assertTrue(back.visited(PortalKeys.NETHER));
+		assertFalse(back.visited(PortalKeys.HOME));
+		assertTrue(back.sawEnding(steve));
+	}
+
+	@Test
+	void badDimensionLines() {
+		List<String> problems = new ArrayList<>();
+		PortalStore s = PortalStore.parse(List.of(
+			"1 minecraft:the_nether 0 0 64 0 X 2 3 1 2 The Nether",
+			"2 0000003C 0 0 64 0 X 2 3 1 1 Whiterun",
+			"3 bad:dim:id 0 0 64 0 X 2 3 1 0 Bad",
+			"4 0000003C 0 9 64 0 X 2 3 1 0 Riverwood",
+			"oneway 4 skycraft:home",
+			"oneway 2 skycraft:home",
+			"oneway 77 skycraft:home",
+			"oneway 4",
+			"arrival minecraft:the_nether 1 2",
+			"arrival minecraft:the_nether 1 2 3 NaN",
+			"visited nowhere",
+			"ending not-a-uuid"), problems);
+		// A bad dimension, a oneway on a bound portal and on a missing one, a short oneway, two bad arrivals,
+		// a bad visit, a bad uuid.
+		assertEquals(8, problems.size(), problems.toString());
+		assertEquals(3, s.size());
+		assertEquals(PortalKeys.NETHER, s.get(1).dimension());
+		assertEquals(2, s.get(1).partner());
+		assertEquals(PortalKeys.HOME, s.oneWay(4));
+		assertNull(s.oneWay(2));
+		assertNull(s.arrival(PortalKeys.NETHER));
+	}
+
 	private static void assertArrayEquals(double[] want, double[] got) {
 		assertEquals(want.length, got.length);
 		for (int i = 0; i < want.length; i++) {

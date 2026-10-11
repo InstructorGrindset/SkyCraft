@@ -24,7 +24,7 @@ public final class Features {
 		DEEP_CREATURES("deep_creatures", "Skyrim creatures spawn in dark tunnels you dug (skycraft-deep.txt)"),
 		BREACH_DOORS("breach_doors", "a hidden antechamber under each dungeon entrance; dig in and open its sealed door to enter the dungeon"),
 		CLICK_TO_ACTIVATE("click_to_activate", "right click with nothing usable in hand activates Skyrim doors, containers and NPCs like G does"),
-		PORTALS("portals", "lit Nether portals bound in pairs with a filled soul gem take you between Skyrim places (skycraft-portals.txt in the world)");
+		PORTALS("portals", "lit Nether portals bound in pairs with a filled soul gem take you between Skyrim places; a Daedra heart or a tonal key opens one onto the Nether or Tamriel Wilds, an Elder Scroll at the Time-Wound onto Home, and Seamstone anywhere you've been (skycraft-portals.txt in the world)");
 
 		public final String key;
 		public final String about;

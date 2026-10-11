@@ -35,7 +35,7 @@ public final class SteveCamp {
 	public static final List<String> JOURNAL_PAGES = List.of(
 		"[PLACEHOLDER, page 1]\n\nSteve's journal goes here. Not written yet.",
 		"[PLACEHOLDER, page 2]\n\nMore of the walk east.",
-		"[PLACEHOLDER, page 3]\n\nThe last entry, written in sight of the wall."
+		"[PLACEHOLDER, page 3]\n\nThe last entry, written in sight of the wall. It speaks of the stone in the crack: Seamstone."
 	);
 
 	/** Beta era things a long walker would still carry. */

@@ -10,9 +10,10 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 /**
- * The soul gems have their item definition, model, texture and name, and the mixin that turns vanilla
- * Nether travel into the network is in the mixin config. Reads the mod's resources from the test
- * classpath (no Minecraft). Textures come from tools/gen_portal_textures.py.
+ * The network's items (soul gems, the tonal key, Seamstone) have their item definition, model, texture and
+ * name, the tonal key its recipe, and the mixins that turn vanilla Nether travel into the network and light
+ * portals in every world are in the mixin config. Reads the mod's resources from the test classpath (no
+ * Minecraft). Textures come from tools/gen_portal_textures.py.
  */
 class PortalResourcesTest {
 	private static String text(String path) {
@@ -38,5 +39,16 @@ class PortalResourcesTest {
 	@Test
 	void theNetherPortalMixinIsRegistered() {
 		assertTrue(text("skycraft.mixins.json").contains("\"NetherPortalBlockMixin\""));
+		assertTrue(text("skycraft.mixins.json").contains("\"BaseFireBlockMixin\""));
+	}
+
+	@Test
+	void theTonalKeyIsCraftedFromDwemerMetalRedstoneAndAmethyst() {
+		String recipe = text("data/skycraft/recipe/tonal_key.json");
+		assertTrue(recipe.contains("\"skycraft:dwarven_metal_ingot\""));
+		assertTrue(recipe.contains("\"minecraft:redstone\""));
+		assertTrue(recipe.contains("\"minecraft:amethyst_shard\""));
+		assertTrue(recipe.contains("\"id\": \"skycraft:tonal_key\""));
+		assertTrue(text("assets/skycraft/lang/en_us.json").contains("\"item.skycraft.seamstone\": \"Seamstone\""));
 	}
 }

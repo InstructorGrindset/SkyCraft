@@ -1183,6 +1183,7 @@ namespace skycraft
 				sky.gameHour = calendar->GetHour();
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
+			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

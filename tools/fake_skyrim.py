@@ -7,6 +7,7 @@ bit, prints Minecraft's reported player state, and saves the overlay frame to a 
 
 SKYCRAFT_TOWN (default Whiterun) and SKYCRAFT_PLACE (PlaceFlags: 1 interior, 2 dungeon, 4 town;
 default 4) set where the fake player is; SKYCRAFT_PLACE=3 makes it a dungeon interior.
+SKYCRAFT_CARRIED (CarriedFlags, default 0; 1 = an Elder Scroll) sets SkyState.carried.
 
 Breach doors: outside (no interior place flag) it publishes two dungeon entrances near the fake
 player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
@@ -47,6 +48,7 @@ FLOOR_Y = 100  # blocks
 X0 = 100000    # test area origin (blocks); must be a multiple of 8
 TOWN = os.environ.get("SKYCRAFT_TOWN", "Whiterun")
 PLACE = int(os.environ.get("SKYCRAFT_PLACE", "4"), 0)
+CARRIED = int(os.environ.get("SKYCRAFT_CARRIED", "0"), 0)  # SkyState.carried: 1 = an Elder Scroll
 BREACHES = os.environ.get("SKYCRAFT_BREACHES", "1") != "0"
 WORLD_ID = 0x3C  # Tamriel, as in SkyState.worldId
 
@@ -205,7 +207,7 @@ class Link:
                          yaw, pitch, teleport_seq, W, H, self.game_hour)
         town = TOWN if town is None else town
         place = PLACE if place is None else place
-        struct.pack_into("<32sII", self.m, OFF_SKY + 0x40, town.encode("utf-8")[:31], place, 0)  # town[32] NUL-padded, place, reserved
+        struct.pack_into("<32sII", self.m, OFF_SKY + 0x40, town.encode("utf-8")[:31], place, CARRIED)  # town[32] NUL-padded, place, carried
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2)
 
     def push_item(self, form, count, tags, name, material=0, source=SRC_CONTAINER, chest=1, container=0, quest=0):

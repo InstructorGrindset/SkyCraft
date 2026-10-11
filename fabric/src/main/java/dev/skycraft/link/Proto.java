@@ -227,9 +227,13 @@ public final class Proto {
 	public static final long SS_GAME_HOUR = 0x3C;
 	public static final long SS_TOWN = 0x40;   // char[32]
 	public static final long SS_PLACE = 0x60;  // PlaceFlags
+	/** CarriedFlags: quest items the Skyrim player carries. Was the reserved field (0), added within 13. */
+	public static final long SS_CARRIED = 0x64;
 	public static final int PLACE_INTERIOR = 1;
 	public static final int PLACE_DUNGEON = 1 << 1;
 	public static final int PLACE_TOWN = 1 << 2;
+	/** SkyState.carried: an Elder Scroll is in the Skyrim player's inventory (opens the Time-Wound portal onto Home). */
+	public static final int CARRY_ELDER_SCROLL = 1;
 
 	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
 	public static final int VENDOR_ANY = 1;
