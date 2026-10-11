@@ -1,6 +1,7 @@
 package dev.skycraft.loot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ class ItemRulesTest {
 
 	private static String convert(ItemRules rules, int tags, int material, int source, String name) {
 		ItemRules.Result r = rules.match(new ItemRules.Item(tags, material, source, name));
-		return r.keep() ? "keep" : r.item() + " " + r.perItem();
+		return r.keep() ? "keep" : r.label() + " " + r.perItem();
 	}
 
 	@Test
@@ -176,6 +177,181 @@ class ItemRulesTest {
 		assertEquals("minecraft:apple 1", convert(rules, tags("food"), 0, WORLD, "Half-Eaten Apple"));
 		assertEquals("keep", convert(rules, tags("food"), 0, WORLD, "Eaten Apple"));
 		assertEquals("minecraft:iron_ingot 1", convert(rules, 0, 0, WORLD, "Dwemer's Gear"));
+	}
+
+	@Test
+	void potionResultsNameTheirPotionInBrackets() {
+		List<String> problems = new ArrayList<>();
+		ItemRules rules = ItemRules.parse("""
+			tag potion name healing = minecraft:potion[healing] 1
+			tag poison name weak = minecraft:splash_potion[poison]
+			tag poison name deadly = minecraft:lingering_potion[ Minecraft:Strong_Harming ] 2
+			tag arrow name poisoned = minecraft:tipped_arrow[long_poison] 8
+			tag potion name luck = potion[luck] 1
+			tag food = minecraft:bread 1
+			""", problems);
+		assertTrue(problems.isEmpty(), problems.toString());
+		assertEquals(6, rules.size());
+		ItemRules.Result healing = rules.match(new ItemRules.Item(tags("potion"), 0, BOUGHT, "Potion of Minor Healing"));
+		assertEquals("minecraft:potion", healing.item());
+		assertEquals("healing", healing.potion());
+		assertEquals(1, healing.perItem());
+		assertEquals("minecraft:splash_potion[poison] 1", convert(rules, tags("poison"), 0, CORPSE, "Weak Poison"));
+		assertEquals("minecraft:lingering_potion[strong_harming] 2", convert(rules, tags("poison"), 0, CORPSE, "Deadly Poison"));
+		assertEquals("minecraft:tipped_arrow[long_poison] 8", convert(rules, tags("arrow"), 0, WORLD, "Poisoned Arrow"));
+		assertEquals("potion[luck] 1", convert(rules, tags("potion"), 0, WORLD, "Draught of Luck"));
+		// The old syntax still gives plain items.
+		ItemRules.Result bread = rules.match(new ItemRules.Item(tags("food"), 0, WORLD, "Bread"));
+		assertEquals("minecraft:bread", bread.item());
+		assertNull(bread.potion());
+		assertEquals("minecraft:bread", bread.label());
+	}
+
+	@Test
+	void reportsBadPotionsAndEachUnknownPotionOnce() {
+		List<String> problems = new ArrayList<>();
+		ItemRules rules = ItemRules.parse("""
+			tag potion name speed = minecraft:potion[speed] 1
+			tag potion name haste = minecraft:potion[speed] 1
+			tag potion name quick = minecraft:splash_potion[speed] 1
+			tag potion name night = minecraft:potion[nightvision] 1
+			tag potion name bread = minecraft:bread[healing] 1
+			tag potion name open = minecraft:potion[healing 1
+			tag potion name empty = minecraft:potion[] 1
+			tag potion name count = minecraft:potion[healing] lots
+			tag potion name many = minecraft:potion[healing] 65
+			tag potion name keep = keep
+			tag potion name fine = minecraft:potion[swiftness] 1
+			""", problems);
+		assertEquals(2, rules.size());
+		// One problem per bad line, but 'speed' (three lines) is reported once, naming every line.
+		assertEquals(7, problems.size(), problems.toString());
+		assertEquals(1L, problems.stream().filter(p -> p.contains("'speed'")).count(), problems.toString());
+		assertTrue(problems.contains("line 1: unknown potion 'speed', rule skipped (also line 2, 3)"), problems.toString());
+		assertTrue(problems.contains("line 4: unknown potion 'nightvision', rule skipped"), problems.toString());
+		assertTrue(problems.stream().anyMatch(p -> p.startsWith("line 5: only potion")), problems.toString());
+		assertTrue(problems.stream().anyMatch(p -> p.startsWith("line 6: no ']'")), problems.toString());
+		// Skipped rules don't match: the item falls through to later rules, or stays in Skyrim.
+		assertEquals("keep", convert(rules, tags("potion"), 0, WORLD, "Potion of Speed"));
+		assertEquals("minecraft:potion[swiftness] 1", convert(rules, tags("potion"), 0, WORLD, "Fine Potion"));
+	}
+
+	@Test
+	void potionIdsAreThe26Point3OnesAndAllDocumented() {
+		assertEquals(46, ItemRules.POTIONS.size());
+		assertEquals(46, new java.util.HashSet<>(ItemRules.POTIONS).size());
+		for (String id : ItemRules.POTIONS) {
+			assertTrue(java.util.regex.Pattern.compile("[ :]" + id + "(\\s|$)", java.util.regex.Pattern.MULTILINE).matcher(ItemRules.DEFAULT_TEXT).find(),
+				"potion " + id + " missing from the list in the defaults");
+		}
+	}
+
+	/** What the Skyrim side sends: the display name cut to 27 bytes (ItemEvent.name is char[28]). */
+	private static String sent(String name) {
+		return name.length() > 27 ? name.substring(0, 27) : name;
+	}
+
+	private static String potion(ItemRules rules, String name) {
+		return convert(rules, tags("potion"), 0, CONTAINER, sent(name));
+	}
+
+	private static String poison(ItemRules rules, String name) {
+		return convert(rules, tags("poison"), 0, CORPSE, sent(name));
+	}
+
+	@Test
+	void skyrimPotionsBecomeTheMatchingMinecraftPotion() {
+		ItemRules rules = defaults();
+		// Names from Skyrim.esm, Dragonborn.esm and USSEP; crafted potions are "Potion of " + the effect.
+		assertEquals("minecraft:potion[healing] 1", potion(rules, "Potion of Minor Healing"));
+		assertEquals("minecraft:potion[healing] 1", potion(rules, "Potion of Healing"));
+		assertEquals("minecraft:potion[strong_healing] 1", potion(rules, "Potion of Plentiful Healing"));
+		assertEquals("minecraft:potion[strong_healing] 1", potion(rules, "Potion of Ultimate Healing"));
+		assertEquals("minecraft:potion[healing] 1", potion(rules, "Potion of Minor Well-being"));
+		assertEquals("minecraft:potion[strong_healing] 1", potion(rules, "Potion of Vigorous Well-being"));
+		assertEquals("minecraft:potion[healing] 1", potion(rules, "Potion of Restore Health"));
+		assertEquals("minecraft:potion[regeneration] 1", potion(rules, "Draught of Regeneration"));
+		assertEquals("minecraft:potion[strong_regeneration] 1", potion(rules, "Elixir of Regeneration"));
+		assertEquals("minecraft:potion[regeneration] 1", potion(rules, "Potion of Health"));
+		assertEquals("minecraft:potion[regeneration] 1", potion(rules, "Potion of Minor Magicka"));
+		assertEquals("minecraft:potion[regeneration] 1", potion(rules, "Solution of Lasting Potency"));
+		assertEquals("minecraft:potion[regeneration] 1", potion(rules, "Potion of Regenerate Magicka"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Potion of the Warrior"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Draught of the Berserker"));
+		assertEquals("minecraft:potion[strong_strength] 1", potion(rules, "Elixir of the Berserker"));
+		assertEquals("minecraft:potion[strong_strength] 1", potion(rules, "Prime Elixir of Conflict"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Potion of True Shot"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Elixir of Strength"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Potion of Fortify Two-handed"));
+		assertEquals("minecraft:potion[strength] 1", potion(rules, "Potion of Fortify Carry Weight"));
+		assertEquals("minecraft:potion[swiftness] 1", potion(rules, "Potion of Minor Stamina"));
+		assertEquals("minecraft:potion[swiftness] 1", potion(rules, "Solution of Enhanced Stamina"));
+		assertEquals("minecraft:potion[swiftness] 1", potion(rules, "Potion of Vigor"));
+		assertEquals("minecraft:potion[swiftness] 1", potion(rules, "Potion of Regenerate Stamina"));
+		assertEquals("minecraft:potion[swiftness] 1", potion(rules, "Skirmisher's Philter"));
+		assertEquals("minecraft:potion[turtle_master] 1", potion(rules, "Potion of the Defender"));
+		assertEquals("minecraft:potion[turtle_master] 1", potion(rules, "Elixir of the Knight"));
+		assertEquals("minecraft:potion[invisibility] 1", potion(rules, "Potion of Brief Invisibility"));
+		assertEquals("minecraft:potion[long_invisibility] 1", potion(rules, "Potion of Prolonged Invisibility"));
+		assertEquals("minecraft:potion[invisibility] 1", potion(rules, "Potion of Invisibility"));
+		assertEquals("minecraft:potion[long_invisibility] 1", potion(rules, "Grand Elixir of Escape"));
+		assertEquals("minecraft:potion[invisibility] 1", potion(rules, "Draught of Light Feet"));
+		assertEquals("minecraft:potion[invisibility] 1", potion(rules, "Potion of Fortify Sneak"));
+		// Philter of the Phantom has no vendor keyword without USSEP.
+		assertEquals("minecraft:potion[invisibility] 1", convert(rules, 0, 0, WORLD, "Philter of the Phantom"));
+		assertEquals("minecraft:potion[fire_resistance] 1", potion(rules, "Potion of Resist Fire"));
+		assertEquals("minecraft:potion[long_fire_resistance] 1", potion(rules, "Elixir of Resist Fire"));
+		assertEquals("minecraft:potion[water_breathing] 1", potion(rules, "Potion of Waterbreathing"));
+		assertEquals("minecraft:potion[long_water_breathing] 1", potion(rules, "Philter of Waterbreathing"));
+		// Bought in a Skyrim shop converts the same way.
+		assertEquals("minecraft:potion[healing] 1", convert(rules, tags("potion"), 0, BOUGHT, "Potion of Minor Healing"));
+	}
+
+	@Test
+	void skyrimPoisonsBecomeSplashPotions() {
+		ItemRules rules = defaults();
+		assertEquals("minecraft:splash_potion[harming] 1", poison(rules, "Weak Poison"));
+		assertEquals("minecraft:splash_potion[harming] 1", poison(rules, "Poison"));
+		assertEquals("minecraft:splash_potion[strong_harming] 1", poison(rules, "Deadly Poison"));
+		assertEquals("minecraft:splash_potion[harming] 1", poison(rules, "Poison of Damage Health"));
+		assertEquals("minecraft:splash_potion[harming] 1", poison(rules, "Poison of Ravage Health"));
+		assertEquals("minecraft:splash_potion[poison] 1", poison(rules, "Weak Lingering Poison"));
+		assertEquals("minecraft:splash_potion[strong_poison] 1", poison(rules, "Deadly Lingering Poison"));
+		assertEquals("minecraft:splash_potion[poison] 1", poison(rules, "Poison of Lingering Damage Health"));
+		assertEquals("minecraft:splash_potion[poison] 1", poison(rules, "Frostbite Venom"));
+		assertEquals("minecraft:splash_potion[slowness] 1", poison(rules, "Weak Paralysis Poison"));
+		assertEquals("minecraft:splash_potion[strong_slowness] 1", poison(rules, "Virulent Paralysis Poison"));
+		assertEquals("minecraft:splash_potion[strong_slowness] 1", poison(rules, "Poison of Paralysis"));
+		assertEquals("minecraft:splash_potion[slowness] 1", poison(rules, "Poison of Slow"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Potent Fear Poison"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Weak Magicka Poison"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Lingering Stamina Poison"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Malign Vigor Poison"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Poison of Ravage Stamina"));
+		assertEquals("minecraft:splash_potion[weakness] 1", poison(rules, "Poison of Damage Magicka Regen"));
+	}
+
+	@Test
+	void skyrimOnlyPotionsAndPoisonsStay() {
+		ItemRules rules = defaults();
+		assertEquals("keep", potion(rules, "Blacksmith's Elixir"));
+		assertEquals("keep", potion(rules, "Potion of Fortify Smithing"));
+		assertEquals("keep", potion(rules, "Draught of the Healer"));
+		assertEquals("keep", potion(rules, "Potion of Lockpicking"));
+		assertEquals("keep", potion(rules, "Prime Elixir of Larceny"));
+		assertEquals("keep", potion(rules, "Potion of Cure Disease"));
+		assertEquals("keep", potion(rules, "Elixir of Resist Cold"));
+		assertEquals("keep", potion(rules, "Potion of Resist Frost"));
+		assertEquals("keep", potion(rules, "Draught of Resist Magic"));
+		assertEquals("keep", potion(rules, "Potion of Waterwalking"));
+		assertEquals("keep", potion(rules, "Soul Husk Extract"));
+		assertEquals("keep", potion(rules, "The White Phial (Full)"));
+		assertEquals("keep", convert(rules, 0, 0, WORLD, "Skooma"));
+		assertEquals("keep", poison(rules, "Weak Frenzy Poison"));
+		assertEquals("keep", poison(rules, "Deadly Aversion to Fire"));
+		assertEquals("keep", poison(rules, "Poison of Weakness to Poison"));
+		assertEquals("keep", poison(rules, "Lotus Extract"));
+		assertEquals("keep", poison(rules, "Nightshade Extract"));
 	}
 
 	@Test
