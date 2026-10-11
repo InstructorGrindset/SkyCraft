@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Loot.h"
+#include "Spawn.h"
 
 namespace skycraft
 {
@@ -192,7 +193,8 @@ namespace skycraft
 				proto::ActorRecord r{};
 				r.formId = actor->GetFormID();
 				r.flags = (actor->IsHostileToActor(a_player) ? proto::kActorHostile : 0u) | (actor->IsDead() ? proto::kActorDead : 0u) |
-				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u);
+				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u) |
+				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u);
 				const auto mc = SkyToMc(pos);
 				r.x = static_cast<float>(mc.x);
 				r.y = static_cast<float>(mc.y);
@@ -866,10 +868,12 @@ namespace skycraft
 					} else if (ev.type == proto::kEvSleep) {
 						Loot::PassTime(ev.a);
 					}
+					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 				}
 				pendingExplosions.clear();
 				pendingFlings.clear();
 				link.WriteActors(nullptr, 0);
+				Spawn::Update(a_player, a_delta);
 				return;
 			}
 			// Skyrim can't kill the player while Minecraft decides: one huge hit knocks them down
@@ -903,6 +907,9 @@ namespace skycraft
 				case proto::kEvSleep:
 					Loot::PassTime(ev.a);
 					break;
+				case proto::kEvSpawnCreature:
+					Spawn::OnEvent(a_player, ev);
+					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
 						TrainSkill(a_player, static_cast<RE::ActorValue>(ev.formId), ev.a);
@@ -913,6 +920,7 @@ namespace skycraft
 				}
 			}
 			UpdateFlings(a_delta);
+			Spawn::Update(a_player, a_delta);
 			for (auto it = pendingExplosions.begin(); it != pendingExplosions.end();) {
 				it->delay -= a_delta;
 				if (it->delay <= 0.0f) {

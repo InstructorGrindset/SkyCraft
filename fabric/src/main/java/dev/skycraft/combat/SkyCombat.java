@@ -85,7 +85,13 @@ public final class SkyCombat {
 		}
 		if (SkyLink.readActors(ACTORS)) {
 			dev.skycraft.loot.SkyLoot.onActors(level, ACTORS, server.getTickCount());
+			dev.skycraft.deep.SkyDeep.onActors(ACTORS);
 			sync(level);
+		}
+		for (ServerPlayer player : players) {
+			if (dev.skycraft.net.SkyNet.isHost(player)) {
+				dev.skycraft.deep.SkyDeep.tick(player, players, server.getTickCount());
+			}
 		}
 		// Hits land during the tick (melee, sweeps, arrows, fire); send one combined hit per actor.
 		for (SkyrimActorEntity proxy : PROXIES.values()) {

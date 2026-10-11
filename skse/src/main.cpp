@@ -1,6 +1,7 @@
 #include "Dig.h"
 #include "Loot.h"
 #include "Game.h"
+#include "Spawn.h"
 
 namespace
 {
@@ -39,6 +40,7 @@ namespace
 		case SKSE::MessagingInterface::kPostLoadGame:
 		case SKSE::MessagingInterface::kNewGame:
 			skycraft::Game::OnGameLoaded();
+			skycraft::Spawn::Reset();
 			break;
 		default:
 			break;
