@@ -25,8 +25,9 @@ public final class Demand {
 	}
 
 	private void add(String town, String item, int delta) {
-		this.steps.merge(key(town, item), delta, (a, b) -> Math.max(-MAX_STEPS, Math.min(MAX_STEPS, a + b)));
-		this.steps.remove(key(town, item), 0);
+		String key = key(town, item);
+		this.steps.merge(key, delta, (a, b) -> Math.max(-MAX_STEPS, Math.min(MAX_STEPS, a + b)));
+		this.steps.remove(key, 0);
 	}
 
 	/** The player bought {@code item} from a merchant in {@code town}. */

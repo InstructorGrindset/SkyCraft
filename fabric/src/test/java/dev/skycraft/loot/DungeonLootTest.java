@@ -60,6 +60,15 @@ class DungeonLootTest {
 	}
 
 	@Test
+	void aBadLineInTheOpenedFileDoesNotForgetTheChestsAfterIt() {
+		Set<Integer> opened = new HashSet<>();
+		// The second line was cut short by a crash and the next write ran on.
+		int bad = DungeonLoot.parseOpened(List.of("0001A2B3", "0002B3C40003C4D5", "", "FF000ABC\r", "not hex"), opened);
+		assertEquals(2, bad);
+		assertEquals(Set.of(0x0001A2B3, 0xFF000ABC), opened);
+	}
+
+	@Test
 	void ignoresTownsBarrelsCorpsesAndUnknownContainers() {
 		Set<Integer> opened = new HashSet<>();
 		assertFalse(DungeonLoot.shouldRoll(item(Proto.SRC_CONTAINER, 0xABC, true), Proto.PLACE_TOWN | Proto.PLACE_INTERIOR, opened));

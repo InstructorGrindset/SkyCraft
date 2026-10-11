@@ -51,36 +51,32 @@ public final class SkyTrade implements Merchant {
 	private static final Set<String> WARNED = new HashSet<>();
 	private static TradeRules rules;
 
-	private SkyrimActorEntity actor;
-	private String town;
+	/** The merchant's stand-in while its screen is open; null otherwise, so a closed shop holds no entity (or world). */
+	private @Nullable SkyrimActorEntity actor;
+	private String town = "";
 	private MerchantOffers offers = new MerchantOffers();
 	private final Map<MerchantOffer, TradeRules.Offer> sources = new IdentityHashMap<>();
 	/** Uses per trade, kept across openings so a merchant runs out of stock. */
 	private final Map<String, Integer> uses = new HashMap<>();
 	private @Nullable Player tradingPlayer;
+	/** The screen just closed: the next {@link #isClientSide()} call is MerchantMenu.removed's. */
+	private boolean closing;
 	private int xp;
 
-	private SkyTrade(SkyrimActorEntity actor, String town) {
-		this.actor = actor;
-		this.town = town;
+	private SkyTrade() {
 	}
 
 	/** Opens {@code actor}'s shop for {@code player}. */
 	public static void open(ServerPlayer player, SkyrimActorEntity actor) {
 		SkyLink.SkyState state = new SkyLink.SkyState();
-		String town = SkyLink.readSkyState(state) && state.town != null ? state.town.strip() : "";
+		String town = SkyLink.readSkyState(state) ? state.town.strip() : "";
 		String name = actor.getName().getString();
-		SkyTrade trade = BY_ACTOR.get(actor.formId());
-		if (trade == null) {
-			trade = new SkyTrade(actor, town);
-			BY_ACTOR.put(actor.formId(), trade);
-		}
+		SkyTrade trade = BY_ACTOR.computeIfAbsent(actor.formId(), id -> new SkyTrade());
 		Player other = trade.tradingPlayer;
 		if (other != null && other != player && trade.stillValid(other)) {
 			player.sendSystemMessage(Component.literal(name + " is busy with another customer."));
 			return;
 		}
-		trade.actor = actor;
 		trade.town = town;
 		List<TradeRules.Offer> list = rules().offersFor(actor.getVendor(), town, actor.formId(), DEMAND);
 		trade.rebuild(list, rules().town(town));
@@ -89,6 +85,7 @@ public final class SkyTrade implements Merchant {
 			SkyCraft.LOG.info("SkyCraft-trade: {} (vendor mask {}) has no trades in {}", name, actor.getVendor(), town.isEmpty() ? "*" : town);
 			return;
 		}
+		trade.actor = actor;
 		trade.setTradingPlayer(player);
 		trade.openTradingScreen(player, Component.literal(town.isEmpty() ? name : name + " of " + town), 0);
 		SkyCraft.LOG.info("SkyCraft-trade: {} opened {}'s shop in {} ({} offers)", player.getName().getString(), name, town.isEmpty() ? "*" : town,
@@ -162,10 +159,21 @@ public final class SkyTrade implements Merchant {
 		if (goods == null) {
 			return null;
 		}
+		// A trade can't take or give more than one stack; the price shrinks with the count.
 		int count = Math.min(o.count(), new ItemStack(goods).getMaxStackSize());
+		int price = TradeRules.priceFor(o, count);
 		Set<String> money = TradeRules.currenciesFor(where, o.item());
 		if (o.sell()) {
-			List<Currency.Pay> pay = Currency.cost(o.price(), money);
+			List<Currency.Pay> pay = Currency.cost(price, money);
+			if (Currency.total(pay) < price) {
+				// Two stacks of the town's currency can't pay it (a diamond in a copper town): selling it
+				// for less would let it be bought cheap here and spent as full-value coin elsewhere.
+				if (WARNED.add("price " + where.name() + " " + o.item())) {
+					SkyCraft.LOG.info("SkyCraft-trade: {} for {} coins can't be paid with two stacks of {} (towns line '{}'), trade skipped", o.item(), price,
+						money, where.name());
+				}
+				return null;
+			}
 			Item first = item(pay.getFirst().item());
 			if (first == null) {
 				return null;
@@ -180,7 +188,7 @@ public final class SkyTrade implements Merchant {
 			}
 			return new MerchantOffer(new ItemCost(first, pay.getFirst().count()), second, new ItemStack(goods, count), used, MAX_USES, 0, 0.0F);
 		}
-		Currency.Pay pay = Currency.payout(o.price(), money);
+		Currency.Pay pay = Currency.payout(price, money);
 		Item coin = item(pay.item());
 		if (coin == null) {
 			return null;
@@ -191,6 +199,10 @@ public final class SkyTrade implements Merchant {
 	@Override
 	public void setTradingPlayer(@Nullable Player player) {
 		this.tradingPlayer = player;
+		this.closing = player == null;
+		if (player == null) {
+			this.actor = null;
+		}
 	}
 
 	@Override
@@ -221,11 +233,15 @@ public final class SkyTrade implements Merchant {
 		} else {
 			DEMAND.sold(this.town, source.item());
 		}
+		// What actually changed hands (toMerchantOffer caps the count at a stack and scales the price).
+		int count = source.sell() ? offer.getResult().getCount() : offer.getItemCostA().count();
+		int price = TradeRules.priceFor(source, count);
 		String who = this.tradingPlayer != null ? this.tradingPlayer.getName().getString() : "?";
-		SkyCraft.LOG.info("SkyCraft-trade: {} {} {} x {} {} {} for {} coins", who, source.sell() ? "bought" : "sold", source.count(), source.item(),
-			source.sell() ? "from" : "to", this.actor.getName().getString(), source.price());
+		String merchant = this.actor != null ? this.actor.getName().getString() : "?";
+		SkyCraft.LOG.info("SkyCraft-trade: {} {} {} x {} {} {} for {} coins", who, source.sell() ? "bought" : "sold", count, source.item(),
+			source.sell() ? "from" : "to", merchant, price);
 		if (this.tradingPlayer instanceof ServerPlayer player && dev.skycraft.net.SkyNet.isHost(player)) {
-			SkyLink.pushEvent(Proto.EV_SKILL_USE, Proto.SKILL_SPEECH, source.price() * 2.0F, 0.0F, 0.0F, 0.0F, 0);
+			SkyLink.pushEvent(Proto.EV_SKILL_USE, Proto.SKILL_SPEECH, price * 2.0F, 0.0F, 0.0F, 0.0F, 0);
 		}
 	}
 
@@ -253,13 +269,24 @@ public final class SkyTrade implements Merchant {
 		return SoundEvents.VILLAGER_YES;
 	}
 
+	/**
+	 * A SkyTrade only exists on the server, but only MerchantMenu asks, in two places. Shift-clicking
+	 * the result plays the trade sound when not client side by casting the merchant to an Entity,
+	 * which this isn't: the ClassCastException came after the goods reached the inventory and before
+	 * the payment was taken, so every shift-click was a free trade. That sound is a no-op on a server
+	 * level anyway, so answer true. Closing the screen hands the payment slots back only on the
+	 * server, so the call right after setTradingPlayer(null) answers false.
+	 */
 	@Override
 	public boolean isClientSide() {
-		return this.actor.level().isClientSide();
+		boolean closed = this.closing;
+		this.closing = false;
+		return !closed;
 	}
 
 	@Override
 	public boolean stillValid(Player player) {
-		return player == this.tradingPlayer && !this.actor.isRemoved() && player.distanceToSqr(this.actor) <= MAX_DISTANCE_SQR;
+		SkyrimActorEntity at = this.actor;
+		return player == this.tradingPlayer && at != null && !at.isRemoved() && player.distanceToSqr(at) <= MAX_DISTANCE_SQR;
 	}
 }

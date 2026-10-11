@@ -14,7 +14,16 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 /**
  * The first time the player takes anything from a chest in a Skyrim dungeon, a Minecraft chest loot
@@ -109,7 +118,11 @@ public final class DungeonLoot {
 		return opened.add(it.container());
 	}
 
-	/** Called for every item the player loots in Skyrim, before conversion. Server thread. */
+	/**
+	 * Called for every item the player loots in Skyrim, before conversion. Server thread. Rolls like
+	 * {@code /loot give <player> loot <table>}, except that what doesn't fit in the inventory drops at
+	 * the player's feet instead of being lost.
+	 */
 	public static void onLooted(ServerPlayer player, SkyLink.Item it, int place) {
 		Set<Integer> seen = opened();
 		if (!shouldRoll(it, place, seen)) {
@@ -120,10 +133,18 @@ public final class DungeonLoot {
 		if (table == null) {
 			return;
 		}
-		var server = player.level().getServer();
-		var source = server.createCommandSourceStack().withSuppressedOutput().withLevel(player.level()).withPosition(player.position());
-		server.getCommands().performPrefixedCommand(source, "loot give " + player.getScoreboardName() + " loot " + table);
-		SkyCraft.LOG.info("SkyCraft-loot: first loot of dungeon chest {} rolled {}", String.format("%08X", it.container()), table);
+		ServerLevel level = player.level();
+		LootTable loot = level.getServer().reloadableRegistries().getLootTable(ResourceKey.create(Registries.LOOT_TABLE, Identifier.parse(table)));
+		if (loot == LootTable.EMPTY) {
+			SkyCraft.LOG.warn("SkyCraft-loot: unknown loot table '{}' in {}", table, FILE);
+			return;
+		}
+		List<ItemStack> stacks = loot.getRandomItems(new LootParams.Builder(level).withParameter(LootContextParams.ORIGIN, player.position())
+			.create(LootContextParamSets.CHEST));
+		for (ItemStack stack : stacks) {
+			SkyBridge.give(player, stack);
+		}
+		SkyCraft.LOG.info("SkyCraft-loot: first loot of dungeon chest {} rolled {} ({} stacks)", String.format("%08X", it.container()), table, stacks.size());
 	}
 
 	private static List<Table> tables() {
@@ -135,20 +156,35 @@ public final class DungeonLoot {
 		return tables;
 	}
 
+	/** Adds the chest ids (hex, one per line) to {@code out}; returns how many lines were not one. */
+	static int parseOpened(List<String> lines, Set<Integer> out) {
+		int bad = 0;
+		for (String raw : lines) {
+			String line = raw.strip();
+			if (line.isEmpty()) {
+				continue;
+			}
+			try {
+				out.add(Integer.parseUnsignedInt(line, 16));
+			} catch (NumberFormatException e) {
+				bad++; // e.g. a line cut short by a crash; the chests after it still count as opened
+			}
+		}
+		return bad;
+	}
+
 	private static Set<Integer> opened() {
 		if (opened == null) {
 			opened = new HashSet<>();
 			Path path = FabricLoader.getInstance().getConfigDir().resolve(OPENED_FILE);
 			try {
 				if (Files.exists(path)) {
-					for (String line : Files.readAllLines(path, StandardCharsets.UTF_8)) {
-						line = line.strip();
-						if (!line.isEmpty()) {
-							opened.add(Integer.parseUnsignedInt(line, 16));
-						}
+					int bad = parseOpened(Files.readAllLines(path, StandardCharsets.UTF_8), opened);
+					if (bad > 0) {
+						SkyCraft.LOG.warn("SkyCraft-loot: skipped {} unreadable lines in {}", bad, path);
 					}
 				}
-			} catch (IOException | NumberFormatException e) {
+			} catch (IOException e) {
 				SkyCraft.LOG.warn("SkyCraft-loot: couldn't read {}: {}", path, e.toString());
 			}
 		}

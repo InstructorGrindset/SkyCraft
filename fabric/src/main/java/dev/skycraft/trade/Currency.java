@@ -72,10 +72,20 @@ public final class Currency {
 		return out;
 	}
 
+	/** Coins {@code pay} is worth. */
+	public static int total(List<Pay> pay) {
+		int sum = 0;
+		for (Pay p : pay) {
+			sum += p.coins();
+		}
+		return sum;
+	}
+
 	/**
 	 * What the player pays for a price in coins: at most two stacks, using the largest allowed
 	 * currency that fits and the next smaller one for the rest, rounded up. Never less than the price,
-	 * except for prices beyond 64 of the largest currency, which are capped there.
+	 * except for prices beyond 64 of the largest currency, which are capped there: check with
+	 * {@link #total} before offering such a price.
 	 */
 	public static List<Pay> cost(int coins, Set<String> allowed) {
 		List<String> order = largestFirst(allowed);

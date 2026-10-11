@@ -88,6 +88,30 @@ class TradeRulesTest {
 	}
 
 	@Test
+	void currencyIsOnlyOfferedWhereTheTownCanPayItsFullPrice() {
+		// SkyTrade skips a sell offer whose cost can't cover its price. Without that, Rorikstead
+		// (copper only) sold a 200-coin diamond for 64 copper ingots, the most two stacks allow.
+		TradeRules rules = defaults();
+		int offered = 0;
+		for (TradeRules.Town town : rules.towns().values()) {
+			for (TradeRules.Trade t : rules.trades()) {
+				if (!t.sell() || Currency.value(t.item()) == 0) {
+					continue;
+				}
+				int price = Math.max(1, (int) Math.round(t.price() * town.multiplier(t.category())));
+				List<Currency.Pay> pay = Currency.cost(price, TradeRules.currenciesFor(town, t.item()));
+				if (Currency.total(pay) >= price) {
+					offered++;
+					assertTrue((double) Currency.total(pay) / t.count() > Currency.value(t.item()), town.name() + " " + t + " " + pay);
+				}
+			}
+		}
+		assertTrue(offered > 0);
+		TradeRules.Town rorikstead = rules.town("Rorikstead");
+		assertTrue(Currency.total(Currency.cost(200, TradeRules.currenciesFor(rorikstead, Currency.DIAMOND))) < 200);
+	}
+
+	@Test
 	void categoriesFromMask() {
 		Set<String> any = TradeRules.categoriesFor(Proto.VENDOR_ANY);
 		assertEquals(11, any.size());
@@ -219,6 +243,33 @@ class TradeRulesTest {
 		assertEquals(8, offers.get(1).price()); // wheat 10 * 0.8
 		// Another town's prices are untouched.
 		assertEquals(20, rules.offersFor(Proto.VENDOR_FOOD, "Riften", 1, demand).getFirst().price());
+	}
+
+	@Test
+	void priceShrinksWithACappedCount() {
+		// 32 ender pearls can't fit one trade (they stack to 16): half the pearls, half the price.
+		TradeRules.Offer sellPearls = new TradeRules.Offer(true, "minecraft:ender_pearl", 32, 10, "potion");
+		TradeRules.Offer buyPearls = new TradeRules.Offer(false, "minecraft:ender_pearl", 32, 10, "potion");
+		assertEquals(5, TradeRules.priceFor(sellPearls, 16));
+		assertEquals(5, TradeRules.priceFor(buyPearls, 16));
+		assertEquals(10, TradeRules.priceFor(sellPearls, 32));
+		// Rounding favors the merchant: up when it sells, down when it buys, never below 1.
+		TradeRules.Offer sellSwords = new TradeRules.Offer(true, "minecraft:iron_sword", 3, 10, "weapon");
+		TradeRules.Offer buySwords = new TradeRules.Offer(false, "minecraft:iron_sword", 3, 10, "weapon");
+		assertEquals(4, TradeRules.priceFor(sellSwords, 1));
+		assertEquals(3, TradeRules.priceFor(buySwords, 1));
+		assertEquals(1, TradeRules.priceFor(new TradeRules.Offer(false, "minecraft:ender_pearl", 32, 1, "potion"), 16));
+	}
+
+	@Test
+	void absurdPricesAreRejected() {
+		List<String> problems = new ArrayList<>();
+		// 2e9 coins times a town multiplier used to overflow into a 1-coin price.
+		TradeRules rules = TradeRules.parse("weapon sell 1 minecraft:iron_sword 2000000000\nweapon sell 1 minecraft:bow " + TradeRules.MAX_PRICE + "\n",
+			"* = copper ; weapon 1.4\n", problems);
+		assertEquals(1, problems.size(), problems.toString());
+		assertEquals(1, rules.trades().size());
+		assertEquals(140000, rules.offersFor(Proto.VENDOR_WEAPON, "Whiterun", 1, new Demand()).getFirst().price());
 	}
 
 	@Test

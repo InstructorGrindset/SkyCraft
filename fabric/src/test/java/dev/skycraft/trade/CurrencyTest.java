@@ -83,6 +83,17 @@ class CurrencyTest {
 	}
 
 	@Test
+	void totalShowsWhenAPriceIsCapped() {
+		assertEquals(40, Currency.total(List.of(new Currency.Pay(Currency.GOLD, 2), new Currency.Pay(Currency.NUGGET, 2))));
+		// A copper town can't pay for a 200-coin diamond: the cost is capped at 64 copper, so
+		// SkyTrade must not offer it (it would be bought for 64 and spent as 96 elsewhere).
+		List<Currency.Pay> diamondInCopper = Currency.cost(200, Set.of(Currency.COPPER));
+		assertEquals(List.of(new Currency.Pay(Currency.COPPER, 64)), diamondInCopper);
+		assertTrue(Currency.total(diamondInCopper) < 200);
+		assertTrue(Currency.total(Currency.cost(200, ALL)) >= 200);
+	}
+
+	@Test
 	void nothingAllowedMeansCopper() {
 		assertEquals(List.of(new Currency.Pay(Currency.COPPER, 5)), Currency.cost(5, Set.of()));
 		assertEquals(new Currency.Pay(Currency.COPPER, 5), Currency.payout(5, Set.of("minecraft:bread")));
