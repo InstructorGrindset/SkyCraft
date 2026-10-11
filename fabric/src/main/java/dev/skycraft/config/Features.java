@@ -20,6 +20,7 @@ public final class Features {
 		MERCHANTS("merchants", "right click a Skyrim vendor with an empty hand to trade (skycraft-trades.txt, skycraft-towns.txt)"),
 		TIME_SYNC("time_sync", "Minecraft's clock follows Skyrim's"),
 		BED_SLEEP("bed_sleep", "a night in a Minecraft bed passes the night in Skyrim"),
+		MINECRAFT_VIEW("minecraft_view", "in any dimension but the Skyrim mirror (the Nether, ...) the screen shows Minecraft's own world and Skyrim waits; off: those act like the mirror"),
 		DEEP_CREATURES("deep_creatures", "Skyrim creatures spawn in dark tunnels you dug (skycraft-deep.txt)"),
 		BREACH_DOORS("breach_doors", "a hidden antechamber under each dungeon entrance; dig in and open its sealed door to enter the dungeon"),
 		CLICK_TO_ACTIVATE("click_to_activate", "right click with nothing usable in hand activates Skyrim doors, containers and NPCs like G does"),

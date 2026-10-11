@@ -598,7 +598,8 @@ public final class SkyBreach {
 	// ---- the sealed door and the walls ----------------------------------------------------------
 
 	private static InteractionResult onUse(Player player, Level level, InteractionHand hand, BlockHitResult hit) {
-		if (level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(player instanceof ServerPlayer sp) || player.isSpectator() || !on()) {
+		if (level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(player instanceof ServerPlayer sp) || player.isSpectator() || !on()
+			|| !dev.skycraft.SkyDimension.inMirror(level)) {
 			return InteractionResult.PASS;
 		}
 		BlockPos pos = hit.getBlockPos();
@@ -682,7 +683,7 @@ public final class SkyBreach {
 	 * broken at all (creative mode aside).
 	 */
 	private static boolean beforeBreak(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity) {
-		if (level.isClientSide() || !(level instanceof ServerLevel serverLevel) || player.isCreative() || !on()) {
+		if (level.isClientSide() || !(level instanceof ServerLevel serverLevel) || player.isCreative() || !on() || !dev.skycraft.SkyDimension.inMirror(level)) {
 			return true;
 		}
 		BreachStore s = store(serverLevel.getServer());

@@ -738,6 +738,23 @@ namespace skycraft
 				}
 			}
 
+			// Minecraft view (View.cpp): Minecraft's player is in another dimension (the Nether, ...) and
+			// draws its own world over the screen; Skyrim's player waits here, parked, and comes back to
+			// wherever Minecraft's comes back into the mirror.
+			const auto view = View::Update(a_player, haveMc ? &mc : nullptr, mcAlive, loading, menu, worldId, st.puppeting, a_delta);
+			if (view.change == View::Change::kBackMinecraftLeads) {
+				lastSetPos = view.handover;
+				haveLastSet = true;
+				holdMismatch = 0.0f;
+				tickHistory.clear();  // its ticks over there aren't a path to here
+				if (view.far) {
+					settleTimer = kSettleSeconds;  // Havok bodies stream in there first
+				}
+			} else if (view.change == View::Change::kBackSkyrimLeads) {
+				teleportPending = true;
+				tickHistory.clear();
+			}
+
 			// Skyrim moved the player itself (load door, fast travel, script, loading a save).
 			const auto current = a_player->GetPosition();
 			if (loading) {
@@ -786,7 +803,7 @@ namespace skycraft
 				}
 			}
 			takeover = takeoverNow;
-			const bool arriving = haveMc && st.mcInWorld && !loading && mc.teleportAck != teleportSeq && !takeover;
+			const bool arriving = haveMc && st.mcInWorld && !loading && mc.teleportAck != teleportSeq && !takeover && !view.parked;
 			if (arriving) {
 				const auto   here = SkyToMc(current);
 				const double gap = std::sqrt((here.x - mc.x) * (here.x - mc.x) + (here.y - mc.y) * (here.y - mc.y) + (here.z - mc.z) * (here.z - mc.z));
@@ -801,8 +818,9 @@ namespace skycraft
 			}
 
 			// A dead Skyrim player gets Skyrim's own death camera and reload.
-			const bool puppet = haveMc && st.mcInWorld && mc.teleportAck == teleportSeq && !loading && !a_player->IsDead() && !takeover;
-			st.minecraftOwnsPlayer = puppet || (arriving && !a_player->IsDead());
+			const bool puppet = haveMc && st.mcInWorld && mc.teleportAck == teleportSeq && !loading && !a_player->IsDead() && !takeover && !view.parked;
+			// Parked for the Minecraft view: not driven, but Skyrim's controls stay off it all the same.
+			st.minecraftOwnsPlayer = puppet || ((arriving || view.parked) && !a_player->IsDead());
 			if (st.minecraftOwnsPlayer) {
 				HoldIdleCamera();  // Skyrim sees none of the player's input now (the compass, see above)
 			}
@@ -1168,13 +1186,14 @@ namespace skycraft
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;
-			if (haveMc && !loading && cell && settleTimer <= 0.0f) {
+			// (None of Skyrim's world goes to Minecraft while it's in another dimension.)
+			if (haveMc && !loading && cell && settleTimer <= 0.0f && !view.parked) {
 				Perf::Scope timer(Perf::kCollision);
 				Collision::Get().Update(puppet ? McVec{ mc.x, mc.y, mc.z } : skyMc);
 			}
 
 			static int waterFrame = 0;
-			if (haveMc && st.mcInWorld && !loading && cell && ++waterFrame % 3 == 0) {
+			if (haveMc && st.mcInWorld && !loading && cell && !view.parked && ++waterFrame % 3 == 0) {
 				Perf::Scope timer(Perf::kWater);
 				WriteWaterGrid(a_player, puppet ? McVec{ mc.x, mc.y, mc.z } : skyMc, worldId);
 			}
@@ -1183,7 +1202,7 @@ namespace skycraft
 			const McVec lightCentre = puppet ? McVec{ mc.x, mc.y, mc.z } : skyMc;
 			{
 				Perf::Scope timer(Perf::kLights);
-				BlockLights::Update(haveMc && st.mcInWorld && !loading && cell ? &lightCentre : nullptr, a_delta);
+				BlockLights::Update(haveMc && st.mcInWorld && !loading && cell && !view.parked ? &lightCentre : nullptr, a_delta);
 			}
 
 			// Blocks dug out of Skyrim's world: its collision around them goes to Minecraft again, and

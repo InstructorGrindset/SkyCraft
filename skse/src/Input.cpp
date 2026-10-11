@@ -121,7 +121,9 @@ namespace skycraft
 				if (menuOpen) {
 					st.skyrimMenuOpen = true;
 				}
-				const bool route = st.puppeting && !menuOpen;
+				// Minecraft's too while it shows its own world (View.cpp), Skyrim's player parked.
+				const bool view = View::Active();
+				const bool route = (st.puppeting || view) && !menuOpen;
 
 				for (auto* e = *a_event; e; e = e->next) {
 					switch (e->GetEventType()) {
@@ -132,11 +134,18 @@ namespace skycraft
 							}
 							auto* mm = e->AsMouseMoveEvent();
 							if (st.mcScreenOpen) {
-								const int x = std::clamp(st.cursorX.load() + mm->mouseInputX, 0, st.viewportW.load() - 1);
-								const int y = std::clamp(st.cursorY.load() + mm->mouseInputY, 0, st.viewportH.load() - 1);
+								const int vw = std::max(1, st.viewportW.load()), vh = std::max(1, st.viewportH.load());
+								const int x = std::clamp(st.cursorX.load() + mm->mouseInputX, 0, vw - 1);
+								const int y = std::clamp(st.cursorY.load() + mm->mouseInputY, 0, vh - 1);
 								st.cursorX = x;
 								st.cursorY = y;
-								link.PushInput(proto::kInCursor, 0, x, y);
+								// The cursor lives in viewport pixels; Minecraft's frames can be smaller (the
+								// Minecraft view renders at most 1080 high).
+								const int ow = st.overlayW.load(), oh = st.overlayH.load();
+								link.PushInput(proto::kInCursor, 0, ow > 0 ? x * ow / vw : x, oh > 0 ? y * oh / vh : y);
+							} else if (view) {
+								// Minecraft turns its own player in another dimension (Skyrim's look is for the mirror).
+								link.PushInput(proto::kInLook, 0, mm->mouseInputX, mm->mouseInputY);
 							} else {
 								lookDx += static_cast<float>(mm->mouseInputX);
 								lookDy += static_cast<float>(mm->mouseInputY);
@@ -159,7 +168,8 @@ namespace skycraft
 									if (IsSkyrimMenuKey(code)) {
 										break;  // MenuControls (see the hook below) opens Skyrim's menu
 									}
-									if (code == kDikG || code == kDikH || code == kDikO) {
+									// (G and H are Minecraft's keys in the Minecraft view: nothing of Skyrim's is there.)
+									if (code == kDikO || (!view && (code == kDikG || code == kDikH))) {
 										if (down) {
 											if (code == kDikG) {
 												ActivateSkyrimTarget(ActivateBy::kG);
@@ -212,7 +222,7 @@ namespace skycraft
 			static RE::BSEventNotifyControl thunk(RE::MenuControls* a_this, RE::InputEvent* const* a_event, RE::BSTEventSource<RE::InputEvent*>* a_source)
 			{
 				auto& st = State();
-				if (!a_event || !*a_event || !st.puppeting || st.skyrimMenuOpen || Game::SkyrimMenuOpen()) {
+				if (!a_event || !*a_event || !(st.puppeting || View::Active()) || st.skyrimMenuOpen || Game::SkyrimMenuOpen()) {
 					return func(a_this, a_event, a_source);  // a Skyrim menu is up: all its input
 				}
 				std::vector<RE::InputEvent*> keep;

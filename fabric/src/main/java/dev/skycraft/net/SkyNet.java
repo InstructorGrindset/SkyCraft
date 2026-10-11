@@ -89,12 +89,20 @@ public final class SkyNet {
 		PayloadTypeRegistry.serverboundPlay().register(DigReveal.TYPE, DigReveal.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(DigOpen.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
-			context.server().execute(() -> SkyDig.open(player, payload.world(), payload.pos(), payload.material()));
+			context.server().execute(() -> {
+				if (dev.skycraft.SkyDimension.inMirror(player)) {  // Skyrim's ground is only in the mirror
+					SkyDig.open(player, payload.world(), payload.pos(), payload.material());
+				}
+			});
 		});
 		ServerPlayNetworking.registerGlobalReceiver(DigReveal.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			int[] materials = payload.materials().stream().mapToInt(Integer::intValue).toArray();
-			context.server().execute(() -> SkyDig.reveal(player, payload.world(), payload.cells(), materials));
+			context.server().execute(() -> {
+				if (dev.skycraft.SkyDimension.inMirror(player)) {
+					SkyDig.reveal(player, payload.world(), payload.cells(), materials);
+				}
+			});
 		});
 		PayloadTypeRegistry.clientboundPlay().register(Died.TYPE, Died.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(Hurt.TYPE, (payload, context) -> {
