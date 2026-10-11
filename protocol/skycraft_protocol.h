@@ -222,6 +222,7 @@ namespace skycraft::proto
 		kActorDead = 1u << 1,
 		kActorEssential = 1u << 2,
 		kActorInCombat = 1u << 3,
+		kActorSpawned = 1u << 4,    // a creature kEvSpawnCreature brought (Minecraft counts the live ones)
 	};
 
 	struct ActorRecord
@@ -284,6 +285,17 @@ namespace skycraft::proto
 		kEvTakeItem = 6,    // Minecraft converted a looted item: formId = the item's base form, a = how many to remove
 		                    // from the Skyrim player's inventory (see ItemEvent)
 		kEvSleep = 7,       // the player slept in a Minecraft bed: a = game hours to pass in Skyrim
+		kEvSpawnCreature = 8,  // a Skyrim creature comes out of the dark in a dug tunnel: formId = SpawnKind, a/b/c = its
+		                       // feet (MC coords, on top of a solid block), d = despawn distance (blocks), flags = most
+		                       // spawned creatures alive at once (Skyrim refuses the spawn past it)
+	};
+
+	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).
+	enum SpawnKind : std::uint32_t
+	{
+		kSpawnSkeever = 1,
+		kSpawnSkeleton = 2,
+		kSpawnDraugr = 3,
 	};
 
 	enum HitFlags : std::uint32_t

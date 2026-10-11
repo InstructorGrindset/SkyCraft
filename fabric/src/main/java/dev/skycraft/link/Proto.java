@@ -58,6 +58,8 @@ public final class Proto {
 	public static final int ACTOR_DEAD = 1 << 1;
 	public static final int ACTOR_ESSENTIAL = 1 << 2;
 	public static final int ACTOR_IN_COMBAT = 1 << 3;
+	/** A creature EV_SPAWN_CREATURE brought. */
+	public static final int ACTOR_SPAWNED = 1 << 4;
 
 	// Event ring (relative to OFF_EVENT_RING)
 	public static final int EVENT_RING_ENTRIES = 512;
@@ -74,6 +76,15 @@ public final class Proto {
 	public static final int EV_TAKE_ITEM = 6;
 	/** The player slept in a Minecraft bed: a = game hours Skyrim passes. */
 	public static final int EV_SLEEP = 7;
+	/**
+	 * A Skyrim creature comes out of the dark in a dug tunnel: formId = SPAWN_* kind, a/b/c = its feet (MC coords),
+	 * d = despawn distance (blocks), flags = most spawned creatures alive at once.
+	 */
+	public static final int EV_SPAWN_CREATURE = 8;
+	// SpawnKind
+	public static final int SPAWN_SKEEVER = 1;
+	public static final int SPAWN_SKELETON = 2;
+	public static final int SPAWN_DRAUGR = 3;
 
 	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
 	public static final int ITEM_RING_ENTRIES = 64;
