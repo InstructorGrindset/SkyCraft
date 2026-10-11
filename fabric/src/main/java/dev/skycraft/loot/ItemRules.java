@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public final class ItemRules {
 	/** Tag names, by bit (see ItemTags in the protocol header). */
 	public static final List<String> TAGS = List.of("food", "foodraw", "hide", "oreingot", "potion", "poison", "ingredient", "weapon", "armor", "clothing",
-		"jewelry", "gold", "key", "arrow", "gem", "clutter", "book");
+		"jewelry", "gold", "key", "arrow", "gem", "clutter", "book", "soulgem", "filled");
 	/** Material names, by value (see ItemMaterial in the protocol header). */
 	public static final List<String> MATERIALS = List.of("none", "wood", "iron", "steel", "imperial", "orcish", "dwarven", "elven", "glass", "ebony", "daedric",
 		"dragon", "silver", "hide", "draugr", "falmer");
@@ -91,7 +91,7 @@ public final class ItemRules {
 		#   conditions = minecraft:potion[healing] N   (a potion; see "Potions and poisons" below)
 		# Conditions (all must hold): tag <t>, name <word>, material <m>, from <where>
 		#   tags: food foodraw hide oreingot potion poison ingredient weapon armor clothing jewelry
-		#         gold key arrow gem clutter book
+		#         gold key arrow gem clutter book soulgem filled (a soul gem that comes with a soul)
 		#   materials: wood iron steel imperial orcish dwarven elven glass ebony daedric dragon
 		#              silver hide draugr falmer
 		#   from: world corpse container actor bought (Skyrim's shop) looted (corpse or container)
@@ -319,6 +319,17 @@ public final class ItemRules {
 		tag poison name virulent = minecraft:splash_potion[strong_harming] 1
 		tag poison name deadly = minecraft:splash_potion[strong_harming] 1
 		tag poison = minecraft:splash_potion[harming] 1
+
+		# Soul gems (portal keys)
+		# A Greater, Grand or Black soul gem that already holds a soul (as Skyrim's shops and loot have them)
+		# becomes a SkyCraft filled soul gem: use it on a lit Nether portal to attune it, then on a second
+		# portal to bind the two for good. Petty, Lesser and Common gems, empty gems, gems you filled with
+		# Soul Trap yourself, Azura's Star and the Black Star stay in Skyrim.
+		tag soulgem name star = keep
+		tag soulgem tag filled name greater = skycraft:filled_soul_gem 1
+		tag soulgem tag filled name grand = skycraft:filled_soul_gem 1
+		tag soulgem tag filled name black = skycraft:filled_soul_gem 1
+		tag soulgem = keep
 
 		# Bows from anywhere become Minecraft bows
 		tag weapon name crossbow = minecraft:crossbow 1

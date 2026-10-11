@@ -52,6 +52,7 @@ WORLD_ID = 0x3C  # Tamriel, as in SkyState.worldId
 
 # McEvent types (skycraft_protocol.h)
 EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE, EV_ENTER_DUNGEON = range(1, 10)
+EV_PORTAL_TRAVEL = 11  # portal network: printed, not acted on (a real Skyrim moves the player)
 SRC_CONTAINER = 2
 TAG_ORE_INGOT = 1 << 3
 
@@ -127,6 +128,10 @@ class Link:
                 known = self.breaches.get(form)
                 what = f"{known!r} (published)" if known else "a door that was never published (Skyrim would refuse it)"
                 print(f"  event from Minecraft: enter dungeon through door {form:08X}: {what}")
+            elif typ == EV_PORTAL_TRAVEL:
+                came_from = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
+                kind = "interior cell" if flags & 1 else "worldspace"
+                print(f"  event from Minecraft: portal travel to {kind} {form:08X} at ({a:.2f},{b:.2f},{c:.2f}) facing {d:.0f}, sent from {came_from:08X}")
             else:
                 print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
             self.events.append(typ)

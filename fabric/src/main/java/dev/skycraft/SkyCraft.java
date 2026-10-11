@@ -26,6 +26,7 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.net.SkyNet.init();
 		dev.skycraft.world.SkyDig.init();
 		dev.skycraft.breach.SkyBreach.init();
+		dev.skycraft.portal.SkyPortals.init(); // portal network: soul gem items, tick, frame breaks
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

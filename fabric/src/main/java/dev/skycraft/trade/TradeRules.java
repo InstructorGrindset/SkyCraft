@@ -92,6 +92,8 @@ public final class TradeRules {
 		ingot sell 4 minecraft:iron_ingot 24
 		ingot sell 8 minecraft:coal 6
 		ingot sell 1 minecraft:diamond 200
+		# Obsidian for portal frames (ten make one): dear, and cheapest where ingots are (Markarth, the mining towns)
+		ingot sell 2 minecraft:obsidian 72
 		ingot buy 4 minecraft:iron_ingot 12
 		ingot buy 4 minecraft:raw_iron 10
 		ingot buy 2 minecraft:raw_gold 14
@@ -151,6 +153,7 @@ public final class TradeRules {
 		tool sell 16 minecraft:torch 4
 		tool sell 1 minecraft:lantern 6
 		tool sell 1 minecraft:bucket 20
+		tool sell 1 minecraft:obsidian 40
 		tool buy 1 minecraft:iron_pickaxe 16
 		tool buy 16 minecraft:string 3
 

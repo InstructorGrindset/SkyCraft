@@ -1,5 +1,7 @@
 {
   "entity.skycraft.skyrim_actor": "Skyrim NPC",
+  "item.skycraft.filled_soul_gem": "Filled Soul Gem",
+  "item.skycraft.attuned_soul_gem": "Attuned Soul Gem",
   "item.skycraft.steel_ingot": "Steel Ingot",
   "item.skycraft.orichalcum_ingot": "Orichalcum Ingot",
   "item.skycraft.dwarven_metal_ingot": "Dwarven Metal Ingot",
