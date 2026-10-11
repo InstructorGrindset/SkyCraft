@@ -380,6 +380,7 @@ namespace skycraft::proto
 		kSrcCorpse = 1,     // a dead actor
 		kSrcContainer = 2,  // a chest, barrel, merchant chest, ...
 		kSrcActor = 3,      // a living actor (gift, pickpocket)
+		kSrcBought = 4,     // bought from a merchant (Skyrim's barter menu was open)
 	};
 
 	struct ItemEvent

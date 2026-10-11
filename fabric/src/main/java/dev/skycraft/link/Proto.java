@@ -131,6 +131,8 @@ public final class Proto {
 	public static final int SRC_CORPSE = 1;
 	public static final int SRC_CONTAINER = 2;
 	public static final int SRC_ACTOR = 3;
+	/** Bought from a merchant in Skyrim's barter menu. */
+	public static final int SRC_BOUGHT = 4;
 	/** Skyrim skill (ActorValue) trained by trading with a Minecraft merchant screen. */
 	public static final int SKILL_SPEECH = 17;
 	// Skyrim skills (ActorValue) Minecraft reports use of; weapon skills come from EV_HIT_ACTOR.

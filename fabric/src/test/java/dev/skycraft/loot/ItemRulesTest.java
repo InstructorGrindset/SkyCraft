@@ -8,7 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ItemRulesTest {
-	private static final int WORLD = 0, CORPSE = 1, CONTAINER = 2;
+	private static final int WORLD = 0, CORPSE = 1, CONTAINER = 2, ACTOR = 3, BOUGHT = 4;
 
 	private static ItemRules defaults() {
 		List<String> problems = new ArrayList<>();
@@ -63,6 +63,30 @@ class ItemRulesTest {
 		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), 3, CONTAINER, "Steel Sword"));
 		assertEquals("skycraft:steel_ingot 2", convert(rules, tags("armor"), 3, CORPSE, "Steel Armor"));
 		assertEquals("keep", convert(rules, tags("weapon"), 9, CORPSE, "Ebony Sword"));
+	}
+
+	@Test
+	void boughtGearBecomesTheMatchingGear() {
+		ItemRules rules = defaults();
+		int steel = ItemRules.MATERIALS.indexOf("steel"), elven = ItemRules.MATERIALS.indexOf("elven"), iron = ItemRules.MATERIALS.indexOf("iron");
+		int daedric = ItemRules.MATERIALS.indexOf("daedric"), hide = ItemRules.MATERIALS.indexOf("hide");
+		// The user's report: a Hunting Bow bought from Elrindir became a steel ingot.
+		assertEquals("minecraft:bow 1", convert(rules, tags("weapon"), steel, BOUGHT, "Hunting Bow"));
+		assertEquals("minecraft:bow 1", convert(rules, tags("weapon"), steel, CORPSE, "Hunting Bow"));
+		assertEquals("skycraft:steel_sword 1", convert(rules, tags("weapon"), steel, BOUGHT, "Steel Sword"));
+		assertEquals("skycraft:steel_war_axe 1", convert(rules, tags("weapon"), steel, BOUGHT, "Steel War Axe"));
+		assertEquals("skycraft:daedric_sword 1", convert(rules, tags("weapon"), daedric, BOUGHT, "Daedric Greatsword"));
+		assertEquals("skycraft:elven_helmet 1", convert(rules, tags("armor"), elven, BOUGHT, "Elven Helmet"));
+		assertEquals("skycraft:iron_greaves 1", convert(rules, tags("armor"), iron, BOUGHT, "Iron Gauntlets"));
+		assertEquals("skycraft:steel_boots 1", convert(rules, tags("armor"), steel, BOUGHT, "Steel Shin Boots"));
+		assertEquals("minecraft:leather_chestplate 1", convert(rules, tags("armor"), hide, BOUGHT, "Leather Armor"));
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), iron, BOUGHT, "Iron Shield"));
+		// Bought gear never salvages; looted gear still does.
+		assertEquals("keep", convert(rules, tags("weapon"), ItemRules.MATERIALS.indexOf("silver"), BOUGHT, "Silver Sword"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), steel, CONTAINER, "Steel Sword"));
+		// Gold paid by a merchant stays in Skyrim; bought food still converts.
+		assertEquals("keep", convert(rules, tags("gold", "clutter"), 0, BOUGHT, "Gold"));
+		assertEquals("minecraft:pumpkin_pie 1", convert(rules, tags("food"), 0, ACTOR, "Apple Pie"));
 	}
 
 	@Test

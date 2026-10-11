@@ -27,8 +27,8 @@ public final class ItemRules {
 	/** Material names, by value (see ItemMaterial in the protocol header). */
 	public static final List<String> MATERIALS = List.of("none", "wood", "iron", "steel", "imperial", "orcish", "dwarven", "elven", "glass", "ebony", "daedric",
 		"dragon", "silver", "hide", "draugr", "falmer");
-	/** Source names, by value (see ItemSource); "looted" means corpse or container. */
-	public static final List<String> SOURCES = List.of("world", "corpse", "container", "actor");
+	/** Source names, by value (see ItemSource); "looted" means corpse or container, "bought" is Skyrim's shop. */
+	public static final List<String> SOURCES = List.of("world", "corpse", "container", "actor", "bought");
 
 	public record Item(int tags, int material, int source, String name) {
 	}
@@ -69,7 +69,7 @@ public final class ItemRules {
 		#         gold key arrow gem clutter book
 		#   materials: wood iron steel imperial orcish dwarven elven glass ebony daedric dragon
 		#              silver hide draugr falmer
-		#   from: world corpse container actor looted (corpse or container)
+		#   from: world corpse container actor bought (Skyrim's shop) looted (corpse or container)
 		# Restart Skyrim after editing.
 
 		# Stays in Skyrim: coins for merchants, keys and books for quests, drinks
@@ -110,6 +110,14 @@ public final class ItemRules {
 		tag foodraw name meat = minecraft:beef 1
 		tag food = minecraft:bread 1
 
+		# Leather armor bought in a Skyrim shop becomes Minecraft leather armor
+		tag armor material hide name helmet from bought = minecraft:leather_helmet 1
+		tag armor material hide name hood from bought = minecraft:leather_helmet 1
+		tag armor material hide name armor from bought = minecraft:leather_chestplate 1
+		tag armor material hide name bracers from bought = minecraft:leather_leggings 1
+		tag armor material hide name gauntlets from bought = minecraft:leather_leggings 1
+		tag armor material hide name boots from bought = minecraft:leather_boots 1
+
 		# Hides and leather (strips before hides, in case Skyrim tags them as hide)
 		name leather name strips = skycraft:leather_strips 1
 		tag hide = minecraft:leather 1
@@ -143,7 +151,111 @@ public final class ItemRules {
 		# Arrows
 		tag arrow = minecraft:arrow 1
 
-		# Looted iron and steel gear salvages into ingots (gear you craft or buy stays)
+		# Bows from anywhere become Minecraft bows
+		tag weapon name crossbow = minecraft:crossbow 1
+		tag weapon name bow = minecraft:bow 1
+
+		# Gear bought in a Skyrim shop becomes the matching SkyCraft gear (looted gear salvages instead).
+		# Gauntlets fill the greaves slot, since Minecraft has no glove slot.
+		tag armor name shield from bought = minecraft:shield 1
+		tag weapon material iron name sword from bought = skycraft:iron_sword 1
+		tag weapon material iron name greatsword from bought = skycraft:iron_sword 1
+		tag weapon material iron name dagger from bought = skycraft:iron_sword 1
+		tag weapon material iron name axe from bought = skycraft:iron_war_axe 1
+		tag weapon material iron name battleaxe from bought = skycraft:iron_war_axe 1
+		tag weapon material iron name mace from bought = skycraft:iron_war_axe 1
+		tag weapon material iron name warhammer from bought = skycraft:iron_war_axe 1
+		tag armor material iron name helmet from bought = skycraft:iron_helmet 1
+		tag armor material iron name armor from bought = skycraft:iron_cuirass 1
+		tag armor material iron name cuirass from bought = skycraft:iron_cuirass 1
+		tag armor material iron name gauntlets from bought = skycraft:iron_greaves 1
+		tag armor material iron name boots from bought = skycraft:iron_boots 1
+		tag weapon material steel name sword from bought = skycraft:steel_sword 1
+		tag weapon material steel name greatsword from bought = skycraft:steel_sword 1
+		tag weapon material steel name dagger from bought = skycraft:steel_sword 1
+		tag weapon material steel name axe from bought = skycraft:steel_war_axe 1
+		tag weapon material steel name battleaxe from bought = skycraft:steel_war_axe 1
+		tag weapon material steel name mace from bought = skycraft:steel_war_axe 1
+		tag weapon material steel name warhammer from bought = skycraft:steel_war_axe 1
+		tag armor material steel name helmet from bought = skycraft:steel_helmet 1
+		tag armor material steel name armor from bought = skycraft:steel_cuirass 1
+		tag armor material steel name cuirass from bought = skycraft:steel_cuirass 1
+		tag armor material steel name gauntlets from bought = skycraft:steel_greaves 1
+		tag armor material steel name boots from bought = skycraft:steel_boots 1
+		tag weapon material orcish name sword from bought = skycraft:orcish_sword 1
+		tag weapon material orcish name greatsword from bought = skycraft:orcish_sword 1
+		tag weapon material orcish name dagger from bought = skycraft:orcish_sword 1
+		tag weapon material orcish name axe from bought = skycraft:orcish_war_axe 1
+		tag weapon material orcish name battleaxe from bought = skycraft:orcish_war_axe 1
+		tag weapon material orcish name mace from bought = skycraft:orcish_war_axe 1
+		tag weapon material orcish name warhammer from bought = skycraft:orcish_war_axe 1
+		tag armor material orcish name helmet from bought = skycraft:orcish_helmet 1
+		tag armor material orcish name armor from bought = skycraft:orcish_cuirass 1
+		tag armor material orcish name cuirass from bought = skycraft:orcish_cuirass 1
+		tag armor material orcish name gauntlets from bought = skycraft:orcish_greaves 1
+		tag armor material orcish name boots from bought = skycraft:orcish_boots 1
+		tag weapon material dwarven name sword from bought = skycraft:dwarven_sword 1
+		tag weapon material dwarven name greatsword from bought = skycraft:dwarven_sword 1
+		tag weapon material dwarven name dagger from bought = skycraft:dwarven_sword 1
+		tag weapon material dwarven name axe from bought = skycraft:dwarven_war_axe 1
+		tag weapon material dwarven name battleaxe from bought = skycraft:dwarven_war_axe 1
+		tag weapon material dwarven name mace from bought = skycraft:dwarven_war_axe 1
+		tag weapon material dwarven name warhammer from bought = skycraft:dwarven_war_axe 1
+		tag armor material dwarven name helmet from bought = skycraft:dwarven_helmet 1
+		tag armor material dwarven name armor from bought = skycraft:dwarven_cuirass 1
+		tag armor material dwarven name cuirass from bought = skycraft:dwarven_cuirass 1
+		tag armor material dwarven name gauntlets from bought = skycraft:dwarven_greaves 1
+		tag armor material dwarven name boots from bought = skycraft:dwarven_boots 1
+		tag weapon material elven name sword from bought = skycraft:elven_sword 1
+		tag weapon material elven name greatsword from bought = skycraft:elven_sword 1
+		tag weapon material elven name dagger from bought = skycraft:elven_sword 1
+		tag weapon material elven name axe from bought = skycraft:elven_war_axe 1
+		tag weapon material elven name battleaxe from bought = skycraft:elven_war_axe 1
+		tag weapon material elven name mace from bought = skycraft:elven_war_axe 1
+		tag weapon material elven name warhammer from bought = skycraft:elven_war_axe 1
+		tag armor material elven name helmet from bought = skycraft:elven_helmet 1
+		tag armor material elven name armor from bought = skycraft:elven_cuirass 1
+		tag armor material elven name cuirass from bought = skycraft:elven_cuirass 1
+		tag armor material elven name gauntlets from bought = skycraft:elven_greaves 1
+		tag armor material elven name boots from bought = skycraft:elven_boots 1
+		tag weapon material glass name sword from bought = skycraft:glass_sword 1
+		tag weapon material glass name greatsword from bought = skycraft:glass_sword 1
+		tag weapon material glass name dagger from bought = skycraft:glass_sword 1
+		tag weapon material glass name axe from bought = skycraft:glass_war_axe 1
+		tag weapon material glass name battleaxe from bought = skycraft:glass_war_axe 1
+		tag weapon material glass name mace from bought = skycraft:glass_war_axe 1
+		tag weapon material glass name warhammer from bought = skycraft:glass_war_axe 1
+		tag armor material glass name helmet from bought = skycraft:glass_helmet 1
+		tag armor material glass name armor from bought = skycraft:glass_cuirass 1
+		tag armor material glass name cuirass from bought = skycraft:glass_cuirass 1
+		tag armor material glass name gauntlets from bought = skycraft:glass_greaves 1
+		tag armor material glass name boots from bought = skycraft:glass_boots 1
+		tag weapon material ebony name sword from bought = skycraft:ebony_sword 1
+		tag weapon material ebony name greatsword from bought = skycraft:ebony_sword 1
+		tag weapon material ebony name dagger from bought = skycraft:ebony_sword 1
+		tag weapon material ebony name axe from bought = skycraft:ebony_war_axe 1
+		tag weapon material ebony name battleaxe from bought = skycraft:ebony_war_axe 1
+		tag weapon material ebony name mace from bought = skycraft:ebony_war_axe 1
+		tag weapon material ebony name warhammer from bought = skycraft:ebony_war_axe 1
+		tag armor material ebony name helmet from bought = skycraft:ebony_helmet 1
+		tag armor material ebony name armor from bought = skycraft:ebony_cuirass 1
+		tag armor material ebony name cuirass from bought = skycraft:ebony_cuirass 1
+		tag armor material ebony name gauntlets from bought = skycraft:ebony_greaves 1
+		tag armor material ebony name boots from bought = skycraft:ebony_boots 1
+		tag weapon material daedric name sword from bought = skycraft:daedric_sword 1
+		tag weapon material daedric name greatsword from bought = skycraft:daedric_sword 1
+		tag weapon material daedric name dagger from bought = skycraft:daedric_sword 1
+		tag weapon material daedric name axe from bought = skycraft:daedric_war_axe 1
+		tag weapon material daedric name battleaxe from bought = skycraft:daedric_war_axe 1
+		tag weapon material daedric name mace from bought = skycraft:daedric_war_axe 1
+		tag weapon material daedric name warhammer from bought = skycraft:daedric_war_axe 1
+		tag armor material daedric name helmet from bought = skycraft:daedric_helmet 1
+		tag armor material daedric name armor from bought = skycraft:daedric_cuirass 1
+		tag armor material daedric name cuirass from bought = skycraft:daedric_cuirass 1
+		tag armor material daedric name gauntlets from bought = skycraft:daedric_greaves 1
+		tag armor material daedric name boots from bought = skycraft:daedric_boots 1
+
+		# Looted iron and steel gear salvages into ingots
 		tag weapon material iron from looted = minecraft:iron_ingot 1
 		tag weapon material steel from looted = skycraft:steel_ingot 1
 		tag armor material iron from looted = minecraft:iron_ingot 2

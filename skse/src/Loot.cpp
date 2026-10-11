@@ -192,6 +192,12 @@ namespace skycraft::Loot
 				}
 				const Source from = FromWhere(a_event->oldContainer);
 				ev.source = from.kind;
+				// Anything that arrives while Skyrim's shop is open was bought (from the merchant or their chest).
+				const bool bought = (from.kind == proto::kSrcContainer || from.kind == proto::kSrcActor) && RE::UI::GetSingleton() &&
+				                    RE::UI::GetSingleton()->IsMenuOpen(RE::BarterMenu::MENU_NAME);
+				if (bought) {
+					ev.source = proto::kSrcBought;
+				}
 				ev.container = a_event->oldContainer;
 				ev.chest = from.chest ? 1 : 0;
 				if (auto* bound = item->As<RE::TESBoundObject>()) {
