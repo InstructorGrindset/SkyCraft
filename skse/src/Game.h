@@ -207,7 +207,7 @@ namespace skycraft
 			bool         parked{ false };  // Skyrim's player is parked this frame
 			Change       change{ Change::kNone };
 			RE::NiPoint3 handover{};       // kBackMinecraftLeads: where Skyrim's player is now
-			bool         far{ false };     // kBackMinecraftLeads: far from where they waited (the world there is still loading)
+			bool         farAway{ false };     // kBackMinecraftLeads: far from where they waited (the world there is still loading)
 		};
 
 		// Every frame, from Game's update, before its puppet decision. a_mc: Minecraft's state, null when

@@ -747,7 +747,7 @@ namespace skycraft
 				haveLastSet = true;
 				holdMismatch = 0.0f;
 				tickHistory.clear();  // its ticks over there aren't a path to here
-				if (view.far) {
+				if (view.farAway) {
 					settleTimer = kSettleSeconds;  // Havok bodies stream in there first
 				}
 			} else if (view.change == View::Change::kBackSkyrimLeads) {

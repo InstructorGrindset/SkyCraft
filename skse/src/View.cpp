@@ -200,7 +200,7 @@ namespace skycraft
 			handSeconds = 0.0f;
 			r.change = View::Change::kBackMinecraftLeads;
 			r.handover = to;
-			r.far = moved > kFarUnits;
+			r.farAway = moved > kFarUnits;
 			logger::info("Minecraft view: back after {:.1f} s; Skyrim's player follows Minecraft's to {:.0f} {:.0f} {:.0f} ({:.0f} units from where they waited)",
 				parkedSeconds, to.x, to.y, to.z, moved);
 			return r;
