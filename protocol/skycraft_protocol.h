@@ -4,6 +4,9 @@
 // fabric/src/main/java/dev/skycraft/link/Proto.java; if you change anything here, change it
 // there too and bump kVersion.
 //
+// Version 13: SkyState town and place flags, merchant buy lists in ActorRecord, container id and
+// chest flag in ItemEvent, kEvSleep.
+//
 // All multi-byte values are little-endian. Skyrim creates the mapping; Minecraft opens it.
 // Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted.
 #pragma once
