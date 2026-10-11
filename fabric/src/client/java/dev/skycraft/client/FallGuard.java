@@ -71,7 +71,7 @@ public final class FallGuard {
 		ClientLevel level = minecraft.level;
 		SkyLink.SkyState sky = SkyClient.sky();
 		if (player == null || level == null || !SkyClient.linked() || !SkyCollision.active() || SkyClient.holding() || !sky.inGame() || sky.loading()
-			|| player.isSpectator() || player.getAbilities().flying || player.isDeadOrDying()) {
+			|| player.isSpectator() || player.getAbilities().flying || player.isDeadOrDying() || MinecraftView.away()) {
 			return;
 		}
 		int world = SkyDigClient.world();
