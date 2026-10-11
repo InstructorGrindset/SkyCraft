@@ -44,6 +44,21 @@ class LootRulesTest {
 	}
 
 	@Test
+	void entriesOfSeveralWordsNeedAllOfThem() {
+		List<String> problems = new ArrayList<>();
+		LootRules rules = LootRules.parse("""
+			sabre cat, ice-wraith = minecraft:string 1-2
+			cat = minecraft:cod 1
+			""", problems);
+		assertTrue(problems.isEmpty(), problems.toString());
+		// Before, "sabre cat" was one word that no name has, so the sabre cat fell through to "cat".
+		assertEquals("minecraft:string", rules.match("Snowy Sabre Cat").drops().getFirst().item());
+		assertEquals("minecraft:string", rules.match("Ice Wraith").drops().getFirst().item());
+		assertEquals("minecraft:cod", rules.match("Cat").drops().getFirst().item());
+		assertNull(rules.match("Sabre Tooth"));
+	}
+
+	@Test
 	void rollsWithinRange() {
 		LootRules.Rule deer = defaults().match("Deer");
 		Random random = new Random(42);

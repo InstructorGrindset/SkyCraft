@@ -42,6 +42,8 @@ public final class TradeRules {
 
 	/** Most offers one merchant shows. */
 	public static final int MAX_OFFERS = 12;
+	/** Highest price a trades line may set, far above anything two stacks of currency can pay. */
+	public static final int MAX_PRICE = 100_000;
 
 	/** One line of the trades file. */
 	public record Trade(String category, boolean sell, int count, String item, int price) {
@@ -261,8 +263,9 @@ public final class TradeRules {
 				problems.add(where + "count must be 1 to 64");
 				continue;
 			}
-			if (price < 1) {
-				problems.add(where + "price must be at least 1 coin");
+			if (price < 1 || price > MAX_PRICE) {
+				// Above that, price times multipliers could overflow into a 1-coin price.
+				problems.add(where + "price must be 1 to " + MAX_PRICE + " coins");
 				continue;
 			}
 			out.add(new Trade(category, way.equals("sell"), count, normalizeItem(bits[3]), price));
@@ -396,6 +399,19 @@ public final class TradeRules {
 		List<Offer> out = new ArrayList<>(sells);
 		out.addAll(buys);
 		return out;
+	}
+
+	/**
+	 * {@code o}'s price for {@code count} of its items instead of {@code o.count()} (one trade moves
+	 * at most a stack): rounded up when the merchant sells, down when it buys, at least 1 coin.
+	 */
+	public static int priceFor(Offer o, int count) {
+		if (count >= o.count()) {
+			return o.price();
+		}
+		long part = (long) o.price() * Math.max(0, count);
+		long price = o.sell() ? (part + o.count() - 1) / o.count() : part / o.count();
+		return (int) Math.max(1, price);
 	}
 
 	/** Currency items an offer may be paid in: the town's, minus the traded item itself. */

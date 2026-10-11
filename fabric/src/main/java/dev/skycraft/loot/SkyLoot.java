@@ -1,18 +1,16 @@
 package dev.skycraft.loot;
 
 import dev.skycraft.SkyCraft;
+import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -26,8 +24,10 @@ import net.minecraft.world.item.Items;
  *
  * <p>Skyrim already reports every nearby actor's name and dead flag each frame. A drop happens
  * when an actor seen alive turns dead within {@link #HIT_WINDOW_TICKS} of the player's last hit on
- * it, so corpses walked up to and kills by others drop nothing. Each actor drops at most once.
- * What drops comes from {@code config/skycraft-loot.txt} (see {@link LootRules}).
+ * it, so corpses walked up to and kills by others drop nothing. Each actor drops at most once,
+ * except creatures SkyCraft spawned itself: Skyrim reuses the form ids of deleted ones, so a
+ * spawned creature seen alive is always a new one.
+ * What drops comes from {@code config/skycraft-loot.txt} (see {@link LootRules}). Server thread only.
  */
 public final class SkyLoot {
 	/** 10 seconds: a kill by bleeding, fire or a follow-up arrow still counts as the player's. */
@@ -37,6 +37,8 @@ public final class SkyLoot {
 	private static final Map<Integer, Boolean> WAS_DEAD = new HashMap<>();
 	private static final Map<Integer, Integer> LAST_HIT = new HashMap<>();
 	private static final Set<Integer> LOOTED = new HashSet<>();
+	/** Form ids in the latest actor table; reused every tick. */
+	private static final Set<Integer> SEEN = new HashSet<>();
 	private static final Random RANDOM = new Random();
 	private static LootRules rules;
 
@@ -55,10 +57,10 @@ public final class SkyLoot {
 
 	/** Called with each fresh read of Skyrim's actor table. */
 	public static void onActors(ServerLevel level, List<SkyLink.Actor> actors, int tick) {
-		Set<Integer> seen = new HashSet<>();
+		SEEN.clear();
 		for (SkyLink.Actor a : actors) {
-			int id = a.formId();
-			seen.add(id);
+			Integer id = a.formId();
+			SEEN.add(id);
 			Boolean before = WAS_DEAD.put(id, a.dead());
 			if (!a.dead() || !Boolean.FALSE.equals(before) || LOOTED.contains(id)) {
 				continue;
@@ -68,14 +70,24 @@ public final class SkyLoot {
 				SkyCraft.LOG.info("SkyCraft-loot: {} died without a recent hit from you, no drop", a.name());
 				continue;
 			}
-			LOOTED.add(id);
+			if ((a.flags() & Proto.ACTOR_SPAWNED) == 0) {
+				LOOTED.add(id);
+			}
 			int xp = KillXp.forLevel(a.level());
 			net.minecraft.world.entity.ExperienceOrb.award(level, new net.minecraft.world.phys.Vec3(a.x(), a.y() + 0.5, a.z()), xp);
 			SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP", a.name(), a.level(), xp);
 			drop(level, a);
 		}
-		WAS_DEAD.keySet().retainAll(seen);
-		LAST_HIT.keySet().removeIf(id -> tick - LAST_HIT.get(id) > HIT_WINDOW_TICKS * 3);
+		// An actor the player just hit is remembered alive while it's briefly out of the table (out
+		// of range, Skyrim's table emptied for a frame), so dying there still counts.
+		WAS_DEAD.keySet().removeIf(id -> !SEEN.contains(id) && !LAST_HIT.containsKey(id));
+		if (!LAST_HIT.isEmpty() && tick % 20 == 0) {
+			for (Iterator<Integer> it = LAST_HIT.values().iterator(); it.hasNext(); ) {
+				if (tick - it.next() > HIT_WINDOW_TICKS * 3) {
+					it.remove();
+				}
+			}
+		}
 	}
 
 	private static void drop(ServerLevel level, SkyLink.Actor a) {
@@ -101,27 +113,12 @@ public final class SkyLoot {
 	}
 
 	private static LootRules rules() {
-		if (rules != null) {
-			return rules;
+		if (rules == null) {
+			List<String> problems = new ArrayList<>();
+			rules = LootRules.parse(Config.read(FILE, LootRules.DEFAULT_TEXT), problems);
+			problems.forEach(p -> SkyCraft.LOG.warn("SkyCraft-loot: {} {}", FILE, p));
+			SkyCraft.LOG.info("SkyCraft-loot: {} drop rules loaded", rules.rules().size());
 		}
-		Path path = FabricLoader.getInstance().getConfigDir().resolve(FILE);
-		String text = LootRules.DEFAULT_TEXT;
-		try {
-			if (Files.exists(path)) {
-				text = Files.readString(path);
-			} else {
-				Files.createDirectories(path.getParent());
-				Files.writeString(path, LootRules.DEFAULT_TEXT);
-				SkyCraft.LOG.info("SkyCraft-loot: wrote default drop rules to {}", path);
-			}
-		} catch (IOException e) {
-			SkyCraft.LOG.warn("SkyCraft-loot: couldn't read {}, using defaults: {}", path, e.toString());
-			text = LootRules.DEFAULT_TEXT;
-		}
-		List<String> problems = new ArrayList<>();
-		rules = LootRules.parse(text, problems);
-		problems.forEach(p -> SkyCraft.LOG.warn("SkyCraft-loot: {} {}", FILE, p));
-		SkyCraft.LOG.info("SkyCraft-loot: {} drop rules loaded", rules.rules().size());
 		return rules;
 	}
 }

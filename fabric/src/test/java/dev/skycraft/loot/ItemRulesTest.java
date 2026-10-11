@@ -127,6 +127,21 @@ class ItemRulesTest {
 	}
 
 	@Test
+	void nameValuesWithPunctuationMatchLikeItemNames() {
+		List<String> problems = new ArrayList<>();
+		ItemRules rules = ItemRules.parse("""
+			tag food name half-eaten = minecraft:apple 1
+			name dwemer's = minecraft:iron_ingot 1
+			name - = minecraft:dirt 1
+			""", problems);
+		assertEquals(1, problems.size(), problems.toString());
+		assertEquals(2, rules.size());
+		assertEquals("minecraft:apple 1", convert(rules, tags("food"), 0, WORLD, "Half-Eaten Apple"));
+		assertEquals("keep", convert(rules, tags("food"), 0, WORLD, "Eaten Apple"));
+		assertEquals("minecraft:iron_ingot 1", convert(rules, 0, 0, WORLD, "Dwemer's Gear"));
+	}
+
+	@Test
 	void tagNamesForLogs() {
 		assertEquals("food,foodraw", ItemRules.tagNames(tags("food", "foodraw")));
 	}

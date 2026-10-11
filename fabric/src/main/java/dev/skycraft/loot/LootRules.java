@@ -2,7 +2,6 @@ package dev.skycraft.loot;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -14,7 +13,8 @@ import java.util.Random;
  * deer, elk = minecraft:beef 1-3, minecraft:leather 0-2
  * </pre>
  * A rule matches when one of its words is a whole word of the creature's name, ignoring case, so
- * "bear" matches "Cave Bear" but "wolf" doesn't match "Werewolf". The first matching rule wins.
+ * "bear" matches "Cave Bear" but "wolf" doesn't match "Werewolf"; an entry of several words
+ * ("sabre cat") needs all of them. The first matching rule wins.
  * Pure Java on purpose, so it's unit tested without Minecraft.
  */
 public final class LootRules {
@@ -70,7 +70,8 @@ public final class LootRules {
 			}
 			List<String> words = new ArrayList<>();
 			for (String w : line.substring(0, eq).split(",")) {
-				String word = w.strip().toLowerCase(Locale.ROOT);
+				// Split like creature names are: "sabre cat" (or "sabre-cat") needs both words.
+				String word = String.join(" ", ItemRules.words(w));
 				if (!word.isEmpty()) {
 					words.add(word);
 				}
@@ -111,18 +112,16 @@ public final class LootRules {
 		return new LootRules(List.copyOf(out));
 	}
 
-	/** The first rule whose word is a whole word of {@code name}, or null. */
+	/** The first rule with an entry whose words are all whole words of {@code name}, or null. */
 	public Rule match(String name) {
-		if (name == null || name.isBlank()) {
+		List<String> nameWords = ItemRules.words(name);
+		if (nameWords.isEmpty()) {
 			return null;
 		}
-		String[] nameWords = name.toLowerCase(Locale.ROOT).split("[^a-z0-9']+");
 		for (Rule rule : this.rules) {
 			for (String word : rule.words()) {
-				for (String nw : nameWords) {
-					if (nw.equals(word)) {
-						return rule;
-					}
+				if (word.indexOf(' ') < 0 ? nameWords.contains(word) : nameWords.containsAll(List.of(word.split(" ")))) {
+					return rule;
 				}
 			}
 		}

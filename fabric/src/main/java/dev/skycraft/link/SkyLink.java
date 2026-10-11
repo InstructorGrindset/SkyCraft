@@ -218,7 +218,6 @@ public final class SkyLink {
 		}
 	}
 
-	/** Seqlock read of SkyState into {@code out}. Returns false if the link is down. */
 	/** Skyrim's water surface around the player (see WaterGrid in the protocol). */
 	public static final class WaterGrid {
 		public int originX, originZ, worldId;
@@ -257,6 +256,10 @@ public final class SkyLink {
 		return null;
 	}
 
+	/**
+	 * Seqlock read of SkyState into {@code out}. Returns false if the link is down or Skyrim kept
+	 * writing; {@code out} is then left as it was (never half updated).
+	 */
 	public static boolean readSkyState(SkyState out) {
 		MemorySegment s = shm;
 		if (s == null) {
@@ -273,24 +276,38 @@ public final class SkyLink {
 				}
 				continue;
 			}
-			out.flags = s.get(JAVA_INT, b + SS_FLAGS);
-			out.worldId = s.get(JAVA_INT, b + SS_WORLD_ID);
-			out.collisionEpoch = s.get(JAVA_INT, b + SS_COLLISION_EPOCH);
-			out.x = s.get(JAVA_DOUBLE, b + SS_POS_X);
-			out.y = s.get(JAVA_DOUBLE, b + SS_POS_Y);
-			out.z = s.get(JAVA_DOUBLE, b + SS_POS_Z);
-			out.yaw = s.get(JAVA_FLOAT, b + SS_YAW);
-			out.pitch = s.get(JAVA_FLOAT, b + SS_PITCH);
-			out.teleportSeq = s.get(JAVA_INT, b + SS_TELEPORT_SEQ);
-			out.viewportW = s.get(JAVA_INT, b + SS_VIEWPORT_W);
-			out.viewportH = s.get(JAVA_INT, b + SS_VIEWPORT_H);
-			out.gameHour = s.get(JAVA_FLOAT, b + SS_GAME_HOUR);
-			out.town = readName(s, b + SS_TOWN, 32);
-			out.place = s.get(JAVA_INT, b + SS_PLACE);
+			int flags = s.get(JAVA_INT, b + SS_FLAGS);
+			int worldId = s.get(JAVA_INT, b + SS_WORLD_ID);
+			int collisionEpoch = s.get(JAVA_INT, b + SS_COLLISION_EPOCH);
+			double x = s.get(JAVA_DOUBLE, b + SS_POS_X);
+			double y = s.get(JAVA_DOUBLE, b + SS_POS_Y);
+			double z = s.get(JAVA_DOUBLE, b + SS_POS_Z);
+			float yaw = s.get(JAVA_FLOAT, b + SS_YAW);
+			float pitch = s.get(JAVA_FLOAT, b + SS_PITCH);
+			int teleportSeq = s.get(JAVA_INT, b + SS_TELEPORT_SEQ);
+			int viewportW = s.get(JAVA_INT, b + SS_VIEWPORT_W);
+			int viewportH = s.get(JAVA_INT, b + SS_VIEWPORT_H);
+			float gameHour = s.get(JAVA_FLOAT, b + SS_GAME_HOUR);
+			String town = readName(s, b + SS_TOWN, 32, out.town);
+			int place = s.get(JAVA_INT, b + SS_PLACE);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
 				out.seq = seq1;
+				out.flags = flags;
+				out.worldId = worldId;
+				out.collisionEpoch = collisionEpoch;
+				out.x = x;
+				out.y = y;
+				out.z = z;
+				out.yaw = yaw;
+				out.pitch = pitch;
+				out.teleportSeq = teleportSeq;
+				out.viewportW = viewportW;
+				out.viewportH = viewportH;
+				out.gameHour = gameHour;
+				out.town = town;
+				out.place = place;
 				return true;
 			}
 		}
@@ -419,11 +436,14 @@ public final class SkyLink {
 		}
 	}
 
-	/** Seqlock read of the actor table. Returns false (leaving {@code out} empty) on a torn read. */
+	/**
+	 * Seqlock read of the actor table into {@code out}, replacing what it held. Returns false (leaving
+	 * {@code out} empty) on a torn read. Names are reused from the previous read where unchanged.
+	 */
 	public static boolean readActors(java.util.List<Actor> out) {
-		out.clear();
 		MemorySegment s = shm;
 		if (s == null) {
+			out.clear();
 			return false;
 		}
 		long b = OFF_ACTOR_TABLE;
@@ -433,16 +453,25 @@ public final class SkyLink {
 				Thread.onSpinWait();
 				continue;
 			}
-			int count = Math.min(s.get(JAVA_INT, b + AT_COUNT), MAX_ACTORS);
+			int count = Math.max(0, Math.min(s.get(JAVA_INT, b + AT_COUNT), MAX_ACTORS));
+			int had = out.size(); // last read's actors; Skyrim keeps their order from frame to frame
 			for (int i = 0; i < count; i++) {
 				long r = b + AT_RECORDS + i * ACTOR_RECORD_BYTES;
-				out.add(new Actor(
+				Actor a = new Actor(
 					s.get(JAVA_INT, r), s.get(JAVA_INT, r + 4),
 					s.get(JAVA_FLOAT, r + 8), s.get(JAVA_FLOAT, r + 12), s.get(JAVA_FLOAT, r + 16),
 					s.get(JAVA_FLOAT, r + 20), s.get(JAVA_FLOAT, r + 24), s.get(JAVA_FLOAT, r + 28),
 					s.get(JAVA_FLOAT, r + 32), Short.toUnsignedInt(s.get(JAVA_SHORT, r + 36)),
-					Short.toUnsignedInt(s.get(JAVA_SHORT, r + 38)), readName(s, r + 40, 24)
-				));
+					Short.toUnsignedInt(s.get(JAVA_SHORT, r + 38)), readName(s, r + 40, 24, i < had ? out.get(i).name() : null)
+				);
+				if (i < had) {
+					out.set(i, a);
+				} else {
+					out.add(a);
+				}
+			}
+			if (had > count) {
+				out.subList(count, had).clear();
 			}
 			VarHandle.loadLoadFence();
 			if ((int) INT.getAcquire(s, b + AT_SEQ) == seq1) {
@@ -450,6 +479,7 @@ public final class SkyLink {
 			}
 			out.clear();
 		}
+		out.clear();
 		return false;
 	}
 
@@ -466,13 +496,31 @@ public final class SkyLink {
 		return new String(bytes, 0, n, StandardCharsets.UTF_8);
 	}
 
+	/** Like {@link #readName(MemorySegment, long, int)}, but returns {@code prev} (no allocation) while the bytes still spell it. */
+	private static String readName(MemorySegment s, long off, int max, String prev) {
+		int n = prev != null ? prev.length() : max + 1;
+		if (n <= max) {
+			int i = 0;
+			while (i < n && s.get(JAVA_BYTE, off + i) == prev.charAt(i)) {
+				i++; // a non-ASCII byte is negative and never equals a char, so such names are decoded
+			}
+			if (i == n && (n == max || s.get(JAVA_BYTE, off + n) == 0)) {
+				return prev;
+			}
+		}
+		return readName(s, off, max);
+	}
+
 	// ---- item ring (consume) ---------------------------------------------------------------
 
 	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */
 	public record Item(int formId, int count, int tags, int material, int source, String name, int container, boolean chest) {
 	}
 
-	/** Takes every queued item event off the ring, oldest first. */
+	/**
+	 * Takes every queued item event off the ring, oldest first. Each item leaves the ring before
+	 * {@code sink} sees it, so an exception in {@code sink} can't hand the same item over twice.
+	 */
 	public static void drainItems(java.util.function.Consumer<Item> sink) {
 		MemorySegment s = shm;
 		if (s == null) {
@@ -490,9 +538,9 @@ public final class SkyLink {
 				Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 13)), readName(s, e + 16, 28), s.get(JAVA_INT, e + 44),
 				s.get(JAVA_BYTE, e + 14) != 0);
 			tail++;
+			LONG.setRelease(s, base + ITR_TAIL, tail);
 			sink.accept(item);
 		}
-		LONG.setRelease(s, base + ITR_TAIL, tail);
 	}
 
 	// ---- event ring (produce) --------------------------------------------------------------

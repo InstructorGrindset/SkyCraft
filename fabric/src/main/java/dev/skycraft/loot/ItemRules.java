@@ -3,7 +3,7 @@ package dev.skycraft.loot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Which Skyrim items become Minecraft items when the player gets them, and what they become.
@@ -15,8 +15,9 @@ import java.util.Map;
  * tag gold = keep
  * </pre>
  * Every condition on the left must hold. {@code name} is a whole word of the Skyrim name (ignoring
- * case), {@code tag} one of {@link #TAGS}, {@code material} one of {@link #MATERIALS},
- * {@code from} one of {@link #SOURCES}. The number on the right is Minecraft items per Skyrim item.
+ * case; {@code half-eaten} needs both words), {@code tag} one of {@link #TAGS}, {@code material}
+ * one of {@link #MATERIALS}, {@code from} one of {@link #SOURCES}. The number on the right is
+ * Minecraft items per Skyrim item.
  * Pure Java on purpose, so it's unit tested without Minecraft.
  */
 public final class ItemRules {
@@ -38,6 +39,10 @@ public final class ItemRules {
 			return this.item == null;
 		}
 	}
+
+	private static final Result KEEP = new Result(null, 0);
+	/** What separates the words of a name: anything but letters, digits and apostrophes. */
+	private static final Pattern NON_WORD = Pattern.compile("[^a-z0-9']+");
 
 	record Rule(int tagMask, int material, int sourceMask, List<String> nameWords, Result result) {
 		boolean matches(Item it, List<String> words) {
@@ -156,10 +161,11 @@ public final class ItemRules {
 		return this.rules.size();
 	}
 
+	/** The words of a name, lower case: what {@code name} conditions (and LootRules) match against. */
 	public static List<String> words(String name) {
 		List<String> out = new ArrayList<>();
 		if (name != null) {
-			for (String w : name.toLowerCase(Locale.ROOT).split("[^a-z0-9']+")) {
+			for (String w : NON_WORD.split(name.toLowerCase(Locale.ROOT))) {
 				if (!w.isEmpty()) {
 					out.add(w);
 				}
@@ -176,7 +182,7 @@ public final class ItemRules {
 				return rule.result();
 			}
 		}
-		return new Result(null, 0);
+		return KEEP;
 	}
 
 	public static ItemRules parse(String text, List<String> problems) {
@@ -228,7 +234,15 @@ public final class ItemRules {
 							bad = "unknown source '" + value + "'";
 						}
 					}
-					case "name" -> names.add(value);
+					case "name" -> {
+						// Split like item names are, so "name half-eaten" needs both "half" and "eaten".
+						List<String> parts = words(value);
+						if (parts.isEmpty()) {
+							bad = "name '" + value + "' has no letters or digits";
+						} else {
+							names.addAll(parts);
+						}
+					}
 					default -> bad = "unknown condition '" + key + "'";
 				}
 			}
@@ -238,7 +252,7 @@ public final class ItemRules {
 			}
 			Result result;
 			if (right.length == 1 && right[0].equalsIgnoreCase("keep")) {
-				result = new Result(null, 0);
+				result = KEEP;
 			} else {
 				int per = 1;
 				if (right.length >= 2) {
@@ -277,6 +291,4 @@ public final class ItemRules {
 	static int bit(String tag) {
 		return 1 << TAGS.indexOf(tag);
 	}
-
-	static final Map<String, Integer> SOURCE_IDS = Map.of("world", 0, "corpse", 1, "container", 2, "actor", 3);
 }
