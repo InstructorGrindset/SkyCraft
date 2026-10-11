@@ -12,6 +12,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -56,7 +57,10 @@ public final class SkyBridge {
 			ItemStack stack = new ItemStack(item, n);
 			player.getInventory().add(stack);
 			if (!stack.isEmpty()) {
-				player.drop(stack, false); // inventory full: drop it at the player's feet
+				// Inventory full: drop the rest at the player's feet.
+				ItemEntity dropped = new ItemEntity(player.level(), player.getX(), player.getY() + 0.5, player.getZ(), stack);
+				dropped.setDefaultPickUpDelay();
+				player.level().addFreshEntity(dropped);
 			}
 			left -= n;
 		}
