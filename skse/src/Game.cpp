@@ -1094,7 +1094,10 @@ namespace skycraft
 					devCount = 0;
 				}
 
-				if (!st.skyrimMenuOpen) {
+				// A right click may have just started furniture (a smelter, a chair) this frame, after the
+				// takeover check above: forcing first person now would break Skyrim's walk-in and leave the
+				// player stuck. Let Skyrim have it; the takeover is picked up next frame.
+				if (!st.skyrimMenuOpen && !SkyrimTakeover(a_player)) {
 					a_player->data.angle.z = heading;
 					a_player->data.angle.x = (st.pitch + bobPitchDeg) * kDegToRad;
 					if (auto* camera = RE::PlayerCamera::GetSingleton()) {
