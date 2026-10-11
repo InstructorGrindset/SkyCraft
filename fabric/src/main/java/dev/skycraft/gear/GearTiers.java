@@ -63,11 +63,14 @@ public final class GearTiers {
 		}
 	}
 
-	/** Weakest first. Iron is about vanilla iron, ebony about netherite, daedric just above netherite. */
+	/**
+	 * Weakest first. Iron is about vanilla iron, ebony about netherite, daedric just above netherite. The iron tier is named
+	 * "Skyrim Iron" so its sword, helmet and boots don't share vanilla's names.
+	 */
 	public static final List<Tier> TIERS = List.of(
 		// id, name, durability, speed, attackBonus, enchantability, mines, armorDurability, boots, greaves, cuirass, helmet, toughness,
 		// knockbackResistance, heavy, equipSound, fireproof, ingot, smithingWorth
-		new Tier("iron", "Iron", 250, 6.0F, 2.0F, 14, "iron", 15, 2, 5, 6, 2, 0.0F, 0.0F, true, "iron", false, "minecraft:iron_ingot", 40.0F),
+		new Tier("iron", "Skyrim Iron", 250, 6.0F, 2.0F, 14, "iron", 15, 2, 5, 6, 2, 0.0F, 0.0F, true, "iron", false, "minecraft:iron_ingot", 40.0F),
 		new Tier("steel", "Steel", 400, 6.5F, 2.4F, 12, "iron", 18, 2, 5, 7, 2, 0.5F, 0.0F, true, "iron", false, "skycraft:steel_ingot", 50.0F),
 		new Tier("orcish", "Orcish", 600, 7.0F, 2.8F, 10, "iron", 21, 2, 6, 7, 2, 1.0F, 0.0F, true, "iron", false, "skycraft:orichalcum_ingot", 60.0F),
 		new Tier("dwarven", "Dwarven", 850, 7.5F, 3.1F, 12, "diamond", 24, 3, 6, 7, 2, 1.5F, 0.0F, true, "iron", false, "skycraft:dwarven_metal_ingot", 70.0F),
@@ -80,6 +83,12 @@ public final class GearTiers {
 	/** Gear pieces per tier: item id suffix and English name suffix. */
 	public static final List<String> PIECES = List.of("sword", "war_axe", "helmet", "cuirass", "greaves", "boots");
 	public static final List<String> PIECE_NAMES = List.of("Sword", "War Axe", "Helmet", "Cuirass", "Greaves", "Boots");
+	/**
+	 * The vanilla item tag (minecraft:) each piece is in, like vanilla gear: enchanting and the anvil go by the
+	 * enchantable/* tags built from these, a sword's sweep needs minecraft:swords, and SkyrimActorEntity picks the
+	 * Skyrim impact from swords and axes.
+	 */
+	public static final List<String> PIECE_TAGS = List.of("swords", "axes", "head_armor", "chest_armor", "leg_armor", "foot_armor");
 
 	/** New crafting materials: item id and English name. */
 	public static final List<String> MATERIALS = List.of("steel_ingot", "orichalcum_ingot", "dwarven_metal_ingot", "refined_moonstone", "refined_malachite",

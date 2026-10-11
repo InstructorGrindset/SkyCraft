@@ -1,5 +1,6 @@
 """Generate the SkyCraft gear set JSON: item model definitions, item models, equipment assets,
-recipes, repair tags and English names (merged into the existing en_us.json).
+recipes, repair tags, the vanilla item tags (swords, axes, *_armor) and English names (merged
+into the existing en_us.json).
 
     python tools/gen_gear_data.py
 
@@ -16,9 +17,10 @@ ASSETS = os.path.join(RES, "assets", "skycraft")
 DATA = os.path.join(RES, "data", "skycraft")
 NS = "skycraft"
 
-# id, English name, crafting ingot (same order and ingots as GearTiers.TIERS)
+# id, English name, crafting ingot (same order, names and ingots as GearTiers.TIERS). The iron tier
+# says "Skyrim" so its names differ from vanilla's Iron Sword, Iron Helmet and Iron Boots.
 TIERS = [
-    ("iron", "Iron", "minecraft:iron_ingot"),
+    ("iron", "Skyrim Iron", "minecraft:iron_ingot"),
     ("steel", "Steel", "skycraft:steel_ingot"),
     ("orcish", "Orcish", "skycraft:orichalcum_ingot"),
     ("dwarven", "Dwarven", "skycraft:dwarven_metal_ingot"),
@@ -29,6 +31,9 @@ TIERS = [
 ]
 PIECES = [("sword", "Sword"), ("war_axe", "War Axe"), ("helmet", "Helmet"), ("cuirass", "Cuirass"), ("greaves", "Greaves"), ("boots", "Boots")]
 HANDHELD = {"sword", "war_axe"}
+# The vanilla item tag each piece joins, like vanilla's own gear: the enchantable/* tags (what the
+# enchanting table and anvil offer) are built from these, and a sword's sweep attack needs minecraft:swords.
+VANILLA_TAGS = {"sword": "swords", "war_axe": "axes", "helmet": "head_armor", "cuirass": "chest_armor", "greaves": "leg_armor", "boots": "foot_armor"}
 MATERIALS = [
     ("steel_ingot", "Steel Ingot"),
     ("orichalcum_ingot", "Orichalcum Ingot"),
@@ -94,6 +99,7 @@ def cooking(name, kind, ingredient, result, xp, time):
 
 def main():
     lang = {}
+    vanilla_tags = {tag: [] for tag in VANILLA_TAGS.values()}
     for item_id, name in MATERIALS:
         item_files(item_id, "minecraft:item/generated")
         lang["item.%s.%s" % (NS, item_id)] = name
@@ -102,11 +108,15 @@ def main():
             item_id = tier + "_" + piece
             item_files(item_id, "minecraft:item/handheld" if piece in HANDHELD else "minecraft:item/generated")
             lang["item.%s.%s" % (NS, item_id)] = tier_name + " " + piece_name
+            vanilla_tags[VANILLA_TAGS[piece]].append(NS + ":" + item_id)
             pattern = (DAEDRIC_PATTERNS if tier == "daedric" else PATTERNS)[piece]
             shaped(item_id, pattern, {"M": ingot, "L": NS + ":leather_strips", "H": NS + ":daedra_heart"}, NS + ":" + item_id)
         write(os.path.join(ASSETS, "equipment", tier + ".json"),
               {"layers": {"humanoid": [{"texture": NS + ":" + tier}], "humanoid_leggings": [{"texture": NS + ":" + tier}]}})
         write(os.path.join(DATA, "tags", "item", tier + "_repair_materials.json"), {"values": [ingot]})
+    for tag, values in vanilla_tags.items():
+        # Merged into vanilla's tag (no "replace"), so vanilla's own members stay.
+        write(os.path.join(RES, "data", "minecraft", "tags", "item", tag + ".json"), {"values": values})
     lang["itemGroup.%s.gear" % NS] = "SkyCraft Gear"
 
     # Materials from vanilla items, so every tier can be made without Skyrim loot (except the daedra heart).
