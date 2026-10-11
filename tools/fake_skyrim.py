@@ -7,6 +7,10 @@ bit, prints Minecraft's reported player state, and saves the overlay frame to a 
 
 SKYCRAFT_TOWN (default Whiterun) and SKYCRAFT_PLACE (PlaceFlags: 1 interior, 2 dungeon, 4 town;
 default 4) set where the fake player is; SKYCRAFT_PLACE=3 makes it a dungeon interior.
+
+Breach doors: outside (no interior place flag) it publishes two dungeon entrances near the fake
+player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
+events Minecraft sends back (SKYCRAFT_BREACHES=0 publishes none).
 """
 
 import mmap
@@ -28,6 +32,7 @@ OFF_ACTORS = 0x12000
 OFF_EVENTS = 0x17000
 OFF_ITEMS = 0x1B100
 OFF_ENTITIES = 0x1C000
+OFF_BREACHES = 0x1FC40
 OFF_COL = 0x20000
 COL_BYTES = 32 << 20
 OFF_PIX = OFF_COL + COL_BYTES
@@ -42,11 +47,28 @@ FLOOR_Y = 100  # blocks
 X0 = 100000    # test area origin (blocks); must be a multiple of 8
 TOWN = os.environ.get("SKYCRAFT_TOWN", "Whiterun")
 PLACE = int(os.environ.get("SKYCRAFT_PLACE", "4"), 0)
+BREACHES = os.environ.get("SKYCRAFT_BREACHES", "1") != "0"
+WORLD_ID = 0x3C  # Tamriel, as in SkyState.worldId
 
 # McEvent types (skycraft_protocol.h)
-EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE = range(1, 9)
+EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE, EV_ENTER_DUNGEON = range(1, 10)
 SRC_CONTAINER = 2
 TAG_ORE_INGOT = 1 << 3
+
+# BreachTheme / BreachFlags (skycraft_protocol.h)
+THEME_CAVE, THEME_NORDIC, THEME_DWEMER, THEME_FALMER, THEME_MINE, THEME_FORT, THEME_LAIR = range(7)
+BREACH_DISCOVERED, BREACH_CLEARED = 1, 2
+MAX_BREACHES = 16
+
+
+def fake_breaches(spawn):
+    """Two dungeon entrances near the fake player (BreachRecord fields; positions in MC coords)."""
+    x, y, z = spawn
+    return [
+        dict(door=0xFF0BEE01, location=0xFF0BEE81, pos=(x + 40.0, y, z), yaw=90.0, theme=THEME_NORDIC, flags=0, level=6, name="Fake Barrow"),
+        dict(door=0xFF0BEE02, location=0xFF0BEE82, pos=(x, y, z + 60.0), yaw=180.0, theme=THEME_MINE, flags=BREACH_DISCOVERED | BREACH_CLEARED, level=0,
+             name="Fake Mine"),
+    ]
 
 
 def tick():
@@ -70,12 +92,15 @@ class Link:
         self.m[OFF_EVENTS:OFF_EVENTS + 0x80] = bytes(0x80)
         self.m[OFF_ITEMS:OFF_ITEMS + 0x80] = bytes(0x80)
         self.m[OFF_ENTITIES:OFF_ENTITIES + 0x40] = bytes(0x40)
+        self.m[OFF_BREACHES:OFF_BREACHES + 0x10] = bytes(0x10)
         self.m[OFF_RENDER:OFF_RENDER + 0x80] = bytes(0x80)
         struct.pack_into("<IIII", self.m, 0, MAGIC, VERSION, os.getpid(), 0)
         self.front = 2
         self.sky_seq = 0
         self.col_head = 0
         self.actor_seq = 0
+        self.breach_seq = 0
+        self.breaches = {}  # door FormID -> name, as last published
         self.item_head = 0
         self.game_hour = 12.0
         self.events = []
@@ -98,6 +123,10 @@ class Link:
                 print(f"  event from Minecraft: slept {a:.1f} h, game hour now {self.game_hour:.2f}")
             elif typ == EV_SPAWN_CREATURE:
                 print(f"  event from Minecraft: spawn creature kind {form} at ({a:.1f},{b:.1f},{c:.1f}), despawn {d:.0f} blocks, max {flags} (ignored)")
+            elif typ == EV_ENTER_DUNGEON:
+                known = self.breaches.get(form)
+                what = f"{known!r} (published)" if known else "a door that was never published (Skyrim would refuse it)"
+                print(f"  event from Minecraft: enter dungeon through door {form:08X}: {what}")
             else:
                 print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
             self.events.append(typ)
@@ -147,6 +176,18 @@ class Link:
         self.m[OFF_ACTORS + 0x40:OFF_ACTORS + 0x40 + 64] = rec
         self.actor_seq += 1
         struct.pack_into("<I", self.m, OFF_ACTORS, self.actor_seq * 2)
+
+    def write_breaches(self, records, world_id=WORLD_ID):
+        """Skyrim -> MC: the dungeon entrances near the player (BreachTable, seqlock: seq odd while writing)."""
+        records = records[:MAX_BREACHES]
+        self.breach_seq += 1
+        struct.pack_into("<I", self.m, OFF_BREACHES, self.breach_seq * 2 - 1)
+        struct.pack_into("<III", self.m, OFF_BREACHES + 4, len(records), world_id, 0)
+        for i, r in enumerate(records):
+            struct.pack_into("<IIffffBBH28s", self.m, OFF_BREACHES + 16 + i * 56, r["door"], r["location"], *r["pos"], r["yaw"], r["theme"], r["flags"],
+                             r["level"], r["name"].encode("utf-8")[:27])
+        struct.pack_into("<I", self.m, OFF_BREACHES, self.breach_seq * 2)
+        self.breaches = {r["door"]: r["name"] for r in records}
 
     def mc_alive(self):
         (beat,) = struct.unpack_from("<Q", self.m, 0x18)
@@ -318,9 +359,16 @@ def main():
     saved = False
     checked = False
     tseq = int(time.time()) % 100000 + 2  # new teleport every run
+    last_breaches = 0.0
     while time.time() - start < seconds:
         link.heartbeat()
         link.write_sky(1, spawn, yaw, pitch, tseq, epoch)
+        if time.time() - last_breaches >= 1.0:  # Skyrim refreshes the table about once a second; empty indoors
+            last_breaches = time.time()
+            first = not link.breaches
+            link.write_breaches(fake_breaches(spawn) if BREACHES and not PLACE & 1 else [])
+            if first and link.breaches:
+                print("breach doors published: " + ", ".join(f"{door:08X} {name}" for door, name in link.breaches.items()))
         if link.mc_alive() and not sent:
             link.write_col(1, struct.pack("<I", epoch))
             for rx in range(X0 // 8 - 3, X0 // 8 + 3):

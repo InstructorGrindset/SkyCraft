@@ -1,3 +1,4 @@
+#include "Breach.h"
 #include "Dig.h"
 #include "Loot.h"
 #include "Game.h"
@@ -41,6 +42,7 @@ namespace
 		case SKSE::MessagingInterface::kNewGame:
 			skycraft::Game::OnGameLoaded();
 			skycraft::Spawn::Reset();
+			skycraft::Breach::Reset();
 			break;
 		default:
 			break;

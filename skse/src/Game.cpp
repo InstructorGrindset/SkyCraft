@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Breach.h"
 #include "Loot.h"
 #include "WorldState.h"
 
@@ -385,6 +386,11 @@ namespace skycraft
 		// up again from wherever Skyrim leaves them.
 		const char* SkyrimTakeover(RE::PlayerCharacter* a_player)
 		{
+			// A breach door: Skyrim is moving the player into the dungeon (Minecraft's position mustn't
+			// pull them back before the interior has loaded).
+			if (Breach::Moving()) {
+				return "breaking into a dungeon";
+			}
 			if (a_player->AsActorState()->GetSitSleepState() != RE::SIT_SLEEP_STATE::kNormal) {
 				return "furniture";
 			}

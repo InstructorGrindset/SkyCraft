@@ -1,3 +1,4 @@
+#include "Breach.h"
 #include "Game.h"
 #include "Loot.h"
 #include "WorldState.h"
@@ -868,6 +869,8 @@ namespace skycraft
 						Loot::Take(a_player, ev.formId, static_cast<std::int32_t>(ev.a));  // Minecraft already gave the items
 					} else if (ev.type == proto::kEvSleep) {
 						WorldState::PassTime(ev.a);
+					} else if (ev.type == proto::kEvEnterDungeon) {
+						Breach::Enter(a_player, ev.formId);
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 				}
@@ -875,6 +878,7 @@ namespace skycraft
 				pendingFlings.clear();
 				link.WriteActors(nullptr, 0);
 				Spawn::Update(a_player, a_delta);
+				Breach::Update(a_player, a_delta);
 				return;
 			}
 			// Skyrim can't kill the player while Minecraft decides: one huge hit knocks them down
@@ -911,6 +915,9 @@ namespace skycraft
 				case proto::kEvSpawnCreature:
 					Spawn::OnEvent(a_player, ev);
 					break;
+				case proto::kEvEnterDungeon:
+					Breach::Enter(a_player, ev.formId);
+					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
 						TrainSkill(a_player, static_cast<RE::ActorValue>(ev.formId), ev.a);
@@ -922,6 +929,7 @@ namespace skycraft
 			}
 			UpdateFlings(a_delta);
 			Spawn::Update(a_player, a_delta);
+			Breach::Update(a_player, a_delta);
 			for (auto it = pendingExplosions.begin(); it != pendingExplosions.end();) {
 				it->delay -= a_delta;
 				if (it->delay <= 0.0f) {
