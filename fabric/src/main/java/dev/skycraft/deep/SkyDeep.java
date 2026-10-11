@@ -38,14 +38,29 @@ public final class SkyDeep {
 	private static final int CANDIDATES = 48;
 	/** A creature's height in blocks (draugr are about as tall as the player). */
 	private static final int BODY = 2;
+	/** Where on a body (blocks over its feet) a player could see it. */
+	private static final double[] SIGHT_HEIGHTS = { 0.3, 1.0, 1.7 };
 
 	private static @Nullable DeepRules rules;
 	private static final DeepRules.Pacer PACER = new DeepRules.Pacer();
 	private static final SkyLink.SkyState SKY = new SkyLink.SkyState();
 	private static int aliveSpawned;
 	private static int world = Integer.MIN_VALUE;
+	private static int teleportSeq;
+	private static long lastTick = Long.MIN_VALUE;
 
 	private SkyDeep() {
+	}
+
+	/**
+	 * Starts over: the link to Skyrim dropped, nobody is playing, or a new server started (its
+	 * tick count begins at 0 again, so an old cooldown would hold the first creature back for as
+	 * long as the last session ran). The first creature then waits a cooldown again.
+	 */
+	public static void reset() {
+		PACER.reset();
+		aliveSpawned = 0;
+		world = Integer.MIN_VALUE;
 	}
 
 	private static DeepRules rules() {
@@ -80,6 +95,10 @@ public final class SkyDeep {
 		if (!r.enabled()) {
 			return;
 		}
+		if (tick < lastTick) {
+			reset(); // another server (singleplayer world reopened): its ticks start from 0
+		}
+		lastTick = tick;
 		RandomSource random = host.getRandom();
 		if (!PACER.started()) {
 			PACER.restart(tick, r.cooldownTicks(random.nextDouble()));
@@ -89,13 +108,16 @@ public final class SkyDeep {
 			return;
 		}
 		PACER.looked(tick);
-		if (!SkyLink.readSkyState(SKY) || !SKY.inGame() || SKY.loading()) {
+		// Not while Skyrim shows a menu (a paused game would put the creature down the moment it closes).
+		if (!SkyLink.readSkyState(SKY) || !SKY.inGame() || SKY.loading() || SKY.menuOpen()) {
 			return;
 		}
-		if (SKY.worldId != world) {
-			// Another Skyrim world (a new game, a load, a door): the first creature waits a cooldown.
+		if (SKY.worldId != world || SKY.teleportSeq != teleportSeq) {
+			// Another Skyrim world, or Skyrim moved the player itself (a new game, loading a save
+			// even in the same worldspace, a door, fast travel): the first creature waits a cooldown.
 			boolean first = world == Integer.MIN_VALUE;
 			world = SKY.worldId;
+			teleportSeq = SKY.teleportSeq;
 			if (!first) {
 				PACER.restart(tick, r.cooldownTicks(random.nextDouble()));
 				return;
@@ -132,8 +154,14 @@ public final class SkyDeep {
 		long[] picked = new long[CANDIDATES];
 		int count = 0;
 		int seen = 0;
+		double reachSq = (double) reach * reach;
 		for (int cx = ((int) Math.floor(px) - reach) >> 4; cx <= ((int) Math.floor(px) + reach) >> 4; cx++) {
 			for (int cz = ((int) Math.floor(pz) - reach) >> 4; cz <= ((int) Math.floor(pz) + reach) >> 4; cz++) {
+				// Corner chunks of the square wholly outside the circle: nothing in range there.
+				double nx = Math.clamp(px, cx << 4, (cx << 4) + 16) - px, nz = Math.clamp(pz, cz << 4, (cz << 4) + 16) - pz;
+				if (nx * nx + nz * nz > reachSq) {
+					continue;
+				}
 				LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
 				if (chunk == null) {
 					continue;
@@ -152,7 +180,13 @@ public final class SkyDeep {
 							word &= word - 1;
 							int x = (cx << 4) + (bit & 15), z = (cz << 4) + ((bit >> 4) & 15), y = baseY + (bit >> 8);
 							double dx = x + 0.5 - px, dy = y - py, dz = z + 0.5 - pz;
-							if (!r.inSpawnRange(dx * dx + dy * dy + dz * dz) || !column.isDug(world, x, y + 1, z)) {
+							if (!r.inSpawnRange(dx * dx + dy * dy + dz * dz)) {
+								continue;
+							}
+							// The cell over it dug too (room for a head): in this section's bits unless
+							// it's the top layer (then the section above).
+							int over = bit + 256;
+							if (over < 4096 ? ((bits[over >> 6] >>> (over & 63)) & 1L) == 0 : !column.isDug(world, x, y + 1, z)) {
 								continue;
 							}
 							// Reservoir sampling: every cell in range equally likely, however many there are.
@@ -229,7 +263,7 @@ public final class SkyDeep {
 	private static boolean sees(ServerLevel level, ServerPlayer player, BlockPos feet) {
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getViewVector(1.0F);
-		for (double h : new double[] { 0.3, 1.0, 1.7 }) {
+		for (double h : SIGHT_HEIGHTS) {
 			Vec3 point = new Vec3(feet.getX() + 0.5, feet.getY() + h, feet.getZ() + 0.5);
 			if (!DeepRules.inViewCone(point.x - eye.x, point.y - eye.y, point.z - eye.z, look.x, look.y, look.z)) {
 				continue;

@@ -353,6 +353,12 @@ public final class DeepRules {
 			return this.nextSpawn != Long.MIN_VALUE;
 		}
 
+		/** Forgets it all (a new server counts its ticks from 0 again): the next tick starts over. */
+		public void reset() {
+			this.nextSpawn = Long.MIN_VALUE;
+			this.nextLook = Long.MIN_VALUE;
+		}
+
 		/** Time to look for a spot this tick. */
 		public boolean shouldLook(long now) {
 			return this.started() && now >= this.nextSpawn && now >= this.nextLook;

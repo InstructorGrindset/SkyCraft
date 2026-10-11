@@ -10,12 +10,16 @@
 // worldspace or interior.
 namespace skycraft::Spawn
 {
+	// At plugin load (SKSEPluginLoad): what was placed is kept in SKSE's co-save, so a loaded
+	// game still knows which of its actors came out of the dark.
+	void Install();
 	// Main thread: Minecraft asks for a creature (only while Minecraft drives the player).
 	void OnEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_event);
 	// Main thread, every frame: takes away creatures left behind.
 	void Update(RE::PlayerCharacter* a_player, float a_delta);
 	// One of the creatures placed here (for the actor table's kActorSpawned). Main thread.
 	bool IsOurs(const RE::Actor* a_actor);
-	// A game was loaded or started: whatever was tracked belongs to the old one.
+	// A game was loaded or started: whatever was tracked belongs to the old one; the loaded game's
+	// own creatures (from its co-save) are tracked from here on. Main thread.
 	void Reset();
 }

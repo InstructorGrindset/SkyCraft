@@ -191,6 +191,7 @@ public final class SkyCombat {
 	private static void removeAll() {
 		dev.skycraft.loot.SkyLoot.reset();
 		dev.skycraft.loot.SkyTime.reset();
+		dev.skycraft.deep.SkyDeep.reset();
 		if (PROXIES.isEmpty()) {
 			return;
 		}

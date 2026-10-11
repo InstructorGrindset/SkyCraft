@@ -30,14 +30,25 @@ namespace skycraft::Spawn
 			Creature{ proto::kSpawnDraugr, 30, 0x0003B54B, "Draugr Deathlord" },    // level 30
 		};
 
-		constexpr float       kMinSpawnBlocks = 8.0f;     // never right next to the player, whatever Minecraft says
+		// Never right next to the player, whatever Minecraft says: the closest skycraft-deep.txt allows
+		// (4 blocks), less a little for Skyrim's player trailing Minecraft's.
+		constexpr float       kMinSpawnBlocks = 3.5f;
 		constexpr float       kDefaultDespawnBlocks = 64.0f;
 		constexpr std::uint32_t kDefaultCap = 3;
 		constexpr std::size_t kMaxTracked = 12;           // corpses beyond this are taken away first
+		constexpr float       kLootBlocks = 8.0f;         // ...but not one this close: the player may be looting it
 		constexpr float       kCheckSeconds = 0.5f;
 		constexpr float       kLift = 10.0f;              // Skyrim units: put down just above the floor
 
-		// Where the player is, as far as "left for somewhere else" goes: the interior cell, or the
+		// SKSE co-save: which of a saved game's actors came out of the dark, so a loaded game still
+		// takes them away (and counts them) like any other. Record: count, then per creature its
+		// FormID and despawn distance.
+		constexpr std::uint32_t kSaveId = 0x53434450;     // 'SCDP'
+		constexpr std::uint32_t kSaveRecord = 0x44454550; // 'DEEP'
+		constexpr std::uint32_t kSaveVersion = 1;
+		constexpr std::uint32_t kMaxSaved = 64;
+
+		// Where someone is, as far as "left for somewhere else" goes: the interior cell, or the
 		// worldspace outside (walking from one exterior cell to the next is the distance rule's job).
 		struct Place
 		{
@@ -47,25 +58,26 @@ namespace skycraft::Spawn
 			bool operator==(const Place&) const = default;
 		};
 
-		Place PlaceOf(RE::PlayerCharacter* a_player)
+		Place PlaceOf(RE::TESObjectREFR* a_ref)
 		{
-			auto* cell = a_player->GetParentCell();
+			auto* cell = a_ref->GetParentCell();
 			if (cell && cell->IsInteriorCell()) {
 				return { cell, nullptr };
 			}
-			return { nullptr, a_player->GetWorldspace() };
+			return { nullptr, a_ref->GetWorldspace() };
 		}
 
 		struct Spawned
 		{
 			RE::ObjectRefHandle ref;
 			RE::FormID          formId{ 0 };
-			Place               place;
 			float               despawnBlocks{ kDefaultDespawnBlocks };
 			std::string_view    name;
 		};
 		std::vector<Spawned> spawned;
 		float                checkTimer = 0.0f;
+		// From the co-save of the game being loaded (FormID, despawn distance); taken on by Reset().
+		std::vector<std::pair<RE::FormID, float>> loaded;
 
 		std::mt19937& Rng()
 		{
@@ -92,6 +104,18 @@ namespace skycraft::Spawn
 				return second;
 			}
 			return best;
+		}
+
+		// The table's name for a placed creature (by its actor base), for the log.
+		std::string_view NameOf(RE::TESObjectREFR* a_ref)
+		{
+			const auto* base = a_ref->GetBaseObject();
+			for (const auto& c : kCreatures) {
+				if (base && base->GetFormID() == c.base) {
+					return c.name;
+				}
+			}
+			return std::string_view{ "creature" };
 		}
 
 		void TakeAway(RE::TESObjectREFR* a_ref, std::string_view a_name, const char* a_why)
@@ -122,6 +146,65 @@ namespace skycraft::Spawn
 			}
 			return alive;
 		}
+
+		// ---- the co-save (main thread: SKSE saves and loads there) --------------------------------
+		void OnSave(SKSE::SerializationInterface* a_intfc)
+		{
+			if (!a_intfc->OpenRecord(kSaveRecord, kSaveVersion)) {
+				logger::warn("SkyCraft deep: couldn't write the spawned creatures to the co-save");
+				return;
+			}
+			const auto count = static_cast<std::uint32_t>(std::min<std::size_t>(spawned.size(), kMaxSaved));
+			a_intfc->WriteRecordData(count);
+			for (std::uint32_t i = 0; i < count; ++i) {
+				a_intfc->WriteRecordData(spawned[i].formId);
+				a_intfc->WriteRecordData(spawned[i].despawnBlocks);
+			}
+		}
+
+		void OnLoad(SKSE::SerializationInterface* a_intfc)
+		{
+			loaded.clear();
+			std::uint32_t type = 0, version = 0, length = 0;
+			while (a_intfc->GetNextRecordInfo(type, version, length)) {
+				if (type != kSaveRecord || version != kSaveVersion) {
+					continue;
+				}
+				std::uint32_t count = 0;
+				if (a_intfc->ReadRecordData(count) != sizeof(count)) {
+					continue;
+				}
+				for (std::uint32_t i = 0; i < count && i < kMaxSaved; ++i) {
+					RE::FormID id = 0;
+					float      despawn = kDefaultDespawnBlocks;
+					if (a_intfc->ReadRecordData(id) != sizeof(id) || a_intfc->ReadRecordData(despawn) != sizeof(despawn)) {
+						break;
+					}
+					RE::FormID now = 0;
+					if (a_intfc->ResolveFormID(id, now) && now != 0) {
+						loaded.emplace_back(now, std::isfinite(despawn) && despawn > 0.0f ? despawn : kDefaultDespawnBlocks);
+					}
+				}
+			}
+		}
+
+		void OnRevert(SKSE::SerializationInterface*)
+		{
+			loaded.clear();
+		}
+	}
+
+	void Install()
+	{
+		const auto* serialization = SKSE::GetSerializationInterface();
+		if (!serialization) {
+			logger::warn("SkyCraft deep: no SKSE co-save; creatures from a saved game won't be taken away after it's loaded");
+			return;
+		}
+		serialization->SetUniqueID(kSaveId);
+		serialization->SetSaveCallback(OnSave);
+		serialization->SetLoadCallback(OnLoad);
+		serialization->SetRevertCallback(OnRevert);
 	}
 
 	void OnEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_event)
@@ -183,18 +266,19 @@ namespace skycraft::Spawn
 		const auto playerPos = a_player->GetPosition();
 		ref->SetAngle({ 0.0f, 0.0f, std::atan2(playerPos.x - pos.x, playerPos.y - pos.y) });
 
-		// Corpses pile up otherwise: past the limit, the oldest dead one goes.
+		// Corpses pile up otherwise: past the limit, the oldest dead one goes (not one right by the
+		// player, who may be looting it).
 		if (spawned.size() >= kMaxTracked) {
 			for (auto it = spawned.begin(); it != spawned.end(); ++it) {
 				auto old = it->ref.get();
-				if (old && !Alive(old.get())) {
+				if (old && !Alive(old.get()) && old->GetPosition().GetDistance(playerPos) > kLootBlocks * static_cast<float>(proto::kUnitsPerBlock)) {
 					TakeAway(old.get(), it->name, "too many bodies");
 					spawned.erase(it);
 					break;
 				}
 			}
 		}
-		spawned.push_back({ ref->GetHandle(), ref->GetFormID(), PlaceOf(a_player), despawn, creature->name });
+		spawned.push_back({ ref->GetHandle(), ref->GetFormID(), despawn, creature->name });
 		logger::info("SkyCraft deep: a {} ({:08X}, ref {:08X}) comes out of the dark at {:.1f} {:.1f} {:.1f}, {:.0f} blocks from the player; {} of {} alive",
 			creature->name, creature->base, ref->GetFormID(), a_event.a, a_event.b, a_event.c, away, alive + 1, cap);
 	}
@@ -220,8 +304,16 @@ namespace skycraft::Spawn
 				it = spawned.erase(it);
 				continue;
 			}
+			// The player's now (a Dead Thrall, Command Dead): not ours to take away any more.
+			if (auto* actor = ref->As<RE::Actor>(); actor && actor->IsPlayerTeammate()) {
+				logger::info("SkyCraft deep: {} {:08X} is the player's now; no longer tracked", it->name, it->formId);
+				it = spawned.erase(it);
+				continue;
+			}
+			// Where the creature is now, not where it came out: one that followed the player
+			// through a door stays. (No cell: being moved; the distance rule still holds.)
 			const char* why = nullptr;
-			if (!(it->place == here)) {
+			if (ref->GetParentCell() && !(PlaceOf(ref.get()) == here)) {
 				why = "the player left";
 			} else if (ref->GetPosition().GetDistance(playerPos) > it->despawnBlocks * static_cast<float>(proto::kUnitsPerBlock)) {
 				why = "far from the player";
@@ -251,5 +343,18 @@ namespace skycraft::Spawn
 		}
 		spawned.clear();
 		checkTimer = 0.0f;
+		// The loaded game's own creatures (from its co-save; none for a new game).
+		for (const auto& [id, despawn] : loaded) {
+			auto* actor = RE::TESForm::LookupByID<RE::Actor>(id);
+			if (!actor || actor->IsPlayerRef() || actor->IsDeleted()) {
+				continue;
+			}
+			RE::TESObjectREFR* ref = actor;
+			spawned.push_back({ ref->GetHandle(), id, despawn, NameOf(ref) });
+		}
+		if (!spawned.empty()) {
+			logger::info("SkyCraft deep: the loaded game has {} creatures that came out of the dark", spawned.size());
+		}
+		loaded.clear();
 	}
 }
