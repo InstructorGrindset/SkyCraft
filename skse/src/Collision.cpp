@@ -12,6 +12,10 @@ namespace skycraft
 		constexpr int   kRadius = 5;          // regions around the player horizontally (arrows fly far)
 		constexpr int   kBelow = 3;           // regions below the player
 		constexpr int   kAbove = 2;           // regions above the player
+		// And straight over the player, further up: the land over a deep tunnel (Minecraft finds the
+		// ground and bedrock under it from that, however deep the player is when it starts looking).
+		constexpr int   kColumnAbove = 10;    // regions (80 blocks, past bedrock's depth)
+		constexpr int   kColumnRadius = 1;
 		constexpr int   kGrid = Collision::kRegionSize * 8;  // voxels per region edge (64)
 		constexpr auto  kRefreshNear = 1000ms;  // re-send regions next to the player this often (doors etc.)
 		constexpr auto  kFrameBudget = 2500us;
@@ -265,6 +269,11 @@ namespace skycraft
 			for (int dz = -kRadius; dz <= kRadius; ++dz) {
 				for (int dy = -kBelow; dy <= kAbove; ++dy) {
 					offsets_.push_back({ dx, dy, dz });
+				}
+				if (std::abs(dx) <= kColumnRadius && std::abs(dz) <= kColumnRadius) {
+					for (int dy = kAbove + 1; dy <= kColumnAbove; ++dy) {
+						offsets_.push_back({ dx, dy, dz });
+					}
 				}
 			}
 		}

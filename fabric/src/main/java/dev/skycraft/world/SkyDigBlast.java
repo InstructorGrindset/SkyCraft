@@ -74,7 +74,10 @@ public final class SkyDigBlast {
 							break;
 						}
 						if (r > SkyDig.AIR && result == 0) {
-							result = SkyDig.underground(r, Math.max(this.probe.depth, 0.5));
+							// Bedrock under the land holds against any blast (as a bedrock block would).
+							SkyTri s = this.probe.surface;
+							result = s != null && s.terrain && this.probe.depth >= SkyDig.BEDROCK_DEPTH ? dev.skycraft.link.Proto.DIG_BEDROCK
+								: SkyDig.underground(r, Math.max(this.probe.depth, 0.5));
 						}
 					}
 				}
