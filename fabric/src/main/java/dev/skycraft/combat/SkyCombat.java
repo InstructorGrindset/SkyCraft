@@ -81,6 +81,7 @@ public final class SkyCombat {
 			pickUpNearby(player);
 			if (dev.skycraft.net.SkyNet.isHost(player)) {
 				dev.skycraft.loot.SkyBridge.tick(player);
+				dev.skycraft.loot.SkyTime.tick(server, player);
 			}
 		}
 		if (SkyLink.readActors(ACTORS)) {
@@ -180,6 +181,7 @@ public final class SkyCombat {
 
 	private static void removeAll() {
 		dev.skycraft.loot.SkyLoot.reset();
+		dev.skycraft.loot.SkyTime.reset();
 		if (PROXIES.isEmpty()) {
 			return;
 		}

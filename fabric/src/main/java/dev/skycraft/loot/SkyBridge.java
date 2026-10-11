@@ -30,6 +30,8 @@ public final class SkyBridge {
 	private SkyBridge() {
 	}
 
+	private static final SkyLink.SkyState SKY = new SkyLink.SkyState();
+
 	/** Converts every queued Skyrim item for the host player. */
 	public static void tick(ServerPlayer host) {
 		SkyLink.drainItems(item -> convert(host, item));
@@ -38,6 +40,9 @@ public final class SkyBridge {
 	private static void convert(ServerPlayer player, SkyLink.Item it) {
 		if (it.count() <= 0) {
 			return;
+		}
+		if (it.source() == Proto.SRC_CONTAINER && SkyLink.readSkyState(SKY)) {
+			DungeonLoot.onLooted(player, it, SKY.place);
 		}
 		ItemRules.Result result = rules().match(new ItemRules.Item(it.tags(), it.material(), it.source(), it.name()));
 		if (result.keep()) {
