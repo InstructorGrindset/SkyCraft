@@ -105,16 +105,16 @@ public final class ItemRules {
 		tag foodraw name meat = minecraft:beef 1
 		tag food = minecraft:bread 1
 
-		# Hides and leather
+		# Hides and leather (strips before hides, in case Skyrim tags them as hide)
+		name leather name strips = skycraft:leather_strips 1
 		tag hide = minecraft:leather 1
-		name leather name strips = minecraft:string 1
 		name leather = minecraft:leather 1
 		name firewood = minecraft:oak_log 1
 
 		# Metals and gems
 		tag oreingot name iron name ingot = minecraft:iron_ingot 1
 		tag oreingot name iron name ore = minecraft:raw_iron 1
-		tag oreingot name steel = minecraft:iron_ingot 1
+		tag oreingot name steel = skycraft:steel_ingot 1
 		tag oreingot name gold name ingot = minecraft:gold_ingot 1
 		tag oreingot name gold name ore = minecraft:raw_gold 1
 		tag oreingot name corundum name ingot = minecraft:copper_ingot 1
@@ -123,14 +123,26 @@ public final class ItemRules {
 		tag gem name emerald = minecraft:emerald 1
 		tag gem name amethyst = minecraft:amethyst_shard 2
 
+		# Skyrim smithing materials for the SkyCraft gear sets (ore and ingot alike)
+		tag oreingot name orichalcum = skycraft:orichalcum_ingot 1
+		tag oreingot name dwarven = skycraft:dwarven_metal_ingot 1
+		tag oreingot name moonstone = skycraft:refined_moonstone 1
+		tag oreingot name malachite = skycraft:refined_malachite 1
+		tag oreingot name ebony = skycraft:ebony_ingot 1
+		name dwemer name scrap = skycraft:dwarven_metal_ingot 1
+		name solid name dwemer name metal = skycraft:dwarven_metal_ingot 2
+		name dwemer name plate = skycraft:dwarven_metal_ingot 2
+		name dwemer name strut = skycraft:dwarven_metal_ingot 3
+		name daedra name heart = skycraft:daedra_heart 1
+
 		# Arrows
 		tag arrow = minecraft:arrow 1
 
 		# Looted iron and steel gear salvages into ingots (gear you craft or buy stays)
 		tag weapon material iron from looted = minecraft:iron_ingot 1
-		tag weapon material steel from looted = minecraft:iron_ingot 1
+		tag weapon material steel from looted = skycraft:steel_ingot 1
 		tag armor material iron from looted = minecraft:iron_ingot 2
-		tag armor material steel from looted = minecraft:iron_ingot 2
+		tag armor material steel from looted = skycraft:steel_ingot 2
 		tag armor material hide from looted = minecraft:leather 2
 		""";
 
