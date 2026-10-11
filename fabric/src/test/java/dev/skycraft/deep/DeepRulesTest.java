@@ -185,4 +185,15 @@ class DeepRulesTest {
 		assertTrue(pacer.shouldLook(2220));
 		assertEquals(0, pacer.ticksUntilLook(2300));
 	}
+
+	@Test
+	void pacerResetForgetsAnOldServersTicks() {
+		DeepRules.Pacer pacer = new DeepRules.Pacer();
+		pacer.restart(100_000, 900); // a long session: the next spawn is due at tick 100900
+		pacer.reset();
+		assertFalse(pacer.started());
+		assertFalse(pacer.shouldLook(50));
+		pacer.restart(50, 900); // the new server, from its own tick count
+		assertTrue(pacer.shouldLook(950));
+	}
 }
