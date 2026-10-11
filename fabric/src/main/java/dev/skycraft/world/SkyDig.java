@@ -240,7 +240,7 @@ public final class SkyDig {
 
 	/** The block a Proto.DIG_* material stands for (stone without ores). */
 	public static BlockState materialState(int material) {
-		return switch (material) {
+		return switch (base(material)) {
 			case DIG_GRASS -> Blocks.GRASS_BLOCK.defaultBlockState();
 			case DIG_DIRT -> Blocks.DIRT.defaultBlockState();
 			case DIG_COBBLE -> Blocks.COBBLESTONE.defaultBlockState();
@@ -267,7 +267,11 @@ public final class SkyDig {
 
 	/** The block a Proto.DIG_* material becomes here. Stone has ores in it. */
 	public static BlockState blockFor(ServerLevel level, BlockPos pos, int material) {
-		return material == DIG_STONE || material == DIG_NONE ? stoneOrOre(level.getSeed(), pos) : materialState(material);
+		int depthPlusOne = material >>> DEPTH_SHIFT & 0xFF;
+		if (base(material) == DIG_STONE || base(material) == DIG_NONE) {
+			return depthPlusOne > 0 ? oreByDepth(level.getSeed(), pos, depthPlusOne - 1) : stoneOrOre(level.getSeed(), pos);
+		}
+		return materialState(material);
 	}
 
 	/** Ores come in little clusters (a 2x2x2 cell picks one ore, then each block in it maybe). */
@@ -306,6 +310,50 @@ public final class SkyDig {
 		return Blocks.STONE.defaultBlockState();
 	}
 
+	/**
+	 * Stone or ore at a known depth under the land, roughly like Minecraft's own layers: coal and
+	 * copper near the top, iron throughout, gold, redstone and lapis lower, diamonds deep, and
+	 * deepslate (with deepslate ores) from {@link #DEEPSLATE_DEPTH} down to bedrock.
+	 */
+	static BlockState oreByDepth(long seed, BlockPos pos, int depth) {
+		boolean deep = depth >= DEEPSLATE_DEPTH;
+		long cell = mix(seed ^ mix(((long) (pos.getX() >> 1) * 73856093L) ^ ((long) (pos.getY() >> 1) * 19349663L) ^ ((long) (pos.getZ() >> 1) * 83492791L)));
+		long block = mix(cell ^ ((pos.getX() & 1) | (pos.getY() & 1) << 1 | (pos.getZ() & 1) << 2));
+		BlockState plain = deep ? Blocks.DEEPSLATE.defaultBlockState() : Blocks.STONE.defaultBlockState();
+		if ((block & 0xFF) >= 150) { // about 60% of a vein cell's blocks
+			return plain;
+		}
+		int[] chances = oreChances(depth); // per vein cell, in 1/10000: coal, copper, iron, gold, redstone, lapis, diamond, emerald
+		BlockState[] ores = deep
+			? new BlockState[] { Blocks.DEEPSLATE_COAL_ORE.defaultBlockState(), Blocks.DEEPSLATE_COPPER_ORE.defaultBlockState(),
+				Blocks.DEEPSLATE_IRON_ORE.defaultBlockState(), Blocks.DEEPSLATE_GOLD_ORE.defaultBlockState(), Blocks.DEEPSLATE_REDSTONE_ORE.defaultBlockState(),
+				Blocks.DEEPSLATE_LAPIS_ORE.defaultBlockState(), Blocks.DEEPSLATE_DIAMOND_ORE.defaultBlockState(), Blocks.DEEPSLATE_EMERALD_ORE.defaultBlockState() }
+			: new BlockState[] { Blocks.COAL_ORE.defaultBlockState(), Blocks.COPPER_ORE.defaultBlockState(), Blocks.IRON_ORE.defaultBlockState(),
+				Blocks.GOLD_ORE.defaultBlockState(), Blocks.REDSTONE_ORE.defaultBlockState(), Blocks.LAPIS_ORE.defaultBlockState(),
+				Blocks.DIAMOND_ORE.defaultBlockState(), Blocks.EMERALD_ORE.defaultBlockState() };
+		int roll = (int) ((cell >>> 16) % 10000L);
+		for (int i = 0; i < chances.length; i++) {
+			if ((roll -= chances[i]) < 0) {
+				return ores[i];
+			}
+		}
+		return plain;
+	}
+
+	/** Ore chances per vein cell at a depth, in 1/10000: coal, copper, iron, gold, redstone, lapis, diamond, emerald. */
+	static int[] oreChances(int depth) {
+		if (depth < 8) {
+			return new int[] { 450, 250, 200, 0, 0, 0, 0, 0 };
+		}
+		if (depth < 24) {
+			return new int[] { 300, 200, 280, 40, 40, 30, 0, 5 };
+		}
+		if (depth < 40) {
+			return new int[] { 120, 80, 260, 90, 120, 60, 25, 8 };
+		}
+		return new int[] { 40, 20, 200, 110, 200, 70, 70, 5 };
+	}
+
 	private static long mix(long z) {
 		z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
 		z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
@@ -319,7 +367,14 @@ public final class SkyDig {
 	/** Open air, or only partly inside Skyrim's geometry (its surface stays; walls are drawn). */
 	public static final int AIR = 0;
 	/** Blocks this far under the land's surface are bedrock. */
-	public static final double BEDROCK_DEPTH = 5.0;
+	public static final double BEDROCK_DEPTH = 64.0;
+	/** Below this depth, stone is deepslate (with deepslate ores). */
+	public static final double DEEPSLATE_DEPTH = 40.0;
+	/**
+	 * A stone material from classify() can carry how deep it is under the land, in whole blocks + 1,
+	 * in bits 8-15 (0 = not known), so ores can depend on depth. {@link #base} strips it.
+	 */
+	public static final int DEPTH_SHIFT = 8;
 	/** A cell becomes a block only when this many of its 27 sample points are inside. */
 	private static final int WHOLE = 25;
 
@@ -566,13 +621,23 @@ public final class SkyDig {
 				centreDepth = depth;
 			}
 		}
-		return underground(centreMaterial, centreDepth);
+		int material = underground(centreMaterial, centreDepth);
+		if (material == DIG_STONE && land != null) {
+			double depth = land.heightAt(x + 0.5, z + 0.5) - (y + 0.5);
+			material |= (Math.clamp((int) depth, 0, 254) + 1) << DEPTH_SHIFT;
+		}
+		return material;
 	}
 
-	/** The nearest stretch of land (Skyrim's terrain) above a point, within 32 blocks, or null. */
+	/** The Proto.DIG_* material without the depth classify() may add. */
+	public static int base(int material) {
+		return material & 0xFF;
+	}
+
+	/** The nearest stretch of land (Skyrim's terrain) above a point, within reach of bedrock, or null. */
 	public static @Nullable SkyTri landAbove(double x, double y, double z) {
 		List<SkyTri> column = new ArrayList<>();
-		SkyCollision.originalSurfacesNear(new AABB(x - 0.01, y, z - 0.01, x + 0.01, y + 32, z + 0.01), column);
+		SkyCollision.originalSurfacesNear(new AABB(x - 0.01, y, z - 0.01, x + 0.01, y + BEDROCK_DEPTH + 8.0, z + 0.01), column);
 		SkyTri best = null;
 		double bestHeight = Double.POSITIVE_INFINITY;
 		for (SkyTri t : column) {

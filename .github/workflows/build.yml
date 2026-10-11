@@ -9,6 +9,26 @@ permissions:
   contents: write
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      skse: ${{ steps.diff.outputs.skse }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Did the Skyrim plugin or the protocol change?
+        id: diff
+        run: |
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$before" 2>/dev/null; then
+            echo "skse=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^(skse|protocol)/'; then
+            echo "skse=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skse=false" >> "$GITHUB_OUTPUT"
+          fi
+
   fabric:
     runs-on: ubuntu-latest
     outputs:
@@ -45,6 +65,8 @@ jobs:
           path: fabric/build/libs/skycraft-${{ steps.ver.outputs.version }}.jar
 
   skse:
+    needs: changes
+    if: needs.changes.outputs.skse == 'true'
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +118,8 @@ jobs:
 
   release:
     needs: [fabric, skse]
+    # Minecraft-only changes skip the Skyrim plugin build; the release then carries just the jar.
+    if: always() && needs.fabric.result == 'success' && (needs.skse.result == 'success' || needs.skse.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
