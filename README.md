@@ -16,6 +16,8 @@ shared memory. Minecraft runs hidden in the background, and Skyrim draws everyth
 
 ## What works
 
+This fork adds looting, merchants, dungeon chests, time and sleep sync, deep creatures and Skyrim gear sets; see [docs/FEATURES.md](docs/FEATURES.md).
+
 - **Movement:** Minecraft movement on Skyrim's terrain and buildings. That covers walking,
   sprinting, jumping, crouching, swimming and falling, and Skyrim's collision is fed into
   Minecraft's own collision.
