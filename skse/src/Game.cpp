@@ -946,6 +946,19 @@ namespace skycraft
 						if (!camera->IsInFirstPerson()) {
 							camera->ForceFirstPerson();
 						}
+						if (camera->IsInFirstPerson()) {
+							// Skyrim's compass follows the camera's yaw, which its first person state copies from
+							// the player's heading; after some takeovers that copy stops until the next load. Keep
+							// it in step ourselves (and say once when it had drifted).
+							auto&       camYaw = camera->GetRuntimeData2().yaw;
+							const float drift = std::abs(std::remainder(camYaw - heading, 6.2831853f));
+							static bool driftLogged = false;
+							if (drift > 0.2f && !driftLogged) {
+								driftLogged = true;
+								logger::info("compass: Skyrim's camera yaw was {:.0f} deg off the player's heading; keeping it in step", drift * kRadToDeg);
+							}
+							camYaw = heading;
+						}
 						if (mc.fovDeg > 1.0f) {
 							ApplyMcFov(camera, mc.fovDeg);
 						}
