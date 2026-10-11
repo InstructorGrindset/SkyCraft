@@ -680,10 +680,24 @@ public final class SkyLink {
 		pushEvent(type, formId, (float) SkySpace.local(x), (float) y, (float) SkySpace.local(z), d, flags, weapon);
 	}
 
+	/** Event types whose a, b, c are a place (Minecraft coordinates) rather than amounts. */
+	private static boolean carriesPlace(int type) {
+		return type == EV_EXPLOSION || type == EV_ARROW_STUCK || type == EV_SPAWN_CREATURE || type == EV_PORTAL_TRAVEL;
+	}
+
+	/**
+	 * Queues an event for Skyrim. A place in a, b, c goes in the terms of the Skyrim world whose space it's
+	 * in, whoever calls this (a place already in those terms stays as it is); {@link #pushEventAt} keeps
+	 * full precision and drops places outside Skyrim's current world.
+	 */
 	public static synchronized void pushEvent(int type, int formId, float a, float b, float c, float d, int flags, int weapon) {
 		MemorySegment s = shm;
 		if (s == null) {
 			return;
+		}
+		if (carriesPlace(type)) {
+			a = (float) SkySpace.local(a);
+			c = (float) SkySpace.local(c);
 		}
 		long base = OFF_EVENT_RING;
 		long head = s.get(JAVA_LONG, base + ER_HEAD);

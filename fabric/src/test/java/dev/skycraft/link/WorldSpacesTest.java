@@ -81,6 +81,11 @@ class WorldSpacesTest {
 			}
 			float skyrim = -57.3F; // a float from the protocol, moved in and out
 			assertEquals(skyrim, (float) WorldSpaces.local(skyrim + (double) ox), 0.0);
+			// Taking a place to its world's terms twice changes nothing (SkyLink.pushEvent relies on it), and a
+			// portal exit cast to float in the mirror (x + 0.5) comes out exact.
+			float exit = (float) (ox + 123.5);
+			assertEquals(123.5F, (float) WorldSpaces.local(exit), 0.0);
+			assertEquals(123.5F, (float) WorldSpaces.local((float) WorldSpaces.local(exit)), 0.0);
 			for (int b : new int[] { 0, 1, -1, -57, 4095, -4096, WorldSpaces.HALF - 1, -WorldSpaces.HALF }) {
 				assertEquals(b, WorldSpaces.local(b + ox));
 				assertEquals(b, WorldSpaces.local(b + oz));
