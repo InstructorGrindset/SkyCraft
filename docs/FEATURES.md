@@ -11,24 +11,32 @@ tests but hasn't been played yet.
 
 ## Feature map
 
-| Feature | What it does | Minecraft side | Skyrim side | Config | Log tag | Status |
-|---|---|---|---|---|---|---|
-| Kill drops | Skyrim animals you kill drop Minecraft meat, leather and bones | `loot/SkyLoot`, `loot/LootRules` | actor table (existing) | `skycraft-loot.txt` | `SkyCraft-loot` | Tested |
-| Kill XP | Credited kills drop XP orbs, more for higher levels | `loot/KillXp`, `loot/SkyLoot` | actor table level | none | `SkyCraft-loot` | Built |
-| Item conversion | Food, potions, ores, hides and salvaged gear you loot in Skyrim become Minecraft items | `loot/SkyBridge`, `loot/ItemRules` | `Loot.cpp` container sink, `Loot::Take` | `skycraft-items.txt` | `SkyCraft-loot` | Tested |
-| Dungeon chests | First loot of each dungeon chest also rolls a Minecraft chest loot table | `loot/DungeonLoot` | `Loot::Place` (dungeon flag), container id and chest flag in item events | `skycraft-dungeons.txt`, `skycraft-opened-chests.txt` | `SkyCraft-loot` | Built |
-| Merchants | Right click a Skyrim vendor with an empty hand for a villager trade screen; town prices and supply and demand; Speech XP | `trade/SkyTrade`, `trade/TradeRules`, `trade/Currency`, `trade/Demand`, `combat/SkyrimActorEntity.interact` | `Loot::VendorMask`, `Loot::Place` (town) | `skycraft-trades.txt`, `skycraft-towns.txt` | `SkyCraft-trade` | Built |
-| Time sync | Minecraft's clock follows Skyrim's game hour | `loot/SkyTime` | `SkyState.gameHour` (existing) | none | `SkyCraft` | Built |
-| Bed sleep | A full night in a Minecraft bed passes the night in Skyrim | `loot/SkyTime` | `Loot::PassTime` (kEvSleep) | none | `SkyCraft` | Built |
-| Deep mining | Bedrock 64 blocks down, ores by depth, deepslate layer | `world/SkyDig` | `Dig.cpp` (existing) | none | `SkyCraft` | Tested |
-| Deep creatures | Skeevers, skeletons and draugr spawn in dark tunnels you dug, by depth | `deep/SkyDeep`, `deep/DeepRules` | `Spawn.cpp` (kEvSpawnCreature, kActorSpawned) | `skycraft-deep.txt` | `SkyCraft deep` | Built |
-| Gear sets | Iron through daedric weapons and armor, new materials, recipes, original textures | `gear/SkyGear`, `gear/GearTiers`, `mixin/SmithingMixin` | none | recipes are data in the jar | none | Built |
+Every feature can be switched off in `skycraft-features.txt` (restart Minecraft after editing).
+Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side under `skse/src/`.
+
+| Feature | Switch | What it does | Minecraft side | Skyrim side | Config | Log tag | Status |
+|---|---|---|---|---|---|---|---|
+| Kill drops | `kill_drops` | Skyrim animals you kill drop Minecraft meat, leather and bones | `loot/SkyLoot`, `loot/LootRules` | actor table | `skycraft-loot.txt` | `SkyCraft-loot` | Tested |
+| Kill XP | `kill_xp` | Credited kills drop XP orbs, more for higher levels | `loot/KillXp`, `loot/SkyLoot` | actor table level | none | `SkyCraft-loot` | Built |
+| Item conversion | `item_conversion` | Food, potions, ores, hides and salvaged gear you loot in Skyrim become Minecraft items; quest items never convert | `loot/SkyBridge`, `loot/ItemRules` | `Loot.cpp` (container sink, Take) | `skycraft-items.txt` | `SkyCraft-loot` | Tested |
+| Dungeon chests | `dungeon_chests` | First loot of each dungeon chest also rolls a Minecraft chest loot table | `loot/DungeonLoot` | `WorldState::Place` (dungeon flag), item event chest flag and container id | `skycraft-dungeons.txt`, `skycraft-opened-chests.txt` | `SkyCraft-loot` | Built |
+| Merchants | `merchants` | Right click a Skyrim vendor with an empty hand for a villager trade screen; town prices, supply and demand, Speech XP | `trade/` (SkyTrade, TradeRules, Currency, Demand), `combat/SkyrimActorEntity.interact` | `WorldState::VendorMask`, `WorldState::Place` (town) | `skycraft-trades.txt`, `skycraft-towns.txt` | `SkyCraft-trade` | Built |
+| Time sync | `time_sync` | Minecraft's clock follows Skyrim's game hour | `time/SkyTime` | SkyState game hour | none | `SkyCraft-time` | Built |
+| Bed sleep | `bed_sleep` | A full night in a Minecraft bed passes the night in Skyrim (needs time sync for beds to work at night) | `time/SkyTime` | `WorldState::PassTime` | none | `SkyCraft-time` | Built |
+| Deep mining | none | Bedrock 64 blocks down, ores by depth, deepslate layer | `world/SkyDig` | `Dig.cpp` | none | `SkyCraft` | Tested |
+| Deep creatures | `deep_creatures` | Skeevers, skeletons and draugr spawn in dark tunnels you dug, by depth | `deep/` (SkyDeep, DeepRules) | `Spawn.cpp` | `skycraft-deep.txt` | `SkyCraft-deep` | Built |
+| Gear sets | none | Skyrim Iron through Daedric weapons and armor, new materials, recipes, original textures | `gear/` (SkyGear, GearTiers), `mixin/SmithingMixin` | none | data in the jar | none | Built |
+
+Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
+switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
+player's town and place and merchants' buy lists. Place changes are logged as `SkyCraft-place`.
 
 ## Planned
 
 | Feature | Notes |
 |---|---|
 | Farming on Skyrim soil | May already work with dug dirt; needs a test first |
+| Breach doors | Dig into a hidden pocket under a dungeon entrance to break into the real dungeon |
 | Tamed companions | A Skyrim dog or horse shows up as a Minecraft wolf or horse that follows you |
 | Artifacts | About 20 named Skyrim artifacts as unique Minecraft items with real enchantments |
 
@@ -42,6 +50,7 @@ The shared memory protocol went from 12 to 13 for these features. Both halves mu
 | `ActorRecord.vendor` (VendorBuys) | Skyrim to Minecraft | Merchants |
 | `ActorFlags::kActorSpawned` | Skyrim to Minecraft | Deep creatures cap |
 | `ItemEvent.chest`, `ItemEvent.container` | Skyrim to Minecraft | Dungeon chests |
+| `ItemEvent.quest` | Skyrim to Minecraft | Item conversion skips quest items |
 | `kEvSleep` | Minecraft to Skyrim | Bed sleep |
 | `kEvSpawnCreature` | Minecraft to Skyrim | Deep creatures |
 

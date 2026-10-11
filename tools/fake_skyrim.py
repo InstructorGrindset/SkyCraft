@@ -162,12 +162,12 @@ class Link:
         struct.pack_into("<32sII", self.m, OFF_SKY + 0x40, town.encode("utf-8")[:31], place, 0)  # town[32] NUL-padded, place, reserved
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2)
 
-    def push_item(self, form, count, tags, name, material=0, source=SRC_CONTAINER, chest=1, container=0):
+    def push_item(self, form, count, tags, name, material=0, source=SRC_CONTAINER, chest=1, container=0, quest=0):
         """Skyrim -> MC: an item the player just got (ItemEvent). Dropped if Minecraft is a full ring behind."""
         (tail,) = struct.unpack_from("<Q", self.m, OFF_ITEMS + 0x40)
         if self.item_head - tail >= 64:
             return False
-        struct.pack_into("<IiIBBBB28sI", self.m, OFF_ITEMS + 0x80 + (self.item_head % 64) * 48, form, count, tags, material, source, chest, 0,
+        struct.pack_into("<IiIBBBB28sI", self.m, OFF_ITEMS + 0x80 + (self.item_head % 64) * 48, form, count, tags, material, source, chest, quest,
                          name.encode("utf-8")[:27], container)
         self.item_head += 1
         struct.pack_into("<Q", self.m, OFF_ITEMS, self.item_head)

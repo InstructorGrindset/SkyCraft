@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 class DungeonLootTest {
 	private static SkyLink.Item item(int source, int container, boolean chest) {
-		return new SkyLink.Item(0x1234, 1, 0, 0, source, "Iron Ingot", container, chest);
+		return new SkyLink.Item(0x1234, 1, 0, 0, source, "Iron Ingot", container, chest, false);
 	}
 
 	@Test

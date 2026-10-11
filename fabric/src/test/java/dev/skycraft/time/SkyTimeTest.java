@@ -1,4 +1,4 @@
-package dev.skycraft.loot;
+package dev.skycraft.time;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

@@ -37,6 +37,8 @@ public final class SkyLink {
 	private static final MethodHandle QUERY_PERFORMANCE_COUNTER;
 	private static final MethodHandle QUERY_PERFORMANCE_FREQUENCY;
 	private static final MethodHandle CREATE_MUTEX;
+	private static final MethodHandle UNMAP_VIEW_OF_FILE;
+	private static final MethodHandle CLOSE_HANDLE;
 	private static MemorySegment runningMutex;
 	private static final MemorySegment QPC_OUT = Arena.global().allocate(JAVA_LONG);
 
@@ -54,6 +56,22 @@ public final class SkyLink {
 		QUERY_PERFORMANCE_COUNTER = linker.downcallHandle(k32.find("QueryPerformanceCounter").orElseThrow(), FunctionDescriptor.of(JAVA_INT, ADDRESS));
 		QUERY_PERFORMANCE_FREQUENCY = linker.downcallHandle(k32.find("QueryPerformanceFrequency").orElseThrow(), FunctionDescriptor.of(JAVA_INT, ADDRESS));
 		CREATE_MUTEX = linker.downcallHandle(k32.find("CreateMutexW").orElseThrow(), FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, ADDRESS));
+		UNMAP_VIEW_OF_FILE = linker.downcallHandle(k32.find("UnmapViewOfFile").orElseThrow(), FunctionDescriptor.of(JAVA_INT, ADDRESS));
+		CLOSE_HANDLE = linker.downcallHandle(k32.find("CloseHandle").orElseThrow(), FunctionDescriptor.of(JAVA_INT, ADDRESS));
+	}
+
+	/** Releases a mapping that won't be used (wrong protocol, failed view). */
+	private static void closeQuietly(MemorySegment handle, MemorySegment view) {
+		try {
+			if (view.address() != 0) {
+				int ignored = (int) UNMAP_VIEW_OF_FILE.invokeExact(view);
+			}
+			if (handle.address() != 0) {
+				int ignored = (int) CLOSE_HANDLE.invokeExact(handle);
+			}
+		} catch (Throwable t) {
+			SkyCraft.LOG.warn("SkyCraft: couldn't release a shared memory mapping", t);
+		}
 	}
 
 	/**
@@ -141,6 +159,7 @@ public final class SkyLink {
 			MemorySegment view = (MemorySegment) MAP_VIEW_OF_FILE.invokeExact(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0L);
 			if (view.address() == 0) {
 				SkyCraft.LOG.error("SkyCraft: MapViewOfFile failed");
+				closeQuietly(handle, MemorySegment.NULL);
 				return;
 			}
 			MemorySegment seg = view.reinterpret(MAPPING_BYTES);
@@ -148,6 +167,7 @@ public final class SkyLink {
 			int version = seg.get(JAVA_INT, OFF_HEADER + H_VERSION);
 			if (magic != MAGIC || version != VERSION) {
 				SkyCraft.LOG.error("SkyCraft: protocol mismatch (magic {} version {}); expected version {}", Integer.toHexString(magic), version, VERSION);
+				closeQuietly(handle, view); // retried every second: don't leak a 195 MB view and a handle each time
 				return;
 			}
 			seg.set(JAVA_INT, OFF_HEADER + H_MC_PID, (int) GET_CURRENT_PROCESS_ID.invokeExact());
@@ -514,7 +534,7 @@ public final class SkyLink {
 	// ---- item ring (consume) ---------------------------------------------------------------
 
 	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */
-	public record Item(int formId, int count, int tags, int material, int source, String name, int container, boolean chest) {
+	public record Item(int formId, int count, int tags, int material, int source, String name, int container, boolean chest, boolean quest) {
 	}
 
 	/**
@@ -536,7 +556,7 @@ public final class SkyLink {
 			long e = base + ITR_DATA + (tail & (ITEM_RING_ENTRIES - 1)) * ITEM_BYTES;
 			Item item = new Item(s.get(JAVA_INT, e), s.get(JAVA_INT, e + 4), s.get(JAVA_INT, e + 8), Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 12)),
 				Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 13)), readName(s, e + 16, 28), s.get(JAVA_INT, e + 44),
-				s.get(JAVA_BYTE, e + 14) != 0);
+				s.get(JAVA_BYTE, e + 14) != 0, s.get(JAVA_BYTE, e + 15) != 0);
 			tail++;
 			LONG.setRelease(s, base + ITR_TAIL, tail);
 			sink.accept(item);

@@ -3,7 +3,7 @@ package dev.skycraft.deep;
 import dev.skycraft.SkyCraft;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
-import dev.skycraft.loot.Config;
+import dev.skycraft.config.Config;
 import dev.skycraft.world.SkyCollision;
 import dev.skycraft.world.SkyDig;
 import dev.skycraft.world.SkyTri;
@@ -69,9 +69,9 @@ public final class SkyDeep {
 			List<String> problems = new ArrayList<>();
 			r = DeepRules.parse(Config.read(FILE, DeepRules.DEFAULT_TEXT), problems);
 			for (String p : problems) {
-				SkyCraft.LOG.warn("SkyCraft deep: {}: {}", FILE, p);
+				SkyCraft.LOG.warn("SkyCraft-deep: {}: {}", FILE, p);
 			}
-			SkyCraft.LOG.info("SkyCraft deep: monsters in the deep {} ({} alive at most, every {}-{} s, {} depth bands)", r.enabled() ? "on" : "off",
+			SkyCraft.LOG.info("SkyCraft-deep: monsters in the deep {} ({} alive at most, every {}-{} s, {} depth bands)", r.enabled() ? "on" : "off",
 				r.maxAlive(), r.cooldownMinSeconds(), r.cooldownMaxSeconds(), r.bands().size());
 			rules = r;
 		}
@@ -92,7 +92,7 @@ public final class SkyDeep {
 	/** Every server tick, for the host player. {@code players}: everyone in the world (nobody sees a creature appear). */
 	public static void tick(ServerPlayer host, List<ServerPlayer> players, long tick) {
 		DeepRules r = rules();
-		if (!r.enabled()) {
+		if (!r.enabled() || !dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.DEEP_CREATURES)) {
 			return;
 		}
 		if (tick < lastTick) {
@@ -137,7 +137,7 @@ public final class SkyDeep {
 			r.maxAlive());
 		aliveSpawned++; // until the actor table shows it
 		PACER.spawned(tick, r.cooldownTicks(random.nextDouble()));
-		SkyCraft.LOG.info("SkyCraft deep: a {} comes out of the dark at {} ({} blocks down, {} blocks from the player)", DeepRules.kindName(spot.kind),
+		SkyCraft.LOG.info("SkyCraft-deep: a {} comes out of the dark at {} ({} blocks down, {} blocks from the player)", DeepRules.kindName(spot.kind),
 			spot.pos.toShortString(), Math.round(spot.depth), Math.round(Math.sqrt(host.distanceToSqr(spot.pos.getX() + 0.5, spot.pos.getY(), spot.pos.getZ() + 0.5))));
 	}
 

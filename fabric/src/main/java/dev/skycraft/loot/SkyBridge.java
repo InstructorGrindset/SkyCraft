@@ -1,6 +1,8 @@
 package dev.skycraft.loot;
 
 import dev.skycraft.SkyCraft;
+import dev.skycraft.config.Config;
+import dev.skycraft.config.Features;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import java.util.ArrayList;
@@ -54,8 +56,15 @@ public final class SkyBridge {
 		if (it.count() <= 0) {
 			return;
 		}
-		if (it.source() == Proto.SRC_CONTAINER && it.chest() && SkyLink.readSkyState(SKY)) {
+		if (it.source() == Proto.SRC_CONTAINER && it.chest() && Features.on(Features.Feature.DUNGEON_CHESTS) && SkyLink.readSkyState(SKY)) {
 			DungeonLoot.onLooted(player, it, SKY.place);
+		}
+		if (!Features.on(Features.Feature.ITEM_CONVERSION)) {
+			return;
+		}
+		if (it.quest()) {
+			SkyCraft.LOG.info("SkyCraft-loot: {} is a quest item, stays in Skyrim", it.name());
+			return;
 		}
 		ItemRules.Result result = rules().match(new ItemRules.Item(it.tags(), it.material(), it.source(), it.name()));
 		if (result.keep()) {

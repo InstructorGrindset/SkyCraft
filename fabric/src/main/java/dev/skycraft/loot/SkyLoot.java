@@ -1,6 +1,8 @@
 package dev.skycraft.loot;
 
 import dev.skycraft.SkyCraft;
+import dev.skycraft.config.Config;
+import dev.skycraft.config.Features;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import java.util.ArrayList;
@@ -73,10 +75,14 @@ public final class SkyLoot {
 			if ((a.flags() & Proto.ACTOR_SPAWNED) == 0) {
 				LOOTED.add(id);
 			}
-			int xp = KillXp.forLevel(a.level());
-			net.minecraft.world.entity.ExperienceOrb.award(level, new net.minecraft.world.phys.Vec3(a.x(), a.y() + 0.5, a.z()), xp);
-			SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP", a.name(), a.level(), xp);
-			drop(level, a);
+			if (Features.on(Features.Feature.KILL_XP)) {
+				int xp = KillXp.forLevel(a.level());
+				net.minecraft.world.entity.ExperienceOrb.award(level, new net.minecraft.world.phys.Vec3(a.x(), a.y() + 0.5, a.z()), xp);
+				SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP", a.name(), a.level(), xp);
+			}
+			if (Features.on(Features.Feature.KILL_DROPS)) {
+				drop(level, a);
+			}
 		}
 		// An actor the player just hit is remembered alive while it's briefly out of the table (out
 		// of range, Skyrim's table emptied for a frame), so dying there still counts.

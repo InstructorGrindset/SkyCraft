@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Loot.h"
+#include "WorldState.h"
 
 #include "Collision.h"
 #include "Dig.h"
@@ -992,7 +993,7 @@ namespace skycraft
 			if (auto* calendar = RE::Calendar::GetSingleton()) {
 				sky.gameHour = calendar->GetHour();
 			}
-			Loot::PlaceWithCell(a_player, sky.town, sky.place);
+			WorldState::Place(a_player, sky.town, sky.place);
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

@@ -1,6 +1,7 @@
 package dev.skycraft.loot;
 
 import dev.skycraft.SkyCraft;
+import dev.skycraft.config.Config;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import java.io.IOException;

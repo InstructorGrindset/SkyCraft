@@ -1,4 +1,4 @@
-package dev.skycraft.loot;
+package dev.skycraft.config;
 
 import dev.skycraft.SkyCraft;
 import java.io.IOException;

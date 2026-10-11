@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Loot.h"
+#include "WorldState.h"
 #include "Spawn.h"
 
 namespace skycraft
@@ -209,7 +210,7 @@ namespace skycraft
 				if (const char* name = actor->GetDisplayFullName()) {
 					strncpy_s(r.name, name, _TRUNCATE);
 				}
-				r.vendor = actor->IsDead() ? 0 : Loot::VendorMask(actor);
+				r.vendor = actor->IsDead() ? 0 : WorldState::VendorMask(actor);
 				records.push_back(r);
 				if (records.size() >= proto::kMaxActors) {
 					break;
@@ -866,7 +867,7 @@ namespace skycraft
 					} else if (ev.type == proto::kEvTakeItem) {
 						Loot::Take(a_player, ev.formId, static_cast<std::int32_t>(ev.a));  // Minecraft already gave the items
 					} else if (ev.type == proto::kEvSleep) {
-						Loot::PassTime(ev.a);
+						WorldState::PassTime(ev.a);
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 				}
@@ -905,7 +906,7 @@ namespace skycraft
 					Loot::Take(a_player, ev.formId, static_cast<std::int32_t>(ev.a));
 					break;
 				case proto::kEvSleep:
-					Loot::PassTime(ev.a);
+					WorldState::PassTime(ev.a);
 					break;
 				case proto::kEvSpawnCreature:
 					Spawn::OnEvent(a_player, ev);

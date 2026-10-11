@@ -1,6 +1,7 @@
-package dev.skycraft.loot;
+package dev.skycraft.time;
 
 import dev.skycraft.SkyCraft;
+import dev.skycraft.config.Features;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import java.util.HashSet;
@@ -43,8 +44,10 @@ public final class SkyTime {
 	}
 
 	public static void tick(MinecraftServer server, ServerPlayer host) {
-		sleep(host);
-		if (server.getTickCount() % 20 != 0 || !SkyLink.readSkyState(SKY) || !SKY.inGame()) {
+		if (Features.on(Features.Feature.BED_SLEEP)) {
+			sleep(host);
+		}
+		if (server.getTickCount() % 20 != 0 || !Features.on(Features.Feature.TIME_SYNC) || !SkyLink.readSkyState(SKY) || !SKY.inGame()) {
 			return;
 		}
 		int target = ticksFor(SKY.gameHour);
@@ -54,7 +57,7 @@ public final class SkyTime {
 		var source = server.createCommandSourceStack().withSuppressedOutput().withLevel(host.level());
 		server.getCommands().performPrefixedCommand(source, "time set " + target);
 		if (lastSet < 0 || drift(target, lastSet) > 1000) {
-			SkyCraft.LOG.info("SkyCraft: Minecraft time set to {} for Skyrim hour {}", target, String.format("%.2f", SKY.gameHour));
+			SkyCraft.LOG.info("SkyCraft-time: Minecraft time set to {} for Skyrim hour {}", target, String.format("%.2f", SKY.gameHour));
 		}
 		lastSet = target;
 	}
@@ -72,7 +75,7 @@ public final class SkyTime {
 		SkyLink.pushEvent(Proto.EV_SLEEP, 0, hours, 0.0F, 0.0F, 0.0F, 0);
 		player.stopSleepInBed(true, true);
 		lastSet = -1;
-		SkyCraft.LOG.info("SkyCraft: slept in a Minecraft bed at Skyrim hour {}, passing {} hours", String.format("%.2f", hour), hours);
+		SkyCraft.LOG.info("SkyCraft-time: slept in a Minecraft bed at Skyrim hour {}, passing {} hours", String.format("%.2f", hour), hours);
 	}
 
 	public static void reset() {

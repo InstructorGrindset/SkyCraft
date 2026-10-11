@@ -120,7 +120,7 @@ namespace skycraft::Spawn
 
 		void TakeAway(RE::TESObjectREFR* a_ref, std::string_view a_name, const char* a_why)
 		{
-			logger::info("SkyCraft deep: {} {:08X} taken away ({})", a_name, a_ref->GetFormID(), a_why);
+			logger::info("SkyCraft-deep: {} {:08X} taken away ({})", a_name, a_ref->GetFormID(), a_why);
 			a_ref->Disable();
 			a_ref->SetDelete(true);
 		}
@@ -151,7 +151,7 @@ namespace skycraft::Spawn
 		void OnSave(SKSE::SerializationInterface* a_intfc)
 		{
 			if (!a_intfc->OpenRecord(kSaveRecord, kSaveVersion)) {
-				logger::warn("SkyCraft deep: couldn't write the spawned creatures to the co-save");
+				logger::warn("SkyCraft-deep: couldn't write the spawned creatures to the co-save");
 				return;
 			}
 			const auto count = static_cast<std::uint32_t>(std::min<std::size_t>(spawned.size(), kMaxSaved));
@@ -198,7 +198,7 @@ namespace skycraft::Spawn
 	{
 		const auto* serialization = SKSE::GetSerializationInterface();
 		if (!serialization) {
-			logger::warn("SkyCraft deep: no SKSE co-save; creatures from a saved game won't be taken away after it's loaded");
+			logger::warn("SkyCraft-deep: no SKSE co-save; creatures from a saved game won't be taken away after it's loaded");
 			return;
 		}
 		serialization->SetUniqueID(kSaveId);
@@ -211,7 +211,7 @@ namespace skycraft::Spawn
 	{
 		const std::uint32_t kind = a_event.formId;
 		if (kind < proto::kSpawnSkeever || kind > proto::kSpawnDraugr) {
-			logger::warn("SkyCraft deep: Minecraft asked for creature kind {}, which isn't one", kind);
+			logger::warn("SkyCraft-deep: Minecraft asked for creature kind {}, which isn't one", kind);
 			return;
 		}
 		auto* cell = a_player->GetParentCell();
@@ -221,7 +221,7 @@ namespace skycraft::Spawn
 		const std::uint32_t cap = a_event.flags > 0 ? std::min<std::uint32_t>(a_event.flags, 16) : kDefaultCap;
 		const std::uint32_t alive = Prune();
 		if (alive >= cap) {
-			logger::info("SkyCraft deep: {} spawned creatures alive already (at most {}); no more", alive, cap);
+			logger::info("SkyCraft-deep: {} spawned creatures alive already (at most {}); no more", alive, cap);
 			return;
 		}
 		const float despawn = a_event.d > 0.0f && std::isfinite(a_event.d) ? a_event.d : kDefaultDespawnBlocks;
@@ -233,7 +233,7 @@ namespace skycraft::Spawn
 					dz = static_cast<float>(a_event.c - playerMc.z);
 		const float away = std::sqrt(dx * dx + dy * dy + dz * dz);
 		if (away < kMinSpawnBlocks || away > despawn) {
-			logger::warn("SkyCraft deep: spot {:.1f} blocks from the player is out of range; no spawn", away);
+			logger::warn("SkyCraft-deep: spot {:.1f} blocks from the player is out of range; no spawn", away);
 			return;
 		}
 		// The floor must be a Minecraft block Skyrim knows about here: under the land there's nothing
@@ -242,7 +242,7 @@ namespace skycraft::Spawn
 		const auto by = static_cast<std::int32_t>(std::floor(a_event.b + 0.01f));
 		const auto bz = static_cast<std::int32_t>(std::floor(a_event.c));
 		if (!NpcBlocks::SolidAt(bx, by - 1, bz) || !Dig::IsDug(bx, by, bz)) {
-			logger::info("SkyCraft deep: Skyrim doesn't know the floor of the tunnel at {} {} {} yet; no spawn", bx, by, bz);
+			logger::info("SkyCraft-deep: Skyrim doesn't know the floor of the tunnel at {} {} {} yet; no spawn", bx, by, bz);
 			return;
 		}
 		const auto* creature = Pick(kind, a_player->GetLevel());
@@ -251,12 +251,12 @@ namespace skycraft::Spawn
 		}
 		auto* base = RE::TESForm::LookupByID<RE::TESBoundObject>(creature->base);
 		if (!base) {
-			logger::error("SkyCraft deep: {} (actor base {:08X}) isn't in the game; is Skyrim.esm changed?", creature->name, creature->base);
+			logger::error("SkyCraft-deep: {} (actor base {:08X}) isn't in the game; is Skyrim.esm changed?", creature->name, creature->base);
 			return;
 		}
 		auto ref = a_player->PlaceObjectAtMe(base, false);
 		if (!ref) {
-			logger::warn("SkyCraft deep: couldn't place a {}", creature->name);
+			logger::warn("SkyCraft-deep: couldn't place a {}", creature->name);
 			return;
 		}
 		auto pos = McToSky(a_event.a, a_event.b, a_event.c);
@@ -279,7 +279,7 @@ namespace skycraft::Spawn
 			}
 		}
 		spawned.push_back({ ref->GetHandle(), ref->GetFormID(), despawn, creature->name });
-		logger::info("SkyCraft deep: a {} ({:08X}, ref {:08X}) comes out of the dark at {:.1f} {:.1f} {:.1f}, {:.0f} blocks from the player; {} of {} alive",
+		logger::info("SkyCraft-deep: a {} ({:08X}, ref {:08X}) comes out of the dark at {:.1f} {:.1f} {:.1f}, {:.0f} blocks from the player; {} of {} alive",
 			creature->name, creature->base, ref->GetFormID(), a_event.a, a_event.b, a_event.c, away, alive + 1, cap);
 	}
 
@@ -306,7 +306,7 @@ namespace skycraft::Spawn
 			}
 			// The player's now (a Dead Thrall, Command Dead): not ours to take away any more.
 			if (auto* actor = ref->As<RE::Actor>(); actor && actor->IsPlayerTeammate()) {
-				logger::info("SkyCraft deep: {} {:08X} is the player's now; no longer tracked", it->name, it->formId);
+				logger::info("SkyCraft-deep: {} {:08X} is the player's now; no longer tracked", it->name, it->formId);
 				it = spawned.erase(it);
 				continue;
 			}
@@ -339,7 +339,7 @@ namespace skycraft::Spawn
 	void Reset()
 	{
 		if (!spawned.empty()) {
-			logger::info("SkyCraft deep: a game was loaded; forgetting {} spawned creatures", spawned.size());
+			logger::info("SkyCraft-deep: a game was loaded; forgetting {} spawned creatures", spawned.size());
 		}
 		spawned.clear();
 		checkTimer = 0.0f;
@@ -353,7 +353,7 @@ namespace skycraft::Spawn
 			spawned.push_back({ ref->GetHandle(), id, despawn, NameOf(ref) });
 		}
 		if (!spawned.empty()) {
-			logger::info("SkyCraft deep: the loaded game has {} creatures that came out of the dark", spawned.size());
+			logger::info("SkyCraft-deep: the loaded game has {} creatures that came out of the dark", spawned.size());
 		}
 		loaded.clear();
 	}

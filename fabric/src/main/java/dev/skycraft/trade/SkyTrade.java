@@ -4,7 +4,7 @@ import dev.skycraft.SkyCraft;
 import dev.skycraft.combat.SkyrimActorEntity;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
-import dev.skycraft.loot.Config;
+import dev.skycraft.config.Config;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,6 +68,9 @@ public final class SkyTrade implements Merchant {
 
 	/** Opens {@code actor}'s shop for {@code player}. */
 	public static void open(ServerPlayer player, SkyrimActorEntity actor) {
+		if (!dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.MERCHANTS)) {
+			return;
+		}
 		SkyLink.SkyState state = new SkyLink.SkyState();
 		String town = SkyLink.readSkyState(state) ? state.town.strip() : "";
 		String name = actor.getName().getString();

@@ -5,7 +5,7 @@
 // there too and bump kVersion.
 //
 // Version 13: SkyState town and place flags, merchant buy lists in ActorRecord, container id and
-// chest flag in ItemEvent, kEvSleep.
+// chest and quest flags in ItemEvent, kEvSleep, kEvSpawnCreature, kActorSpawned.
 //
 // All multi-byte values are little-endian. Skyrim creates the mapping; Minecraft opens it.
 // Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted.
@@ -385,12 +385,12 @@ namespace skycraft::proto
 		std::uint8_t  material;  // ItemMaterial
 		std::uint8_t  source;    // ItemSource
 		std::uint8_t  chest;    // 1 when the container is a chest, strongbox or coffer (not a barrel, sack, urn, ...)
-		std::uint8_t  pad;
+		std::uint8_t  quest;    // 1 when it's a quest item: Minecraft leaves it in Skyrim
 		char          name[28];   // display name, UTF-8, NUL-terminated (truncated)
 		std::uint32_t container;  // FormID of the reference it came from (chest, corpse), 0 if none
 	};
 	static_assert(sizeof(ItemEvent) == 48);
-	static_assert(offsetof(ItemEvent, chest) == 14 && offsetof(ItemEvent, name) == 16 && offsetof(ItemEvent, container) == 44);  // SkyLink.drainItems
+	static_assert(offsetof(ItemEvent, chest) == 14 && offsetof(ItemEvent, quest) == 15 && offsetof(ItemEvent, name) == 16 && offsetof(ItemEvent, container) == 44);  // SkyLink.drainItems
 	static_assert(kOffItemRing >= kOffEventRing + kEventRingDataOff + sizeof(McEvent) * kEventRingEntries);
 	static_assert(kOffItemRing + kItemRingDataOff + sizeof(ItemEvent) * kItemRingEntries <= kOffWorldEntities);
 
