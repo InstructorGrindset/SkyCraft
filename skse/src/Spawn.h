@@ -3,11 +3,11 @@
 #include "Link.h"
 
 // Monsters in the deep. Minecraft picks a dark spot in a tunnel the player dug (deep enough, out of
-// sight) and sends proto::kEvSpawnCreature; this places a real Skyrim creature there (a skeever,
-// skeleton or draugr, by the player's level), so Skyrim's own combat, kill XP and drops apply. It
-// keeps track of what it placed: at most the cap Minecraft sends are alive at once, and they are
-// taken away (disabled and deleted) once the player is far from them or has left for another
-// worldspace or interior.
+// sight) and sends proto::kEvSpawnCreature; this creates a real Skyrim creature right there (a
+// skeever, skeleton or draugr, by the player's level), so Skyrim's own combat, kill XP and drops
+// apply. It keeps track of what it placed: at most the cap Minecraft sends are alive at once, and
+// they are taken away once the player is far from them or has left for another worldspace or
+// interior: disabled first, and deleted only once Skyrim has finished disabling them.
 namespace skycraft::Spawn
 {
 	// At plugin load (SKSEPluginLoad): what was placed is kept in SKSE's co-save, so a loaded
