@@ -258,6 +258,11 @@ public final class SkyCollision {
 		return (v + 7) & ~7L;
 	}
 
+	/** The collision epoch: it changes whenever Skyrim clears its world for Minecraft (a new cell or worldspace). */
+	public static int epoch() {
+		return epoch;
+	}
+
 	/** A freshly started client joins whatever collision epoch Skyrim is already on. */
 	private static void adoptEpochIfFresh(int msgEpoch) {
 		if (epoch == -1) {

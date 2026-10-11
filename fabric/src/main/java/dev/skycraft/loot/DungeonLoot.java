@@ -148,6 +148,11 @@ public final class DungeonLoot {
 		SkyCraft.LOG.info("SkyCraft-loot: first loot of dungeon chest {} rolled {} ({} stacks)", String.format("%08X", it.container()), table, stacks.size());
 	}
 
+	/** One of the configured dungeon chest tables, picked by weight (breach chests use these too), or null if there are none. */
+	public static String pickTable(Random random) {
+		return pick(tables(), random);
+	}
+
 	private static List<Table> tables() {
 		if (tables == null) {
 			List<String> problems = new ArrayList<>();
