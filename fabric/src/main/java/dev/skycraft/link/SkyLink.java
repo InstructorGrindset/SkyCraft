@@ -765,6 +765,11 @@ public final class SkyLink {
 
 	/** Publishes the frame just written into the back slot. */
 	public static void publishOverlay(int width, int height, boolean bottomUp, long frameId) {
+		publishOverlay(width, height, bottomUp ? OVERLAY_BOTTOM_UP : 0, frameId);
+	}
+
+	/** Publishes the frame just written into the back slot, with its OVERLAY_* flags. */
+	public static void publishOverlay(int width, int height, int flags, long frameId) {
 		MemorySegment s = shm;
 		if (s == null) {
 			return;
@@ -772,7 +777,7 @@ public final class SkyLink {
 		long hdr = OFF_OVERLAY_SLOT_HDR + overlayBack * SLOT_HDR_SIZE;
 		s.set(JAVA_INT, hdr + SH_WIDTH, width);
 		s.set(JAVA_INT, hdr + SH_HEIGHT, height);
-		s.set(JAVA_INT, hdr + SH_FLAGS, bottomUp ? 1 : 0);
+		s.set(JAVA_INT, hdr + SH_FLAGS, flags);
 		s.set(JAVA_LONG, hdr + SH_FRAME_ID, frameId);
 		int old = (int) INT.getAndSet(s, OFF_OVERLAY_CTL + OC_STATE, overlayBack | OVERLAY_DIRTY);
 		overlayBack = old & 3;

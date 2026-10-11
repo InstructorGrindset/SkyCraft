@@ -409,6 +409,7 @@ namespace skycraft
 				return;
 			}
 			logger::info("Minecraft player died (killer {:08X}); killing the Skyrim player", a_ev.formId);
+			View::BeforeKill(a_player);  // (died in another dimension: Skyrim's parked player had god mode)
 			SetEssential(a_player, false);
 			auto* killer = a_ev.formId ? RE::TESForm::LookupByID<RE::Actor>(a_ev.formId) : nullptr;
 			const float health = a_player->AsActorValueOwner()->GetActorValue(RE::ActorValue::kHealth);

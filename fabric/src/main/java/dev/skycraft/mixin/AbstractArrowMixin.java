@@ -33,7 +33,8 @@ public abstract class AbstractArrowMixin {
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;clipIncludingBorder(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;")
 	)
 	private BlockHitResult skycraft$hitSkyrim(Level level, ClipContext context, Operation<BlockHitResult> original) {
-		return SkyClip.refine(context.getFrom(), context.getTo(), original.call(level, context), SkyClip.Use.PROJECTILE);
+		BlockHitResult vanilla = original.call(level, context);
+		return dev.skycraft.SkyDimension.inMirror(level) ? SkyClip.refine(context.getFrom(), context.getTo(), vanilla, SkyClip.Use.PROJECTILE) : vanilla;
 	}
 
 	@Unique

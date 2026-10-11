@@ -280,6 +280,14 @@ public final class Proto {
 	public static final int MC_DEAD = 1 << 5;
 	public static final int MC_SWIMMING = 1 << 6;
 	public static final int MC_FLYING = 1 << 7;
+	/** Minecraft view: the player is in a dimension other than the Skyrim mirror (client MinecraftView). */
+	public static final int MC_OTHER_DIMENSION = 1 << 8;
+	/**
+	 * Minecraft view event types (event ring): kept for leaving the mirror for another dimension (12) and coming back
+	 * (13). Not sent: Skyrim follows MC_OTHER_DIMENSION in McState instead.
+	 */
+	public static final int EV_ENTER_OTHER_DIMENSION = 12;
+	public static final int EV_LEAVE_OTHER_DIMENSION = 13;
 
 	// Overlay
 	public static final long OC_STATE = 0x00;
@@ -290,6 +298,10 @@ public final class Proto {
 	public static final long SH_HEIGHT = 0x04;
 	public static final long SH_FLAGS = 0x08;
 	public static final long SH_FRAME_ID = 0x10;
+	// OverlaySlotHdr.flags
+	public static final int OVERLAY_BOTTOM_UP = 1;
+	/** Minecraft view: a full opaque frame, shown over all of Skyrim's picture. */
+	public static final int OVERLAY_OPAQUE = 1 << 1;
 
 	// Input ring (relative to OFF_INPUT_RING)
 	public static final int INPUT_RING_ENTRIES = 4096;
@@ -302,6 +314,8 @@ public final class Proto {
 	public static final int IN_CURSOR = 4;
 	public static final int IN_TEXT = 5;
 	public static final int IN_RELEASE_ALL = 6;
+	/** Minecraft view only: a, b = raw mouse motion since the last one; Minecraft turns its player itself. */
+	public static final int IN_LOOK = 9;
 
 	// Collision ring (relative to OFF_COLLISION_RING)
 	public static final long CR_HEAD = 0x00;

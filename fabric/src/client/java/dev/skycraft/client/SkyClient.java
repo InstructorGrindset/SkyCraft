@@ -98,6 +98,7 @@ public final class SkyClient {
 				unlinkedHold = player != null ? player.position() : null;
 			}
 		}
+		MinecraftView.frame(Minecraft.getInstance(), linked);
 		if (!linked) {
 			return;
 		}
@@ -128,6 +129,18 @@ public final class SkyClient {
 			lastTeleportSeq = sky.teleportSeq;
 			teleportPending = true;
 		}
+		// Minecraft view (MinecraftView): Skyrim moves nobody while the player is in another dimension.
+		// Back from one alive, Minecraft's position leads: the player waits here for Skyrim's ground,
+		// and Skyrim's latest teleport counts as done (Skyrim moves its own player here instead).
+		if (MinecraftView.away()) {
+			teleportPending = false;
+			holdPos = null;
+		} else if (MinecraftView.takeReturn()) {
+			teleportPending = false;
+			teleportAck = sky.teleportSeq;
+			holdPos = player.position();
+			SkyCraft.LOG.info("SkyCraft: back in the Skyrim mirror at {}; Skyrim's player follows", holdPos);
+		}
 		if (teleportPending && sky.inGame() && !sky.loading()) {
 			requestTeleport(minecraft, sky.x, sky.y, sky.z, sky.yaw, sky.pitch);
 			teleportAck = sky.teleportSeq;
@@ -136,7 +149,8 @@ public final class SkyClient {
 		}
 
 		// Look direction is driven by Skyrim (zero-latency camera); MC uses it for everything else.
-		if (minecraft.gui.screen() == null) {
+		// In another dimension Minecraft turns the player itself (InputBridge, Proto.IN_LOOK).
+		if (minecraft.gui.screen() == null && !MinecraftView.away()) {
 			player.setYRot(sky.yaw);
 			player.setXRot(sky.pitch);
 			player.yRotO = sky.yaw;
@@ -185,7 +199,11 @@ public final class SkyClient {
 	public static void clientTick(Minecraft minecraft) {
 		MirrorWorld.tick(minecraft);
 		DiscordPresence.tick(minecraft);
-		SkyDigClient.tick(minecraft);
+		if (MinecraftView.away()) {
+			dev.skycraft.world.SkyDig.clientDug = null; // no Skyrim ground to dig in another dimension
+		} else {
+			SkyDigClient.tick(minecraft);
+		}
 		freezeWhileUnlinked(minecraft);
 		holdUntilReady(minecraft);
 		publishTick(minecraft);
@@ -198,7 +216,7 @@ public final class SkyClient {
 	 */
 	private static void freezeWhileUnlinked(Minecraft minecraft) {
 		LocalPlayer player = minecraft.player;
-		if (linked || !tookOver || player == null) {
+		if (linked || !tookOver || player == null || MinecraftView.away()) {
 			return;
 		}
 		if (unlinkedHold == null) {
@@ -256,7 +274,7 @@ public final class SkyClient {
 	/** Freeze the player until Skyrim's collision around them has arrived. */
 	private static void holdUntilReady(Minecraft minecraft) {
 		LocalPlayer player = minecraft.player;
-		if (!linked || player == null) {
+		if (!linked || player == null || MinecraftView.away()) {
 			return;
 		}
 		if (!sky.inGame() || sky.loading()) {
@@ -380,6 +398,10 @@ public final class SkyClient {
 		if (minecraft.gui.screen() != null) {
 			flags |= Proto.MC_SCREEN_OPEN;
 		}
+		boolean away = MinecraftView.away();
+		if (MinecraftView.reportAway()) {
+			flags |= Proto.MC_OTHER_DIMENSION; // Minecraft view: Skyrim parks its player and shows this frame
+		}
 		mc.flags = flags;
 		mc.sensitivity = minecraft.options.sensitivity().get().floatValue();
 		mc.teleportAck = holdPos == null ? teleportAck : teleportAck - 1; // not "arrived" until we are released
@@ -389,13 +411,15 @@ public final class SkyClient {
 
 		if ((flags & Proto.MC_IN_WORLD) != 0) {
 			try {
-				WorldExporter.frame(minecraft, minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+				if (!away) { // another dimension's blocks aren't Skyrim's to draw
+					WorldExporter.frame(minecraft, minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false));
+				}
 			} catch (RuntimeException e) {
 				if (exporterErrors++ < 5) {
 					SkyCraft.LOG.error("SkyCraft: world export failed", e);
 				}
 			}
-			FrameExporter.capture(minecraft);
+			FrameExporter.capture(minecraft, away);
 		}
 	}
 
@@ -419,6 +443,11 @@ public final class SkyClient {
 		int seqNow = SkyLink.skyStateSeq() >>> 1;
 		skyrimStalled = seqNow == lastPacedSeq;
 		lastPacedSeq = seqNow;
+	}
+
+	/** Skyrim's frames stopped coming (a menu that pauses it, Alt-Tab): Minecraft isn't paced by them now. */
+	static boolean skyrimStalled() {
+		return skyrimStalled;
 	}
 
 	private static void applyLinkedOptions() {
@@ -453,6 +482,12 @@ public final class SkyClient {
 	private static void applyViewportSize(Minecraft minecraft) {
 		int w = Math.min(sky.viewportW, Proto.MAX_OVERLAY_W);
 		int h = Math.min(sky.viewportH, Proto.MAX_OVERLAY_H);
+		if (w > 0 && h > 0 && MinecraftView.away()) {
+			// Minecraft view: its whole world, at no more than MinecraftView's cap (Skyrim scales it up).
+			int[] capped = MinecraftView.viewport(w, h);
+			w = capped[0];
+			h = capped[1];
+		}
 		if (w <= 0 || h <= 0 || (w == appliedViewportW && h == appliedViewportH)) {
 			return;
 		}

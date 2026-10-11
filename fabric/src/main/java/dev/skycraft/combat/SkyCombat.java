@@ -76,6 +76,12 @@ public final class SkyCombat {
 			removeAll();
 			return;
 		}
+		// Minecraft view: the host is away from the Skyrim mirror (the Nether, ...). Skyrim's world waits
+		// for them: no stand-ins, loot, item bridge, time, breaches or creatures until they're back.
+		if (!dev.skycraft.SkyDimension.inMirror(players.getFirst())) {
+			removeAll();
+			return;
+		}
 		ServerLevel level = players.getFirst().level();
 		dev.skycraft.trade.SkyTrade.tick(server.getTickCount());
 		for (ServerPlayer player : players) {
@@ -206,8 +212,8 @@ public final class SkyCombat {
 	 * {@code skyrimDamage} is what Skyrim would have taken off the player's health.
 	 */
 	public static void hurtPlayer(ServerPlayer player, int kind, float skyrimDamage, int attackerFormId, int flags) {
-		if (!player.isAlive() || skyrimDamage <= 0.0F) {
-			return;
+		if (!player.isAlive() || skyrimDamage <= 0.0F || !dev.skycraft.SkyDimension.inMirror(player)) {
+			return; // (Skyrim's player is parked while they're in another dimension: a late hit from before)
 		}
 		ServerLevel level = player.level();
 		SkyrimActorEntity attacker = PROXIES.get(attackerFormId);

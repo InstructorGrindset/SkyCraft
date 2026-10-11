@@ -120,6 +120,23 @@ namespace skycraft::proto
 		kMcDead = 1u << 5,
 		kMcSwimming = 1u << 6,
 		kMcFlying = 1u << 7,
+
+		// Minecraft view (added within version 13; an older plugin ignores the bit): the player is in a
+		// dimension other than the Skyrim mirror (the Nether, Tamriel Wilds, Home, ...). Minecraft draws
+		// its own world and publishes full opaque frames (kOverlayOpaque); its x/y/z are in that
+		// dimension. Skyrim shows the frame full screen, stops driving its player and camera from
+		// Minecraft, parks its player, and on the falling edge takes Minecraft's position (back in the
+		// mirror) as where its player is now. Minecraft takes raw mouse motion (kInLook) meanwhile.
+		kMcOtherDimension = 1u << 8,
+	};
+
+	// Event ring types (McEventType, below) kept for the Minecraft view: the player left the Skyrim mirror
+	// for another dimension (12) and came back (13). Not sent: Skyrim follows McState's kMcOtherDimension
+	// instead, a state that a dropped event or a reconnect can't leave stale.
+	enum McViewEventType : std::uint32_t
+	{
+		kEvEnterOtherDimension = 12,
+		kEvLeaveOtherDimension = 13,
 	};
 
 	struct McState
@@ -173,11 +190,18 @@ namespace skycraft::proto
 		std::uint64_t framesPublished;
 	};
 
+	enum OverlayFlags : std::uint32_t
+	{
+		kOverlayBottomUp = 1u << 0,  // rows are bottom-up
+		kOverlayOpaque = 1u << 1,    // Minecraft view: a full opaque frame (its world, hand and GUI), shown over all
+		                             // of Skyrim's picture with its alpha ignored, not blended over it
+	};
+
 	struct OverlaySlotHdr
 	{
 		std::uint32_t width;
 		std::uint32_t height;
-		std::uint32_t flags;  // bit0: rows are bottom-up
+		std::uint32_t flags;  // OverlayFlags
 		std::uint32_t pad;
 		std::uint64_t frameId;
 		std::uint8_t  reserved[0x40 - 0x18];
@@ -200,6 +224,8 @@ namespace skycraft::proto
 		kInReleaseAll = 6,   // release every held key/button (input focus left MC)
 		kInHurt = 7,         // Skyrim hit the player: code = HurtKind, a = Skyrim damage * 100, b = attacker FormID, c = HurtFlags
 		kInOpenMenu = 8,     // open Minecraft's pause/options menu
+		kInLook = 9,         // Minecraft view only (kMcOtherDimension): a, b = raw mouse motion since the last one (x right,
+		                     // y down); Minecraft turns its player itself. Added within version 13
 	};
 
 	enum HurtKind : std::uint16_t

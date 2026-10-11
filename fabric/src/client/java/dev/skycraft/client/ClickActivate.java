@@ -35,6 +35,9 @@ public final class ClickActivate {
 		if (!Features.on(Features.Feature.CLICK_TO_ACTIVATE) || !SkyLink.active()) {
 			return;
 		}
+		if (!dev.skycraft.SkyDimension.inMirror(player.level())) {
+			return; // another dimension (Minecraft view): Skyrim's crosshair isn't on anything here
+		}
 		if (!leavesClickFree(player, player.getMainHandItem()) || !leavesClickFree(player, player.getOffhandItem())) {
 			return;
 		}
