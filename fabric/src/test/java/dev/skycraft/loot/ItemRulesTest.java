@@ -60,7 +60,8 @@ class ItemRulesTest {
 	void gearOnlySalvagesWhenLooted() {
 		ItemRules rules = defaults();
 		assertEquals("keep", convert(rules, tags("weapon"), 3, WORLD, "Steel Sword"));
-		assertEquals("minecraft:iron_ingot 1", convert(rules, tags("weapon"), 3, CONTAINER, "Steel Sword"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), 3, CONTAINER, "Steel Sword"));
+		assertEquals("skycraft:steel_ingot 2", convert(rules, tags("armor"), 3, CORPSE, "Steel Armor"));
 		assertEquals("keep", convert(rules, tags("weapon"), 9, CORPSE, "Ebony Sword"));
 	}
 
@@ -70,7 +71,43 @@ class ItemRulesTest {
 		assertEquals("minecraft:iron_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Iron Ingot"));
 		assertEquals("minecraft:raw_iron 1", convert(rules, tags("oreingot"), 0, WORLD, "Iron Ore"));
 		assertEquals("minecraft:raw_copper 1", convert(rules, tags("oreingot"), 0, WORLD, "Corundum Ore"));
-		assertEquals("keep", convert(rules, tags("oreingot"), 0, WORLD, "Ebony Ingot"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Steel Ingot"));
+	}
+
+	@Test
+	void skyrimSmithingMaterialsBecomeGearMaterials() {
+		ItemRules rules = defaults();
+		assertEquals("skycraft:ebony_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Ebony Ingot"));
+		assertEquals("skycraft:ebony_ingot 1", convert(rules, tags("oreingot"), 0, CONTAINER, "Ebony Ore"));
+		assertEquals("skycraft:orichalcum_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Orichalcum Ingot"));
+		assertEquals("skycraft:orichalcum_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Orichalcum Ore"));
+		assertEquals("skycraft:dwarven_metal_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Dwarven Metal Ingot"));
+		assertEquals("skycraft:refined_moonstone 1", convert(rules, tags("oreingot"), 0, WORLD, "Refined Moonstone"));
+		assertEquals("skycraft:refined_moonstone 1", convert(rules, tags("oreingot"), 0, WORLD, "Moonstone Ore"));
+		assertEquals("skycraft:refined_malachite 1", convert(rules, tags("oreingot"), 0, WORLD, "Refined Malachite"));
+		assertEquals("skycraft:refined_malachite 1", convert(rules, tags("oreingot"), 0, WORLD, "Malachite Ore"));
+		assertEquals("skycraft:daedra_heart 1", convert(rules, tags("ingredient"), 0, CORPSE, "Daedra Heart"));
+		assertEquals("skycraft:leather_strips 1", convert(rules, 0, 0, CONTAINER, "Leather Strips"));
+		assertEquals("skycraft:leather_strips 1", convert(rules, tags("hide"), 0, CONTAINER, "Leather Strips"));
+		assertEquals("minecraft:leather 1", convert(rules, 0, 0, CONTAINER, "Leather"));
+		assertEquals("skycraft:dwarven_metal_ingot 1", convert(rules, tags("clutter"), 0, WORLD, "Bent Dwemer Scrap Metal"));
+		assertEquals("skycraft:dwarven_metal_ingot 2", convert(rules, tags("clutter"), 0, WORLD, "Solid Dwemer Metal"));
+		assertEquals("skycraft:dwarven_metal_ingot 3", convert(rules, tags("clutter"), 0, WORLD, "Large Dwemer Strut"));
+		// Corundum still feeds copper, which the orichalcum and dwarven ingot recipes use.
+		assertEquals("minecraft:copper_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Corundum Ingot"));
+		// Looted gear of the higher tiers stays in Skyrim (only iron and steel salvage).
+		assertEquals("keep", convert(rules, tags("weapon"), 10, CORPSE, "Daedric Sword"));
+	}
+
+	@Test
+	void everySkycraftItemInTheDefaultsExists() {
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("skycraft:([a-z0-9_]+)").matcher(ItemRules.DEFAULT_TEXT);
+		int found = 0;
+		while (m.find()) {
+			found++;
+			assertTrue(dev.skycraft.gear.GearTiers.allItemIds().contains(m.group(1)), "unknown item skycraft:" + m.group(1));
+		}
+		assertTrue(found >= 8, "expected the gear material rules in the defaults");
 	}
 
 	@Test

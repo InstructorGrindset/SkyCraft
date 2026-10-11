@@ -240,6 +240,16 @@ public final class SkyCombat {
 			if (stack.isEmpty()) {
 				continue;
 			}
+			Boolean gearHeavy = dev.skycraft.gear.SkyGear.heavyArmor(stack.getItem());
+			if (gearHeavy != null) {
+				// Skyrim gear sets: Heavy or Light Armor as in Skyrim (elven and glass are light).
+				if (gearHeavy) {
+					heavy++;
+				} else {
+					light++;
+				}
+				continue;
+			}
 			String path = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
 			if (path.startsWith("iron_") || path.startsWith("diamond_") || path.startsWith("netherite_")) {
 				heavy++;
