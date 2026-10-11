@@ -41,7 +41,8 @@ public final class DeepRules {
 		# Seconds between spawns (a random time in this range).
 		cooldown = 45-90
 		# How far from the player (blocks) a creature may appear. Never where the player can see it.
-		distance = 12-32
+		# Keep the far end under 29: past that Skyrim moves creatures along its navmesh, out of tunnels.
+		distance = 12-26
 		# Spawned creatures further away than this (blocks) are taken away again.
 		despawn_distance = 64
 		# Only this deep (blocks under the land's surface) or deeper, and only where the block light is
@@ -127,7 +128,7 @@ public final class DeepRules {
 		boolean enabled = true;
 		int maxAlive = 3;
 		double cooldownMin = 45.0, cooldownMax = 90.0;
-		double minDistance = 12.0, maxDistance = 32.0;
+		double minDistance = 12.0, maxDistance = 26.0;
 		double despawnDistance = 64.0;
 		double minDepth = 8.0;
 		int maxBlockLight = 0;

@@ -26,7 +26,7 @@ class DeepRulesTest {
 		assertEquals(45.0, rules.cooldownMinSeconds());
 		assertEquals(90.0, rules.cooldownMaxSeconds());
 		assertEquals(12.0, rules.minDistance());
-		assertEquals(32.0, rules.maxDistance());
+		assertEquals(26.0, rules.maxDistance());
 		assertEquals(64.0, rules.despawnDistance());
 		assertEquals(8.0, rules.minDepth());
 		assertEquals(0, rules.maxBlockLight());
@@ -93,8 +93,8 @@ class DeepRulesTest {
 		assertFalse(rules.inSpawnRange(11.9 * 11.9));
 		assertTrue(rules.inSpawnRange(12.0 * 12.0));
 		assertTrue(rules.inSpawnRange(20.0 * 20.0));
-		assertTrue(rules.inSpawnRange(32.0 * 32.0));
-		assertFalse(rules.inSpawnRange(32.1 * 32.1));
+		assertTrue(rules.inSpawnRange(26.0 * 26.0));
+		assertFalse(rules.inSpawnRange(26.1 * 26.1));
 		assertFalse(rules.shouldDespawn(64.0 * 64.0));
 		assertTrue(rules.shouldDespawn(64.1 * 64.1));
 	}
