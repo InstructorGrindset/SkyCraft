@@ -34,6 +34,7 @@ public final class Proto {
 	public static final long OFF_EVENT_RING = 0x17000;
 	public static final long OFF_ITEM_RING = 0x1B100;
 	public static final long OFF_WORLD_ENTITIES = 0x1C000;
+	public static final long OFF_BREACH_TABLE = 0x1FC40;
 	public static final long OFF_RENDER_RING = OFF_OVERLAY_PIXELS + OVERLAY_SLOT_BYTES * OVERLAY_SLOTS;
 	public static final long RENDER_RING_BYTES = 64L << 20;
 	public static final long MAPPING_BYTES = OFF_RENDER_RING + RENDER_RING_BYTES;
@@ -81,6 +82,39 @@ public final class Proto {
 	 * d = despawn distance (blocks), flags = most spawned creatures alive at once.
 	 */
 	public static final int EV_SPAWN_CREATURE = 8;
+	/** The player opened a breach door underground: formId = the dungeon's exterior load door (BreachRecord doorRef). */
+	public static final int EV_ENTER_DUNGEON = 9;
+
+	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
+	public static final int MAX_BREACHES = 16;
+	public static final long BT_SEQ = 0x00;
+	public static final long BT_COUNT = 0x04;
+	public static final long BT_WORLD_ID = 0x08;
+	public static final long BT_RECORDS = 0x10;
+	public static final long BREACH_RECORD_BYTES = 56;
+	// BreachRecord fields
+	public static final long BR_DOOR_REF = 0;
+	public static final long BR_LOCATION = 4;
+	public static final long BR_X = 8;
+	public static final long BR_Y = 12;
+	public static final long BR_Z = 16;
+	public static final long BR_YAW = 20;
+	public static final long BR_THEME = 24;
+	public static final long BR_FLAGS = 25;
+	public static final long BR_LEVEL = 26;
+	public static final long BR_NAME = 28;
+	public static final int BR_NAME_BYTES = 28;
+	// BreachTheme
+	public static final int THEME_CAVE = 0;
+	public static final int THEME_NORDIC = 1;
+	public static final int THEME_DWEMER = 2;
+	public static final int THEME_FALMER = 3;
+	public static final int THEME_MINE = 4;
+	public static final int THEME_FORT = 5;
+	public static final int THEME_LAIR = 6;
+	// BreachFlags
+	public static final int BREACH_DISCOVERED = 1;
+	public static final int BREACH_CLEARED = 1 << 1;
 	// SpawnKind
 	public static final int SPAWN_SKEEVER = 1;
 	public static final int SPAWN_SKELETON = 2;

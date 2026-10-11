@@ -5,7 +5,8 @@
 // there too and bump kVersion.
 //
 // Version 13: SkyState town and place flags, merchant buy lists in ActorRecord, container id and
-// chest and quest flags in ItemEvent, kEvSleep, kEvSpawnCreature, kActorSpawned.
+// chest and quest flags in ItemEvent, kEvSleep, kEvSpawnCreature, kActorSpawned, kEvEnterDungeon,
+// BreachTable.
 //
 // All multi-byte values are little-endian. Skyrim creates the mapping; Minecraft opens it.
 // Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted.
@@ -42,6 +43,7 @@ namespace skycraft::proto
 	inline constexpr std::uint64_t kOffEventRing = 0x17000;    // MC -> Skyrim, see McEvent
 	inline constexpr std::uint64_t kOffItemRing = 0x1B100;     // Skyrim -> MC, see ItemEvent
 	inline constexpr std::uint64_t kOffWorldEntities = 0x1C000;  // MC -> Skyrim, see WorldEntities
+	inline constexpr std::uint64_t kOffBreachTable = 0x1FC40;    // Skyrim -> MC, see BreachTable
 	inline constexpr std::uint64_t kOffRenderRing = kOffOverlayPixels + kOverlaySlotBytes * kOverlaySlots;
 	inline constexpr std::uint64_t kRenderRingBytes = 64ull << 20;
 	inline constexpr std::uint64_t kMappingBytes = kOffRenderRing + kRenderRingBytes;
@@ -291,6 +293,9 @@ namespace skycraft::proto
 		kEvSpawnCreature = 8,  // a Skyrim creature comes out of the dark in a dug tunnel: formId = SpawnKind, a/b/c = its
 		                       // feet (MC coords, on top of a solid block), d = despawn distance (blocks), flags = most
 		                       // spawned creatures alive at once (Skyrim refuses the spawn past it)
+		kEvEnterDungeon = 9,   // the player opened a breach door underground: formId = the dungeon's exterior load door
+		                       // (BreachRecord::doorRef). Skyrim marks the dungeon discovered and moves the player inside,
+		                       // locked or not, exactly where that door leads
 	};
 
 	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).
@@ -432,7 +437,55 @@ namespace skycraft::proto
 		WorldEntity   entities[kMaxWorldEntities];
 	};
 	static_assert(sizeof(WorldEntities) == 0x40 + sizeof(WorldEntity) * kMaxWorldEntities);
-	static_assert(kOffWorldEntities + sizeof(WorldEntities) <= kOffCollisionRing);
+	static_assert(kOffWorldEntities + sizeof(WorldEntities) <= kOffBreachTable);
+
+	// ---- breach table (Skyrim -> MC, seqlock) --------------------------------------------------
+	// Dungeon entrances near the player (exterior load doors in loaded cells whose destination is a
+	// dungeon interior), refreshed about once a second. Minecraft builds a hidden antechamber under each
+	// one; opening its sealed door sends kEvEnterDungeon. Empty (count 0) in interiors.
+	inline constexpr std::uint32_t kMaxBreaches = 16;
+
+	enum BreachTheme : std::uint8_t
+	{
+		kThemeCave = 0,     // caves, animal dens, anything else
+		kThemeNordic = 1,   // draugr crypts, Nordic ruins and barrows, dragon priest lairs
+		kThemeDwemer = 2,   // Dwarven ruins (LocTypeDwarvenAutomatons)
+		kThemeFalmer = 3,   // Falmer hives
+		kThemeMine = 4,     // mines
+		kThemeFort = 5,     // bandit camps, forts, Forsworn camps
+		kThemeLair = 6,     // vampire, warlock and hagraven lairs
+	};
+
+	enum BreachFlags : std::uint8_t
+	{
+		kBreachDiscovered = 1u << 0,  // its map marker is already discovered
+		kBreachCleared = 1u << 1,     // the location is cleared
+	};
+
+	struct BreachRecord
+	{
+		std::uint32_t doorRef;   // exterior load door reference FormID (send back in kEvEnterDungeon)
+		std::uint32_t location;  // BGSLocation FormID of the dungeon, 0 if none
+		float         x, y, z;   // the door's position, MC coords
+		float         yaw;       // the door's facing, MC degrees
+		std::uint8_t  theme;     // BreachTheme
+		std::uint8_t  flags;     // BreachFlags
+		std::uint16_t level;     // the location's encounter zone minimum level, 0 if unknown
+		char          name[28];  // dungeon name, UTF-8, NUL-terminated (truncated)
+	};
+	static_assert(sizeof(BreachRecord) == 56);
+	static_assert(offsetof(BreachRecord, theme) == 24 && offsetof(BreachRecord, level) == 26 && offsetof(BreachRecord, name) == 28);
+
+	struct BreachTable
+	{
+		std::uint32_t seq;      // seqlock: odd while Skyrim writes
+		std::uint32_t count;    // records in use
+		std::uint32_t worldId;  // worldspace FormID these belong to
+		std::uint32_t pad;
+		BreachRecord  records[kMaxBreaches];
+	};
+	static_assert(sizeof(BreachTable) == 16 + 56 * kMaxBreaches);
+	static_assert(kOffBreachTable + sizeof(BreachTable) <= kOffCollisionRing);
 
 	// ---- render ring (MC -> Skyrim) -----------------------------------------------------------
 	// Byte ring like the collision ring. Minecraft ships its own block meshes (built by Minecraft's

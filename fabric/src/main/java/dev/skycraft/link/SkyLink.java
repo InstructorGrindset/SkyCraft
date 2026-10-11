@@ -531,6 +531,56 @@ public final class SkyLink {
 		return readName(s, off, max);
 	}
 
+	// ---- breach table (read) ---------------------------------------------------------------
+
+	/** A dungeon entrance near the player (see BreachRecord in the protocol header). */
+	public record Breach(int doorRef, int location, float x, float y, float z, float yaw, int theme, int flags, int level, String name) {
+		public boolean discovered() {
+			return (this.flags & BREACH_DISCOVERED) != 0;
+		}
+
+		public boolean cleared() {
+			return (this.flags & BREACH_CLEARED) != 0;
+		}
+	}
+
+	/**
+	 * Seqlock read of the breach table into {@code out}. Returns the worldspace FormID the entries belong
+	 * to, or -1 (leaving {@code out} empty) when unlinked or on a torn read.
+	 */
+	public static int readBreaches(java.util.List<Breach> out) {
+		out.clear();
+		MemorySegment s = shm;
+		if (s == null) {
+			return -1;
+		}
+		long b = OFF_BREACH_TABLE;
+		for (int attempt = 0; attempt < 16; attempt++) {
+			int seq1 = (int) INT.getAcquire(s, b + BT_SEQ);
+			if ((seq1 & 1) != 0) {
+				Thread.onSpinWait();
+				continue;
+			}
+			int count = Math.max(0, Math.min(s.get(JAVA_INT, b + BT_COUNT), MAX_BREACHES));
+			int worldId = s.get(JAVA_INT, b + BT_WORLD_ID);
+			for (int i = 0; i < count; i++) {
+				long r = b + BT_RECORDS + i * BREACH_RECORD_BYTES;
+				out.add(new Breach(
+					s.get(JAVA_INT, r + BR_DOOR_REF), s.get(JAVA_INT, r + BR_LOCATION),
+					s.get(JAVA_FLOAT, r + BR_X), s.get(JAVA_FLOAT, r + BR_Y), s.get(JAVA_FLOAT, r + BR_Z), s.get(JAVA_FLOAT, r + BR_YAW),
+					Byte.toUnsignedInt(s.get(JAVA_BYTE, r + BR_THEME)), Byte.toUnsignedInt(s.get(JAVA_BYTE, r + BR_FLAGS)),
+					Short.toUnsignedInt(s.get(JAVA_SHORT, r + BR_LEVEL)), readName(s, r + BR_NAME, BR_NAME_BYTES)
+				));
+			}
+			VarHandle.loadLoadFence();
+			if ((int) INT.getAcquire(s, b + BT_SEQ) == seq1) {
+				return worldId;
+			}
+			out.clear();
+		}
+		return -1;
+	}
+
 	// ---- item ring (consume) ---------------------------------------------------------------
 
 	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */
