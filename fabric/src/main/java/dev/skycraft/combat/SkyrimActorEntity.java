@@ -5,7 +5,10 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
@@ -13,11 +16,13 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -38,6 +43,8 @@ public class SkyrimActorEntity extends LivingEntity {
 	private double pushX, pushZ;
 	private float pushStrength;
 	private boolean hitThisTick;
+	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant. Server side only.
+	private int vendor;
 
 	public SkyrimActorEntity(EntityType<? extends SkyrimActorEntity> type, Level level) {
 		super(type, level);
@@ -53,6 +60,25 @@ public class SkyrimActorEntity extends LivingEntity {
 
 	public void setFormId(int formId) {
 		this.entityData.set(FORM_ID, formId);
+	}
+
+	public int getVendor() {
+		return this.vendor;
+	}
+
+	public void setVendor(int vendor) {
+		this.vendor = vendor;
+	}
+
+	/** Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen. */
+	@Override
+	public InteractionResult interact(Player player, InteractionHand hand, Vec3 at) {
+		if (!this.level().isClientSide() && hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty() && this.vendor != 0
+			&& player instanceof ServerPlayer serverPlayer) {
+			dev.skycraft.trade.SkyTrade.open(serverPlayer, this);
+			return InteractionResult.SUCCESS;
+		}
+		return super.interact(player, hand, at);
 	}
 
 	@Override

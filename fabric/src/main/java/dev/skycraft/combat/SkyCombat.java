@@ -77,6 +77,7 @@ public final class SkyCombat {
 			return;
 		}
 		ServerLevel level = players.getFirst().level();
+		dev.skycraft.trade.SkyTrade.tick(server.getTickCount());
 		for (ServerPlayer player : players) {
 			pickUpNearby(player);
 			if (dev.skycraft.net.SkyNet.isHost(player)) {
@@ -121,6 +122,7 @@ public final class SkyCombat {
 			if (proxy == null) {
 				proxy = new SkyrimActorEntity(SKYRIM_ACTOR, level);
 				proxy.setFormId(a.formId());
+				proxy.setVendor(a.vendor());
 				proxy.setSize(a.width(), a.height());
 				proxy.snapTo(a.x(), a.y(), a.z(), a.yaw(), 0.0F);
 				if (!a.name().isEmpty()) {
@@ -132,6 +134,7 @@ public final class SkyCombat {
 				PROXIES.put(a.formId(), proxy);
 				continue;
 			}
+			proxy.setVendor(a.vendor());
 			proxy.setSize(a.width(), a.height());
 			proxy.setPos(a.x(), a.y(), a.z());
 			proxy.setYRot(a.yaw());
