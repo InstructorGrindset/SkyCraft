@@ -7,11 +7,16 @@ import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -49,13 +54,55 @@ public final class SkyBridge {
 		return Math.min(count, MAX_STACKS * Math.max(1, maxStack) / Math.max(1, perItem));
 	}
 
-	/** {@code n} of {@code item}, holding {@code potion} when there is one (potions, splash and lingering potions, tipped arrows). */
-	static ItemStack stack(Item item, int n, Holder<Potion> potion) {
+	/**
+	 * {@code n} of {@code item}, holding {@code potion} and {@code effects} when it has them (potions, splash and
+	 * lingering potions, tipped arrows), in {@code color} (0xRRGGBB, -1 for Minecraft's mix), named {@code name}.
+	 */
+	static ItemStack stack(Item item, int n, Holder<Potion> potion, List<MobEffectInstance> effects, int color, String name) {
 		ItemStack stack = new ItemStack(item, n);
-		if (potion != null) {
-			stack.set(DataComponents.POTION_CONTENTS, new PotionContents(potion));
+		if (potion != null || !effects.isEmpty()) {
+			stack.set(DataComponents.POTION_CONTENTS,
+				new PotionContents(Optional.ofNullable(potion), color >= 0 ? Optional.of(color) : Optional.empty(), effects, Optional.empty()));
+		}
+		if (name != null) {
+			// A potion's own name comes from its contents, so the Skyrim name goes in CUSTOM_NAME, not italic like a renamed item's.
+			stack.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(style -> style.withItalic(false)));
 		}
 		return stack;
+	}
+
+	/** One Minecraft item a rule gives, found in the registries; {@code max} is its stack size. */
+	private record Output(ItemRules.Result rule, Item item, Holder<Potion> potion, List<MobEffectInstance> effects, int max) {
+	}
+
+	/** {@code out}'s item, potion and effects from the registries; null (and a warning) when one is unknown. */
+	private static Output resolve(ItemRules.Result out, String skyrimName) {
+		Identifier key = Identifier.tryParse(out.item());
+		Item item = key != null ? BuiltInRegistries.ITEM.getValue(key) : null;
+		if (item == null || item == Items.AIR) {
+			SkyCraft.LOG.warn("SkyCraft-loot: unknown item '{}' in {}, {} stays in Skyrim", out.item(), FILE, skyrimName);
+			return null;
+		}
+		Holder<Potion> potion = null;
+		if (out.potion() != null) {
+			// ItemRules only lets vanilla potion ids through, so this finds it.
+			potion = BuiltInRegistries.POTION.get(Identifier.withDefaultNamespace(out.potion())).orElse(null);
+			if (potion == null) {
+				SkyCraft.LOG.warn("SkyCraft-loot: unknown potion '{}' in {}, {} stays in Skyrim", out.potion(), FILE, skyrimName);
+				return null;
+			}
+		}
+		List<MobEffectInstance> effects = new ArrayList<>();
+		for (ItemRules.Effect e : out.effects()) {
+			// ItemRules only lets 26.3 effect ids through, and match() already picked the values for the name's tier.
+			Holder<MobEffect> effect = BuiltInRegistries.MOB_EFFECT.get(Identifier.withDefaultNamespace(e.id())).orElse(null);
+			if (effect == null) {
+				SkyCraft.LOG.warn("SkyCraft-loot: unknown effect '{}' in {}, {} stays in Skyrim", e.id(), FILE, skyrimName);
+				return null;
+			}
+			effects.add(new MobEffectInstance(effect, Math.max(1, e.seconds() * 20), e.amplifier()));
+		}
+		return new Output(out, item, potion, List.copyOf(effects), new ItemStack(item).getMaxStackSize());
 	}
 
 	/** Puts {@code stack} in the player's inventory; whatever doesn't fit drops at their feet. */
@@ -87,31 +134,31 @@ public final class SkyBridge {
 			SkyCraft.LOG.info("SkyCraft-loot: {} x {} stays in Skyrim [{}]", it.count(), it.name(), ItemRules.tagNames(it.tags()));
 			return;
 		}
-		Identifier key = Identifier.tryParse(result.item());
-		Item item = key != null ? BuiltInRegistries.ITEM.getValue(key) : null;
-		if (item == null || item == Items.AIR) {
-			SkyCraft.LOG.warn("SkyCraft-loot: unknown item '{}' in {}, {} stays in Skyrim", result.item(), FILE, it.name());
-			return;
-		}
-		Holder<Potion> potion = null;
-		if (result.potion() != null) {
-			// ItemRules only lets vanilla potion ids through, so this finds it.
-			potion = BuiltInRegistries.POTION.get(Identifier.withDefaultNamespace(result.potion())).orElse(null);
-			if (potion == null) {
-				SkyCraft.LOG.warn("SkyCraft-loot: unknown potion '{}' in {}, {} stays in Skyrim", result.potion(), FILE, it.name());
+		// The rule's item, then any it gives along with it ("+" in the rule).
+		List<ItemRules.Result> wanted = new ArrayList<>();
+		wanted.add(result);
+		wanted.addAll(result.also());
+		List<Output> outputs = new ArrayList<>();
+		int count = it.count();
+		for (ItemRules.Result out : wanted) {
+			Output o = resolve(out, it.name());
+			if (o == null) {
 				return;
 			}
+			outputs.add(o);
+			count = Math.min(count, convertible(it.count(), out.perItem(), o.max()));
 		}
-		int max = new ItemStack(item).getMaxStackSize();
-		int count = convertible(it.count(), result.perItem(), max);
-		int total = count * result.perItem();
-		for (int left = total; left > 0; ) {
-			int n = Math.min(left, max);
-			give(player, stack(item, n, potion));
-			left -= n;
+		for (Output o : outputs) {
+			for (int left = count * o.rule().perItem(); left > 0; ) {
+				int n = Math.min(left, o.max());
+				give(player, stack(o.item(), n, o.potion(), o.effects(), o.rule().color(), o.rule().name()));
+				left -= n;
+			}
 		}
 		SkyLink.pushEvent(Proto.EV_TAKE_ITEM, it.formId(), count, 0.0F, 0.0F, 0.0F, 0);
-		SkyCraft.LOG.info("SkyCraft-loot: {} x {} became {} {}{}", count, it.name(), total, result.label(),
+		int taken = count;
+		String became = outputs.stream().map(o -> taken * o.rule().perItem() + " " + o.rule().label()).collect(Collectors.joining(" + "));
+		SkyCraft.LOG.info("SkyCraft-loot: {} x {} became {}{}", count, it.name(), became,
 			count < it.count() ? " (" + (it.count() - count) + " more stay in Skyrim)" : "");
 	}
 
