@@ -110,6 +110,25 @@ public final class ItemRules {
 		tag foodraw name meat = minecraft:beef 1
 		tag food = minecraft:bread 1
 
+		# Flowers, berries, mushrooms and feathers picked in Skyrim (Nirnroot and other rare ingredients stay)
+		tag ingredient name blue name mountain name flower = minecraft:cornflower 1
+		tag ingredient name red name mountain name flower = minecraft:poppy 1
+		tag ingredient name purple name mountain name flower = minecraft:allium 1
+		tag ingredient name yellow name mountain name flower = minecraft:dandelion 1
+		tag ingredient name lavender = minecraft:lilac 1
+		tag ingredient name tongue = minecraft:orange_tulip 1
+		tag ingredient name snowberries = minecraft:sweet_berries 2
+		tag ingredient name juniper name berries = minecraft:sweet_berries 2
+		tag ingredient name jazbay = minecraft:sweet_berries 2
+		tag ingredient name fly name amanita = minecraft:red_mushroom 1
+		tag ingredient name cap = minecraft:brown_mushroom 1
+		tag ingredient name stool = minecraft:brown_mushroom 1
+		tag ingredient name wheat = minecraft:wheat 1
+		tag ingredient name bone name meal = minecraft:bone_meal 2
+		tag ingredient name cotton = minecraft:string 2
+		name feathers = minecraft:feather 2
+		tag foodraw name legs = minecraft:cod 1
+
 		# Leather armor bought in a Skyrim shop becomes Minecraft leather armor
 		tag armor material hide name helmet from bought = minecraft:leather_helmet 1
 		tag armor material hide name hood from bought = minecraft:leather_helmet 1

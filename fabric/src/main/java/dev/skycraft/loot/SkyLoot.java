@@ -76,9 +76,16 @@ public final class SkyLoot {
 				LOOTED.add(id);
 			}
 			if (Features.on(Features.Feature.KILL_XP)) {
+				// Straight into the killer's XP bar: orbs dropped at a Skyrim corpse can land under the terrain or
+				// out of reach, and SkyCraft doesn't draw them well.
 				int xp = KillXp.forLevel(a.level());
-				net.minecraft.world.entity.ExperienceOrb.award(level, new net.minecraft.world.phys.Vec3(a.x(), a.y() + 0.5, a.z()), xp);
-				SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP", a.name(), a.level(), xp);
+				net.minecraft.world.entity.player.Player killer = level.getNearestPlayer(a.x(), a.y(), a.z(), 96.0, false);
+				if (killer != null) {
+					killer.giveExperiencePoints(xp);
+					level.playSound(null, killer.getX(), killer.getY(), killer.getZ(), net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,
+						net.minecraft.sounds.SoundSource.PLAYERS, 0.2F, 0.6F + level.getRandom().nextFloat() * 0.6F);
+				}
+				SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP{}", a.name(), a.level(), xp, killer != null ? " to " + killer.getName().getString() : "");
 			}
 			if (Features.on(Features.Feature.KILL_DROPS)) {
 				drop(level, a);

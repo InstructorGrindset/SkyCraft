@@ -90,6 +90,19 @@ class ItemRulesTest {
 	}
 
 	@Test
+	void floraFromTheTestBecomesMinecraftPlants() {
+		ItemRules rules = defaults();
+		// Seen in the dev8 test log as "stays in Skyrim".
+		assertEquals("minecraft:cornflower 1", convert(rules, tags("ingredient"), 0, WORLD, "Blue Mountain Flower"));
+		assertEquals("minecraft:allium 1", convert(rules, tags("ingredient"), 0, WORLD, "Purple Mountain Flower"));
+		assertEquals("minecraft:cod 1", convert(rules, tags("foodraw"), 0, CORPSE, "Mudcrab Legs"));
+		assertEquals("minecraft:orange_tulip 1", convert(rules, tags("ingredient"), 0, WORLD, "Dragon's Tongue"));
+		assertEquals("minecraft:feather 2", convert(rules, tags("ingredient"), 0, CORPSE, "Hawk Feathers"));
+		assertEquals("keep", convert(rules, tags("ingredient"), 0, CORPSE, "Skeever Tail"));
+		assertEquals("keep", convert(rules, tags("ingredient"), 0, WORLD, "Nirnroot"));
+	}
+
+	@Test
 	void metals() {
 		ItemRules rules = defaults();
 		assertEquals("minecraft:iron_ingot 1", convert(rules, tags("oreingot"), 0, WORLD, "Iron Ingot"));
