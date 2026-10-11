@@ -31,10 +31,95 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Minecraft view | `minecraft_view` | In any dimension other than the Skyrim mirror (the Nether, Tamriel Wilds, Home, ...) the screen shows Minecraft's own world: Minecraft draws its world, hand and HUD and sends the whole picture (at most 1080 high, `-Dskycraft.viewMaxHeight`, Skyrim scales it up) to cover Skyrim's. Skyrim keeps running underneath and parks its player where they stood: held in place, god mode, nobody fighting them, HUD hidden, its world not drawn. Every Skyrim-coupled system stands down meanwhile (collision, dug ground, water, NPC stand-ins, loot and items, time, breaches, deep creatures, click to activate, Skyrim's teleports and look); keys and mouse go to Minecraft, which turns the player itself. Back in the mirror, Skyrim's player follows to wherever Minecraft's comes back in (Skyrim leads instead if its player died there or is in another Skyrim world). Dying over there kills the Skyrim player as anywhere. Debug: `/skyview` (host only) goes to the Nether, or any other dimension the world has, and back; `/skyview <dimension id>`, `/skyview mirror`. Off: other dimensions act like the mirror, as before | `SkyDimension` (the guard every system asks), client `MinecraftView`, `FrameExporter` (opaque frames), `SkyClient`, `InputBridge` (look), guards in the `mixin/` and `client/mixin/` classes, `combat/SkyCombat`, `net/SkyNet`, `breach/SkyBreach` | `View.cpp` (park, hand back), `Overlay.cpp` (full screen frame), `Input.cpp` (routing, `kInLook`), `Game.cpp` | `SkyCraft.ini` `[MinecraftView] bHideSkyrimWorld` | `SkyCraft`, `Minecraft view` in SkyCraft.log | Built |
 | Gear sets | none | Skyrim Iron through Daedric weapons and armor, new materials, recipes, original textures | `gear/` (SkyGear, GearTiers), `mixin/SmithingMixin` | none | data in the jar | none | Built |
 | Portal network | `portals` | Portals are cracks between places that resemble each other. An obsidian frame lit in Skyrim makes a real Nether portal, but vanilla Nether travel never happens from the mirror world. A filled Greater, Grand or Black soul gem from Skyrim (bought or looted filled) becomes a Filled Soul Gem; used on a lit portal it becomes an Attuned Soul Gem, and used on a second lit portal it binds the two for good and is spent. After Minecraft's usual portal wait a bound portal takes the host to its partner behind a loading screen, like a load door, between worldspaces and interiors alike. Unbound portals do nothing but say how to bind them; breaking a frame unbinds its partner. Merchants sell obsidian dear (smiths, cheapest in Markarth, and general stores) | `portal/` (SkyPortals, PortalStore, PortalItems, SoulGemItem), `mixin/NetherPortalBlockMixin`, soul gem rules in `loot/ItemRules`, obsidian in `trade/TradeRules` | `Travel.cpp` (MoveTo_Impl with no target reference), `Loot.cpp` (soul gem tags), `kEvPortalTravel` | `skycraft-portals.txt` in the world's save folder, `skycraft-items.txt` ("Soul gems" section), `skycraft-trades.txt` | `SkyCraft-portal` | Built |
+| Worlds | none | Three dimensions beside the mirror world: the Nether, Tamriel Wilds and Home (Steve's seed, ending in the Far Lands). See [Worlds](#worlds) | `worlds/` (Worlds, SkyWorlds, HomeChunkGenerator, HomeTerrain, ClassicNoise, FarLands, SteveCamp, HomeCamp, WorldArrivals), `worlds/mixin/` | none | data in the jar | `SkyCraft-worlds` | Built |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
 player's town and place and merchants' buy lists. Place changes are logged as `SkyCraft-place`.
+
+## Worlds
+
+Three dimensions sit beside the mirror world, for the Sygmension story ([LORE.md](LORE.md)). Travel
+between them is still to be wired (portal work); `dev.skycraft.worlds.Worlds` holds their keys, seeds and
+arrival points for that.
+
+| World | Dimension | Seed | What's in it |
+|---|---|---|---|
+| The Nether | `minecraft:the_nether` | the world's | Vanilla Nether generator and biomes, fortresses and bastions |
+| Tamriel Wilds | `skycraft:tamriel_wilds` | 4201 (4E 201), pinned | Skyrim one step away. Amplified height in the mountains, normal height on open land: tall jagged snowy ranges, broad flat valleys, sea cliffs. Granite cliffs in wavy bands of tuff, andesite and diorite. Ten biomes, two structures, mineshafts, ruined portals in the mountains |
+| Home | `skycraft:home` | Steve's (3257840388504953787), pinned | Steve's old seed: classic terrain (octave noise hills, lakes, beaches, oaks) that breaks into the Far Lands at 12,550,821 on both axes. Steve's last camp and the crack |
+
+**Tamriel Wilds biomes** (`data/skycraft/worldgen/biome`): Whiterun Tundra (golden grass, dry grass,
+andesite boulders, scattered pines, allium and bluet), Falkreath Pines (dense old growth spruce, ferns,
+mossy boulders, moss and podzol), The Rift (autumn poplars in orange, red and yellow, birches, leaf litter,
+rivers), Eastmarch Springs (basalt and sulfur ground, hot springs with sulfur rims and magma floors that
+bubble, snowy pines, sulfur haze), The Reach (tuff and andesite crags, poppies and rose bushes, goats),
+The Pale (snowfields, snowy spruce), Winterhold Peaks (every high peak, and the cold north: snow, packed
+ice, ice), Solstheim Ash (grey ash plains, dark basalt and blackstone cliffs, huge mushroom groves on
+mycelium, falling ash), Tamriel River and the Sea of Ghosts (cold ocean with ice floes and icebergs).
+Each has its own grass, foliage, water, fog and sky colors. Above about y 195 every biome turns to snow.
+
+**Structures**: Dwemer towers (waxed cut copper with weathered bands, copper grates, redstone lamps lit by
+hidden redstone blocks, copper bulbs, a domed top with a lightning rod, a loot chest) in the Reach,
+Eastmarch, Whiterun, the Rift and the Pale; Nordic barrows (grassy burial mounds with a stone doorway,
+a crypt with a sarcophagus, urn, candles and a loot chest) in the holds. Single piece jigsaw structures;
+templates in `data/skycraft/structure`.
+
+**Steve's camp** (Home, centred on 12,550,700, 71, 0): a 5 by 5 dirt hut with a red bed, a furnace, a
+crafting table, a chest of Beta era things (porkchops, bread, apples, torches, cobblestone, a stone pickaxe,
+flint and steel, a compass, a clock) and a lectern holding the written book "Journal" by Steve, whose
+pages are placeholders marked `[PLACEHOLDER]` (text in `SteveCamp.JOURNAL_PAGES`). Seven waxed signs
+along the gravel trail count Day 2417 to Day 2423. The trail runs east on levelled ground to the wall,
+where the crack (3 wide, 48 deep, open to the sky) cuts into the Far Lands. Arrival
+(`Worlds.HOME_ARRIVAL`): 12,550,705.5, 71, 0.5, facing east at the wall.
+
+**How they load into the existing SkyCraft world.** The dimensions are data in the mod's own data pack
+(`data/minecraft/dimension/the_nether.json`, `data/skycraft/dimension/*.json`). When a world opens,
+Minecraft 26.3 merges the data pack's dimensions with the ones saved in the world
+(`WorldDimensions.bake`, called from `LevelStorageSource.getLevelDataAndDimensions`), so a world made
+with the mirror preset (overworld only) gains the Nether, Tamriel Wilds and Home the next time it opens.
+Nothing in the save changes; take the mod out and the dimensions go away (their region files stay under
+`dimensions/`). The data pack must not define `minecraft:overworld`: a data pack dimension replaces the
+saved one with the same key. The SkyCraft world is created with structures off and seed 0, so two mixins
+in `worlds/mixin/` adjust these worlds only: `ServerLevelSeedMixin` gives Tamriel Wilds and Home their
+lore seeds (terrain, structures and decoration all read `ServerLevel.getSeed`), and
+`ChunkStatusTasksMixin`, `StructureManagerMixin` and `ChunkGeneratorLocateMixin` let structures generate
+and be located in the Nether, Tamriel Wilds and Home. The mirror overworld keeps its settings. The world
+border (default 29,999,984) reaches past the Far Lands.
+
+Tested on a headless 26.3 server (Fabric Loader 0.19.5, Fabric API 0.161.0): a world created with the
+mirror preset, seed 0 and structures off, reopened with the worlds code, reports seeds 0, 4201 and
+3257840388504953787 for the overworld, Tamriel Wilds and Home, locates the Dwemer tower at 96, 288 and a
+fortress in the Nether, and generates the camp with its chest, journal and signs.
+
+**Visit** (cheats on):
+
+```
+/execute in skycraft:tamriel_wilds run tp @s 91.5 120 306.5 180 0
+/execute in minecraft:the_nether run tp @s 0 70 0
+/execute in skycraft:home run tp @s 12550705.5 71 0.5 -90 0
+/execute in skycraft:tamriel_wilds run locate biome skycraft:the_rift
+/execute in skycraft:tamriel_wilds run locate structure skycraft:dwemer_tower
+```
+
+**Preview without Skyrim.** `python3 tools/build_worlds_preview.py` writes `dist/skycraft-worlds-preview.zip`,
+a data pack for a plain vanilla 26.3 world (no mod): the Nether and Tamriel Wilds with its biomes,
+features and structures. Add it under Data Packs when creating a world (or put it in
+`<world>/datapacks` before the first start) and use the commands above. Without the mod, Tamriel Wilds
+uses the world seed; create the world with seed 4201 to see the same land as the mod. Home is Java code,
+so it needs the mod: in any world running SkyCraft (the SkyCraft world, or the dev client from
+`./gradlew runClient` in `fabric`), use the Home command.
+
+**Editing.** Tamriel Wilds' JSON and both structure templates are written by
+`python3 tools/gen_worlds_data.py --jar <minecraft-26.3-client.jar>` (the jar is in Prism's
+`libraries/com/mojang/minecraft/26.3`); it covers biome colors, features, climate ranges, surface rules,
+the terrain blend and the structure layouts. Edit the tables there and run it again. Home's
+terrain is `worlds/HomeTerrain` (noise in `ClassicNoise`, the edge in `FarLands`), the camp layout
+`worlds/SteveCamp`.
+
+Things to know: the Skyrim side features (collision, digging, combat bridges) don't know about these
+worlds yet, so view mode needs dimension guards before anyone plays in them. With a Nether present, a
+lit Nether portal in the mirror world now works the vanilla way.
 
 ## Planned
 
