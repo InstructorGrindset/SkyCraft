@@ -207,6 +207,7 @@ namespace skycraft
 				if (const char* name = actor->GetDisplayFullName()) {
 					strncpy_s(r.name, name, _TRUNCATE);
 				}
+				r.vendor = actor->IsDead() ? 0 : Loot::VendorMask(actor);
 				records.push_back(r);
 				if (records.size() >= proto::kMaxActors) {
 					break;

@@ -219,4 +219,52 @@ namespace skycraft::Loot
 		a_player->RemoveItem(item, take, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
 		logger::info("SkyCraft-loot: converted {} x {} to Minecraft, removed from Skyrim", take, item->GetName());
 	}
+
+	std::uint16_t VendorMask(RE::Actor* a_actor)
+	{
+		auto* faction = a_actor ? a_actor->GetVendorFaction() : nullptr;
+		if (!faction) {
+			return 0;
+		}
+		const auto&   vendor = faction->vendorData;
+		std::uint16_t mask = vendor.vendorValues.buysStolen && !vendor.vendorValues.buysNonStolen ? proto::kVendorStolen : 0;
+		auto*         list = vendor.vendorSellBuyList;
+		if (!list || vendor.vendorValues.notBuySell) {
+			return static_cast<std::uint16_t>(mask | proto::kVendorAny);
+		}
+		for (auto* form : list->forms) {
+			auto* kw = form ? form->As<RE::BGSKeyword>() : nullptr;
+			const char* raw = kw ? kw->GetFormEditorID() : nullptr;
+			std::string_view id = raw ? raw : "";
+			if (id == "VendorItemWeapon") mask |= proto::kVendorWeapon;
+			else if (id == "VendorItemArmor" || id == "VendorItemClothing") mask |= proto::kVendorArmor;
+			else if (id == "VendorItemOreIngot") mask |= proto::kVendorIngot;
+			else if (id == "VendorItemPotion" || id == "VendorItemPoison") mask |= proto::kVendorPotion;
+			else if (id == "VendorItemIngredient") mask |= proto::kVendorIngredient;
+			else if (id == "VendorItemFood" || id == "VendorItemFoodRaw") mask |= proto::kVendorFood;
+			else if (id == "VendorItemArrow") mask |= proto::kVendorArrow;
+			else if (id == "VendorItemJewelry" || id == "VendorItemGem") mask |= proto::kVendorJewelry;
+			else if (id == "VendorItemBook" || id == "VendorItemSpellTome" || id == "VendorItemScroll" || id == "VendorItemStaff") mask |= proto::kVendorBook;
+			else if (id == "VendorItemAnimalHide" || id == "VendorItemAnimalPart") mask |= proto::kVendorHide;
+			else if (id == "VendorItemTool" || id == "VendorItemClutter" || id == "VendorItemFireword") mask |= proto::kVendorTool;
+		}
+		return mask ? mask : static_cast<std::uint16_t>(proto::kVendorAny);
+	}
+
+	void TownName(RE::PlayerCharacter* a_player, char (&a_out)[32])
+	{
+		a_out[0] = '\0';
+		auto* location = a_player ? a_player->GetCurrentLocation() : nullptr;
+		for (auto* l = location; l; l = l->parentLoc) {
+			if (l->HasKeywordString("LocTypeCity") || l->HasKeywordString("LocTypeTown") || l->HasKeywordString("LocTypeSettlement")) {
+				const char* name = l->GetName();
+				strncpy_s(a_out, name ? name : "", _TRUNCATE);
+				return;
+			}
+		}
+		if (location) {
+			const char* name = location->GetName();
+			strncpy_s(a_out, name ? name : "", _TRUNCATE);
+		}
+	}
 }

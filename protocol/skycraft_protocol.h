@@ -13,7 +13,7 @@
 namespace skycraft::proto
 {
 	inline constexpr std::uint32_t kMagic = 0x43594B53;  // "SKYC"
-	inline constexpr std::uint32_t kVersion = 12;
+	inline constexpr std::uint32_t kVersion = 13;
 	inline constexpr wchar_t       kMappingName[] = L"Local\\SkyCraft_v1";
 
 	// 1 Minecraft block == 70 Skyrim units (Skyrim player ~128 units tall, MC player 1.8 blocks).
@@ -87,8 +87,10 @@ namespace skycraft::proto
 		std::uint32_t teleportSeq;       // MC teleports its player to pos when this changes
 		std::uint32_t viewportW, viewportH;
 		float         gameHour;
+		char          town[32];  // the city/town/settlement the player is in (or their location's name), UTF-8, NUL-terminated
 	};
-	static_assert(sizeof(SkyState) == 0x40);
+	static_assert(sizeof(SkyState) == 0x60);
+	static_assert(kOffSkyState + sizeof(SkyState) <= kOffMcState);
 
 	// ---- MC -> Skyrim state @0x200 (seqlock) ------------------------------------------------
 	enum McFlags : std::uint32_t
@@ -219,10 +221,28 @@ namespace skycraft::proto
 		float         height;      // blocks
 		float         healthFrac;  // 0..1
 		std::uint16_t level;
-		std::uint16_t pad;
+		std::uint16_t vendor;      // VendorBuys: what this merchant trades in (0 = not a merchant)
 		char          name[24];    // display name, UTF-8, NUL-terminated (truncated)
 	};
 	static_assert(sizeof(ActorRecord) == 64);
+
+	// What a merchant trades in, from their vendor faction's buy/sell keyword list.
+	enum VendorBuys : std::uint16_t
+	{
+		kVendorAny = 1u << 0,         // buys everything (no list, or a "buys all but" list)
+		kVendorWeapon = 1u << 1,      // VendorItemWeapon
+		kVendorArmor = 1u << 2,       // VendorItemArmor, VendorItemClothing
+		kVendorIngot = 1u << 3,       // VendorItemOreIngot
+		kVendorPotion = 1u << 4,      // VendorItemPotion, VendorItemPoison
+		kVendorIngredient = 1u << 5,  // VendorItemIngredient
+		kVendorFood = 1u << 6,        // VendorItemFood, VendorItemFoodRaw
+		kVendorArrow = 1u << 7,       // VendorItemArrow
+		kVendorJewelry = 1u << 8,     // VendorItemJewelry, VendorItemGem
+		kVendorBook = 1u << 9,        // VendorItemBook, VendorItemSpellTome, VendorItemScroll, VendorItemStaff
+		kVendorHide = 1u << 10,       // VendorItemAnimalHide, VendorItemAnimalPart
+		kVendorTool = 1u << 11,       // VendorItemTool, VendorItemClutter, VendorItemFireword
+		kVendorStolen = 1u << 12,     // a fence
+	};
 
 	struct ActorTable
 	{
