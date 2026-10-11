@@ -13,7 +13,7 @@
 namespace skycraft::proto
 {
 	inline constexpr std::uint32_t kMagic = 0x43594B53;  // "SKYC"
-	inline constexpr std::uint32_t kVersion = 11;
+	inline constexpr std::uint32_t kVersion = 12;
 	inline constexpr wchar_t       kMappingName[] = L"Local\\SkyCraft_v1";
 
 	// 1 Minecraft block == 70 Skyrim units (Skyrim player ~128 units tall, MC player 1.8 blocks).
@@ -36,6 +36,7 @@ namespace skycraft::proto
 	inline constexpr std::uint32_t kOverlaySlots = 3;
 	inline constexpr std::uint64_t kOffActorTable = 0x12000;   // Skyrim -> MC, see ActorTable
 	inline constexpr std::uint64_t kOffEventRing = 0x17000;    // MC -> Skyrim, see McEvent
+	inline constexpr std::uint64_t kOffItemRing = 0x1B100;     // Skyrim -> MC, see ItemEvent
 	inline constexpr std::uint64_t kOffWorldEntities = 0x1C000;  // MC -> Skyrim, see WorldEntities
 	inline constexpr std::uint64_t kOffRenderRing = kOffOverlayPixels + kOverlaySlotBytes * kOverlaySlots;
 	inline constexpr std::uint64_t kRenderRingBytes = 64ull << 20;
@@ -247,6 +248,8 @@ namespace skycraft::proto
 		                    // flags = flight pitch (float bits), weapon = arrow texture (0 plain, 1 tipped, 2 spectral)
 		kEvSkillUse = 5,    // the player used a Skyrim skill in Minecraft: formId = Skyrim skill (ActorValue: 9 Block,
 		                    // 10 Smithing, 11 Heavy Armor, 12 Light Armor), a = uses (as Skyrim's AdvanceSkill counts them)
+		kEvTakeItem = 6,    // Minecraft converted a looted item: formId = the item's base form, a = how many to remove
+		                    // from the Skyrim player's inventory (see ItemEvent)
 	};
 
 	enum HitFlags : std::uint32_t
@@ -277,6 +280,67 @@ namespace skycraft::proto
 		std::uint32_t weapon;  // HitWeapon for kEvHitActor
 	};
 	static_assert(sizeof(McEvent) == 32);
+
+	// ---- item ring @0x1B100 (Skyrim -> MC) ----------------------------------------------------
+	// Every item that lands in the Skyrim player's inventory (looted, picked up, bought, crafted).
+	// Minecraft decides from its rules file whether it becomes a Minecraft item; if it does, it
+	// gives the Minecraft items and sends kEvTakeItem back so Skyrim removes the original.
+	inline constexpr std::uint32_t kItemRingEntries = 64;     // power of two
+	inline constexpr std::uint64_t kItemRingHeadOff = 0x00;  // u64, written by Skyrim
+	inline constexpr std::uint64_t kItemRingTailOff = 0x40;  // u64, written by MC
+	inline constexpr std::uint64_t kItemRingDataOff = 0x80;
+
+	// What kind of item it is, from its form type and Skyrim's vendor/material keywords.
+	enum ItemTags : std::uint32_t
+	{
+		kTagFood = 1u << 0,        // VendorItemFood
+		kTagFoodRaw = 1u << 1,     // VendorItemFoodRaw
+		kTagHide = 1u << 2,        // VendorItemAnimalHide
+		kTagOreIngot = 1u << 3,    // VendorItemOreIngot
+		kTagPotion = 1u << 4,      // VendorItemPotion
+		kTagPoison = 1u << 5,      // VendorItemPoison
+		kTagIngredient = 1u << 6,  // VendorItemIngredient
+		kTagWeapon = 1u << 7,      // form type Weapon
+		kTagArmor = 1u << 8,       // form type Armor, not clothing or jewelry
+		kTagClothing = 1u << 9,    // ArmorClothing
+		kTagJewelry = 1u << 10,    // ArmorJewelry
+		kTagGold = 1u << 11,       // gold coins (form 0xF)
+		kTagKey = 1u << 12,        // form type KeyMaster
+		kTagArrow = 1u << 13,      // form type Ammo
+		kTagGem = 1u << 14,        // VendorItemGem
+		kTagClutter = 1u << 15,    // VendorItemClutter
+		kTagBook = 1u << 16,       // form type Book or Scroll
+	};
+
+	// Weapon/armor material from WeapMaterial*/ArmorMaterial* keywords.
+	enum ItemMaterial : std::uint8_t
+	{
+		kMatNone = 0, kMatWood, kMatIron, kMatSteel, kMatImperial, kMatOrcish, kMatDwarven, kMatElven,
+		kMatGlass, kMatEbony, kMatDaedric, kMatDragon, kMatSilver, kMatHide, kMatDraugr, kMatFalmer,
+	};
+
+	// Where the item came from.
+	enum ItemSource : std::uint8_t
+	{
+		kSrcWorld = 0,      // picked up, crafted, or otherwise from nowhere
+		kSrcCorpse = 1,     // a dead actor
+		kSrcContainer = 2,  // a chest, barrel, merchant chest, ...
+		kSrcActor = 3,      // a living actor (gift, pickpocket)
+	};
+
+	struct ItemEvent
+	{
+		std::uint32_t formId;  // base form of the item
+		std::int32_t  count;
+		std::uint32_t tags;    // ItemTags
+		std::uint8_t  material;  // ItemMaterial
+		std::uint8_t  source;    // ItemSource
+		std::uint16_t pad;
+		char          name[32];  // display name, UTF-8, NUL-terminated (truncated)
+	};
+	static_assert(sizeof(ItemEvent) == 48);
+	static_assert(kOffItemRing >= kOffEventRing + kEventRingDataOff + sizeof(McEvent) * kEventRingEntries);
+	static_assert(kOffItemRing + kItemRingDataOff + sizeof(ItemEvent) * kItemRingEntries <= kOffWorldEntities);
 
 	// ---- world entities @0x1C000 (MC -> Skyrim, seqlock) -------------------------------------
 	// Minecraft things Skyrim draws itself each frame (arrows, dropped items, block cracks) + the

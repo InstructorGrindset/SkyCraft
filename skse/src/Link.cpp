@@ -255,6 +255,23 @@ namespace skycraft
 		seq.store(s + 2, std::memory_order_release);
 	}
 
+	void Link::PushItem(const proto::ItemEvent& a_item)
+	{
+		if (!base_) {
+			return;
+		}
+		auto* ring = base_ + proto::kOffItemRing;
+		auto& headRef = *reinterpret_cast<std::uint64_t*>(ring + proto::kItemRingHeadOff);
+		auto& tailRef = *reinterpret_cast<std::uint64_t*>(ring + proto::kItemRingTailOff);
+		const auto head = Atomic(headRef).load(std::memory_order_relaxed);
+		const auto tail = Atomic(tailRef).load(std::memory_order_acquire);
+		if (head - tail >= proto::kItemRingEntries) {
+			return;
+		}
+		reinterpret_cast<proto::ItemEvent*>(ring + proto::kItemRingDataOff)[head & (proto::kItemRingEntries - 1)] = a_item;
+		Atomic(headRef).store(head + 1, std::memory_order_release);
+	}
+
 	bool Link::PopEvent(proto::McEvent& a_out)
 	{
 		if (!base_) {

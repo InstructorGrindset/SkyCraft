@@ -460,6 +460,34 @@ public final class SkyLink {
 		return new String(bytes, 0, n, StandardCharsets.UTF_8);
 	}
 
+	// ---- item ring (consume) ---------------------------------------------------------------
+
+	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */
+	public record Item(int formId, int count, int tags, int material, int source, String name) {
+	}
+
+	/** Takes every queued item event off the ring, oldest first. */
+	public static void drainItems(java.util.function.Consumer<Item> sink) {
+		MemorySegment s = shm;
+		if (s == null) {
+			return;
+		}
+		long base = OFF_ITEM_RING;
+		long head = (long) LONG.getAcquire(s, base + ITR_HEAD);
+		long tail = s.get(JAVA_LONG, base + ITR_TAIL);
+		if (head - tail > ITEM_RING_ENTRIES) {
+			tail = head - ITEM_RING_ENTRIES;
+		}
+		while (tail < head) {
+			long e = base + ITR_DATA + (tail & (ITEM_RING_ENTRIES - 1)) * ITEM_BYTES;
+			Item item = new Item(s.get(JAVA_INT, e), s.get(JAVA_INT, e + 4), s.get(JAVA_INT, e + 8), Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 12)),
+				Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 13)), readName(s, e + 16, 32));
+			tail++;
+			sink.accept(item);
+		}
+		LONG.setRelease(s, base + ITR_TAIL, tail);
+	}
+
 	// ---- event ring (produce) --------------------------------------------------------------
 
 	/** Queues an event for Skyrim. Safe from any thread. Drops the event if Skyrim is a full ring behind. */

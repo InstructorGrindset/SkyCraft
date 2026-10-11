@@ -34,25 +34,60 @@ namespace skycraft::Loot
 			}
 		}
 
-		// Where the item came from, in words: the world, a corpse, a container or a living actor.
-		std::string Source(RE::FormID a_from)
+		struct Source
+		{
+			std::string        text;
+			proto::ItemSource  kind = proto::kSrcWorld;
+		};
+
+		// Where the item came from: the world, a corpse, a container or a living actor.
+		Source FromWhere(RE::FormID a_from)
 		{
 			if (a_from == 0) {
-				return "world";
+				return { "world", proto::kSrcWorld };
 			}
 			auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(a_from);
 			if (!ref) {
-				return std::format("{:08X}", a_from);
+				return { std::format("{:08X}", a_from), proto::kSrcContainer };
 			}
 			const char* name = ref->GetDisplayFullName();
 			std::string label = name && *name ? name : std::format("{:08X}", a_from);
 			if (auto* actor = ref->As<RE::Actor>()) {
-				return std::format("{} of {}", actor->IsDead() ? "corpse" : "actor", label);
+				const bool dead = actor->IsDead();
+				return { std::format("{} of {}", dead ? "corpse" : "actor", label), dead ? proto::kSrcCorpse : proto::kSrcActor };
 			}
-			return "container " + label;
+			return { "container " + label, proto::kSrcContainer };
 		}
 
-		std::string Keywords(RE::TESForm* a_item)
+		proto::ItemMaterial MaterialFrom(std::string_view a_keyword)
+		{
+			// WeapMaterialIron, ArmorMaterialSteelPlate, DLC1WeapMaterialDragonbone, ...
+			const auto at = a_keyword.find("Material");
+			if (at == std::string_view::npos) {
+				return proto::kMatNone;
+			}
+			const auto m = a_keyword.substr(at + 8);
+			auto starts = [&](std::string_view p) { return m.substr(0, p.size()) == p; };
+			if (starts("Wood")) return proto::kMatWood;
+			if (starts("Iron")) return proto::kMatIron;
+			if (starts("Steel")) return proto::kMatSteel;
+			if (starts("Imperial")) return proto::kMatImperial;
+			if (starts("Orcish")) return proto::kMatOrcish;
+			if (starts("Dwarven")) return proto::kMatDwarven;
+			if (starts("Elven")) return proto::kMatElven;
+			if (starts("Glass")) return proto::kMatGlass;
+			if (starts("Ebony")) return proto::kMatEbony;
+			if (starts("Daedric")) return proto::kMatDaedric;
+			if (starts("Dragon")) return proto::kMatDragon;
+			if (starts("Silver")) return proto::kMatSilver;
+			if (starts("Hide") || starts("Leather") || starts("Studded") || starts("Fur")) return proto::kMatHide;
+			if (starts("Draugr")) return proto::kMatDraugr;
+			if (starts("Falmer")) return proto::kMatFalmer;
+			return proto::kMatNone;
+		}
+
+		// Tags and material from the item's keywords; the keyword list as text for the log.
+		std::string ReadKeywords(RE::TESForm* a_item, std::uint32_t& a_tags, std::uint8_t& a_material)
 		{
 			std::string out;
 			auto* form = a_item->As<RE::BGSKeywordForm>();
@@ -64,11 +99,26 @@ namespace skycraft::Loot
 				if (!kw) {
 					continue;
 				}
-				const char* id = kw->GetFormEditorID();
+				const char*      raw = kw->GetFormEditorID();
+				std::string_view id = raw ? raw : "";
+				if (id == "VendorItemFood") a_tags |= proto::kTagFood;
+				else if (id == "VendorItemFoodRaw") a_tags |= proto::kTagFoodRaw;
+				else if (id == "VendorItemAnimalHide") a_tags |= proto::kTagHide;
+				else if (id == "VendorItemOreIngot") a_tags |= proto::kTagOreIngot;
+				else if (id == "VendorItemPotion") a_tags |= proto::kTagPotion;
+				else if (id == "VendorItemPoison") a_tags |= proto::kTagPoison;
+				else if (id == "VendorItemIngredient") a_tags |= proto::kTagIngredient;
+				else if (id == "ArmorClothing") a_tags |= proto::kTagClothing;
+				else if (id == "ArmorJewelry") a_tags |= proto::kTagJewelry;
+				else if (id == "VendorItemGem") a_tags |= proto::kTagGem;
+				else if (id == "VendorItemClutter") a_tags |= proto::kTagClutter;
+				if (a_material == proto::kMatNone) {
+					a_material = MaterialFrom(id);
+				}
 				if (!out.empty()) {
 					out += ' ';
 				}
-				out += id && *id ? id : std::format("{:08X}", kw->GetFormID());
+				out += id.empty() ? std::format("{:08X}", kw->GetFormID()) : std::string(id);
 			}
 			return out;
 		}
@@ -92,17 +142,53 @@ namespace skycraft::Loot
 				if (!item) {
 					return RE::BSEventNotifyControl::kContinue;
 				}
-				const char* name = item->GetName();
+				proto::ItemEvent ev{};
+				ev.formId = item->GetFormID();
+				ev.count = a_event->itemCount;
 				std::string_view type = TypeName(item->GetFormType());
-				if (auto* alch = item->As<RE::AlchemyItem>(); alch && alch->IsFood()) {
-					type = "food";
+				std::int32_t     value = 0;
+				switch (item->GetFormType()) {
+				case RE::FormType::Weapon:
+					ev.tags |= proto::kTagWeapon;
+					break;
+				case RE::FormType::Armor:
+					ev.tags |= proto::kTagArmor;
+					break;
+				case RE::FormType::Ammo:
+					ev.tags |= proto::kTagArrow;
+					break;
+				case RE::FormType::KeyMaster:
+					ev.tags |= proto::kTagKey;
+					break;
+				case RE::FormType::Book:
+				case RE::FormType::Scroll:
+					ev.tags |= proto::kTagBook;
+					break;
+				default:
+					break;
 				}
-				std::int32_t value = 0;
-				if (auto* valueForm = item->As<RE::TESValueForm>()) {
+				if (ev.formId == 0xF) {
+					ev.tags |= proto::kTagGold;
+				}
+				if (auto* alch = item->As<RE::AlchemyItem>()) {
+					if (alch->IsFood()) {
+						type = "food";
+					}
+					value = alch->GetGoldValue();
+				} else if (auto* valueForm = item->As<RE::TESValueForm>()) {
 					value = valueForm->value;
 				}
-				logger::info("SkyCraft-loot: got {} x {} [{} {:08X}] value {} from {} | {}", a_event->itemCount, name && *name ? name : "?", type,
-					item->GetFormID(), value, Source(a_event->oldContainer), Keywords(item));
+				const std::string keywords = ReadKeywords(item, ev.tags, ev.material);
+				if (ev.tags & (proto::kTagClothing | proto::kTagJewelry)) {
+					ev.tags &= ~proto::kTagArmor;
+				}
+				const Source from = FromWhere(a_event->oldContainer);
+				ev.source = from.kind;
+				const char* name = item->GetName();
+				strncpy_s(ev.name, name ? name : "", _TRUNCATE);
+				logger::info("SkyCraft-loot: got {} x {} [{} {:08X}] value {} from {} | {}", ev.count, name && *name ? name : "?", type, ev.formId, value, from.text,
+					keywords);
+				Link::Get().PushItem(ev);
 				return RE::BSEventNotifyControl::kContinue;
 			}
 		};
@@ -112,7 +198,25 @@ namespace skycraft::Loot
 	{
 		if (auto* events = RE::ScriptEventSourceHolder::GetSingleton()) {
 			events->AddEventSink<RE::TESContainerChangedEvent>(ContainerSink::Get());
-			logger::info("SkyCraft-loot: watching the player's inventory (detect only)");
+			logger::info("SkyCraft-loot: watching the player's inventory");
 		}
+	}
+
+	void Take(RE::PlayerCharacter* a_player, RE::FormID a_item, std::int32_t a_count)
+	{
+		auto* item = RE::TESForm::LookupByID<RE::TESBoundObject>(a_item);
+		if (!a_player || !item || a_count <= 0) {
+			return;
+		}
+		const auto counts = a_player->GetInventoryCounts([item](RE::TESBoundObject& a_obj) { return &a_obj == item; });
+		const auto it = counts.find(item);
+		const std::int32_t have = it != counts.end() ? it->second : 0;
+		const std::int32_t take = std::min(a_count, have);
+		if (take <= 0) {
+			logger::warn("SkyCraft-loot: Minecraft converted {:08X} but the player no longer has it", a_item);
+			return;
+		}
+		a_player->RemoveItem(item, take, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+		logger::info("SkyCraft-loot: converted {} x {} to Minecraft, removed from Skyrim", take, item->GetName());
 	}
 }

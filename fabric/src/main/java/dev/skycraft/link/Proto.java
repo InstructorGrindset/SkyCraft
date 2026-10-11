@@ -8,7 +8,7 @@ public final class Proto {
 	}
 
 	public static final int MAGIC = 0x43594B53;
-	public static final int VERSION = 11;
+	public static final int VERSION = 12;
 	// A second client on the same PC (multiplayer testing) talks to its own stand-in Skyrim:
 	// -Dskycraft.link=Local\SkyCraft_guest (see tools/fake_guest.py).
 	public static final String MAPPING_NAME = System.getProperty("skycraft.link", "Local\\SkyCraft_v1");
@@ -32,6 +32,7 @@ public final class Proto {
 	public static final int OVERLAY_SLOTS = 3;
 	public static final long OFF_ACTOR_TABLE = 0x12000;
 	public static final long OFF_EVENT_RING = 0x17000;
+	public static final long OFF_ITEM_RING = 0x1B100;
 	public static final long OFF_WORLD_ENTITIES = 0x1C000;
 	public static final long OFF_RENDER_RING = OFF_OVERLAY_PIXELS + OVERLAY_SLOT_BYTES * OVERLAY_SLOTS;
 	public static final long RENDER_RING_BYTES = 64L << 20;
@@ -69,6 +70,15 @@ public final class Proto {
 	public static final int EV_EXPLOSION = 3;
 	public static final int EV_ARROW_STUCK = 4;
 	public static final int EV_SKILL_USE = 5;
+	/** Minecraft converted a looted item: formId = the item's base form, a = how many Skyrim removes. */
+	public static final int EV_TAKE_ITEM = 6;
+
+	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
+	public static final int ITEM_RING_ENTRIES = 64;
+	public static final long ITR_HEAD = 0x00;
+	public static final long ITR_TAIL = 0x40;
+	public static final long ITR_DATA = 0x80;
+	public static final long ITEM_BYTES = 48;
 	// Skyrim skills (ActorValue) Minecraft reports use of; weapon skills come from EV_HIT_ACTOR.
 	public static final int SKILL_BLOCK = 9;
 	public static final int SKILL_SMITHING = 10;

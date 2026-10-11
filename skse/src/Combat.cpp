@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Loot.h"
 
 namespace skycraft
 {
@@ -859,6 +860,8 @@ namespace skycraft
 				while (link.PopEvent(ev)) {
 					if (ev.type == proto::kEvPlayerDied && link.McAlive()) {
 						KillPlayer(a_player, ev);
+					} else if (ev.type == proto::kEvTakeItem) {
+						Loot::Take(a_player, ev.formId, static_cast<std::int32_t>(ev.a));  // Minecraft already gave the items
 					}
 				}
 				pendingExplosions.clear();
@@ -890,6 +893,9 @@ namespace skycraft
 					break;
 				case proto::kEvArrowStuck:
 					WorldRender::StickArrow(ev.formId, ev.a, ev.b, ev.c, ev.d, std::bit_cast<float>(ev.flags));
+					break;
+				case proto::kEvTakeItem:
+					Loot::Take(a_player, ev.formId, static_cast<std::int32_t>(ev.a));
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

@@ -79,6 +79,9 @@ public final class SkyCombat {
 		ServerLevel level = players.getFirst().level();
 		for (ServerPlayer player : players) {
 			pickUpNearby(player);
+			if (dev.skycraft.net.SkyNet.isHost(player)) {
+				dev.skycraft.loot.SkyBridge.tick(player);
+			}
 		}
 		if (SkyLink.readActors(ACTORS)) {
 			dev.skycraft.loot.SkyLoot.onActors(level, ACTORS, server.getTickCount());
