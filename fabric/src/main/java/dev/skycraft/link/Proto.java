@@ -84,6 +84,11 @@ public final class Proto {
 	public static final int EV_SPAWN_CREATURE = 8;
 	/** The player opened a breach door underground: formId = the dungeon's exterior load door (BreachRecord doorRef). */
 	public static final int EV_ENTER_DUNGEON = 9;
+	/**
+	 * A fresh right click Minecraft had no use for (client ClickActivate): Skyrim activates whatever its crosshair is
+	 * on, as G does, at most once per 0.4 s. No fields. Added within protocol 13; an older Skyrim plugin ignores it.
+	 */
+	public static final int EV_ACTIVATE = 10;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;

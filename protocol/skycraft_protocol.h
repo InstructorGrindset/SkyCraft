@@ -296,6 +296,10 @@ namespace skycraft::proto
 		kEvEnterDungeon = 9,   // the player opened a breach door underground: formId = the dungeon's exterior load door
 		                       // (BreachRecord::doorRef). Skyrim marks the dungeon discovered and moves the player inside,
 		                       // locked or not, exactly where that door leads
+		kEvActivate = 10,      // a fresh right click Minecraft had no use for (no block, entity or item in either hand took
+		                       // it): Skyrim activates whatever its own crosshair is on when this arrives, as the G key does,
+		                       // at most once per 0.4 s; nothing there, nothing happens. Added within version 13 (an older
+		                       // plugin ignores the type)
 	};
 
 	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).

@@ -34,6 +34,9 @@ public class SkyrimActorEntity extends LivingEntity {
 	private static final EntityDataAccessor<Integer> FORM_ID = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Float> WIDTH = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HEIGHT = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.FLOAT);
+	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant. Synced so the client
+	// knows a right click on a merchant opens the shop (and isn't one for Skyrim, client.ClickActivate).
+	private static final EntityDataAccessor<Integer> VENDOR = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
 
 	// This tick's hit, flushed to Skyrim by SkyCombat after all attacks for the tick have landed
 	// (Player.attack adds its sprint/enchantment knockback after hurtServer returns).
@@ -43,8 +46,6 @@ public class SkyrimActorEntity extends LivingEntity {
 	private double pushX, pushZ;
 	private float pushStrength;
 	private boolean hitThisTick;
-	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant. Server side only.
-	private int vendor;
 
 	public SkyrimActorEntity(EntityType<? extends SkyrimActorEntity> type, Level level) {
 		super(type, level);
@@ -63,19 +64,26 @@ public class SkyrimActorEntity extends LivingEntity {
 	}
 
 	public int getVendor() {
-		return this.vendor;
+		return this.entityData.get(VENDOR);
 	}
 
 	public void setVendor(int vendor) {
-		this.vendor = vendor;
+		this.entityData.set(VENDOR, vendor);
 	}
 
-	/** Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen. */
+	/**
+	 * Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen.
+	 * Both sides take the click, as a villager does, so the client counts it as used and Skyrim
+	 * doesn't also start a conversation (client.ClickActivate). Any other click passes, and with
+	 * nothing else to use it on, Skyrim activates the NPC (talks to them) as G does.
+	 */
 	@Override
 	public InteractionResult interact(Player player, InteractionHand hand, Vec3 at) {
-		if (!this.level().isClientSide() && hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty() && this.vendor != 0
-			&& player instanceof ServerPlayer serverPlayer) {
-			dev.skycraft.trade.SkyTrade.open(serverPlayer, this);
+		if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty() && this.getVendor() != 0
+			&& dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.MERCHANTS)) {
+			if (!this.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {
+				dev.skycraft.trade.SkyTrade.open(serverPlayer, this);
+			}
 			return InteractionResult.SUCCESS;
 		}
 		return super.interact(player, hand, at);
@@ -87,6 +95,7 @@ public class SkyrimActorEntity extends LivingEntity {
 		builder.define(FORM_ID, 0);
 		builder.define(WIDTH, 0.6F);
 		builder.define(HEIGHT, 1.8F);
+		builder.define(VENDOR, 0);
 	}
 
 	public void setSize(float width, float height) {

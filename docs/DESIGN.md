@@ -120,11 +120,7 @@ Later: a Mixin on fluid-state queries reports `water` inside Skyrim water volume
   - **Gameplay:** input goes to MC. Skyrim receives only a small allow-list: Esc for the Skyrim journal/system menu, and the Skyrim "Activate" route described below.
   - **MC screen open** (inventory, crafting, chest): input goes to MC and the MC cursor is shown in the overlay.
   - **Skyrim menu open** (dialogue, barter, lockpicking, map, loading screen): input goes to Skyrim and the MC client is frozen.
-- **"Use" arbitration:** when you press MC's use key, both sides pick a target:
-  - MC's ray pick (blocks and actor proxies)
-  - Skyrim's crosshair pick (doors, containers, NPCs to talk to, items)
-
-  The **nearest target wins**. A Skyrim target becomes a Skyrim `Activate`. That is how you open doors, loot, and start dialogue.
+- **"Use" arbitration:** G is Skyrim's `Activate` on whatever Skyrim's crosshair pick is on (doors, containers, NPCs to talk to, items, furniture). MC's use key (right click) goes to MC first, and MC's own rules decide: the held item is used, and blocks and actor proxies (a merchant's trade screen) take the click. Only a fresh press that MC had no use for, with nothing in either hand that right click is meant for, falls through: MC sends `kEvActivate` and Skyrim runs the same `Activate` as G on its crosshair target at that moment (`click_to_activate` switch, `ClickActivate`, `Input::UpdateClickActivate`). That is how you open doors, loot, and start dialogue.
 
 ## 8. Combat
 
