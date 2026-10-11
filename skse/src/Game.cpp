@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Breach.h"
 #include "Loot.h"
+#include "Travel.h"
 #include "WorldState.h"
 
 #include "Collision.h"
@@ -542,6 +543,10 @@ namespace skycraft
 			// pull them back before the interior has loaded).
 			if (Breach::Moving()) {
 				return "breaking into a dungeon";
+			}
+			// A portal trip: Skyrim is loading the player in at the partner portal.
+			if (Travel::Moving()) {
+				return "portal travel";
 			}
 			if (a_player->AsActorState()->GetSitSleepState() != RE::SIT_SLEEP_STATE::kNormal) {
 				return "furniture";
