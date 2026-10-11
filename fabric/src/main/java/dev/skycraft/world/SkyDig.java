@@ -174,6 +174,9 @@ public final class SkyDig {
 		if (!destruction || !inReach(player, pos, REACH) || !level.isLoaded(pos) || player.isSpectator()) {
 			return;
 		}
+		if (dev.skycraft.breach.SkyBreach.claim(level, world, pos)) {
+			return; // a breach antechamber's cell (built whole the first time it's reached)
+		}
 		LevelChunk chunk = level.getChunkAt(pos);
 		DugColumn column = column(chunk);
 		if (column.isDug(world, pos.getX(), pos.getY(), pos.getZ())) {
@@ -226,8 +229,39 @@ public final class SkyDig {
 		return true;
 	}
 
+	/**
+	 * Marks many cells dug at once, with one change per chunk (so one sync each): a whole breach
+	 * antechamber. Returns the cells that weren't dug before.
+	 */
+	public static List<BlockPos> markDug(ServerLevel level, int world, List<BlockPos> cells) {
+		java.util.Map<Long, List<BlockPos>> byChunk = new java.util.LinkedHashMap<>();
+		for (BlockPos pos : cells) {
+			long key = ((long) (pos.getX() >> 4) << 32) | ((pos.getZ() >> 4) & 0xFFFFFFFFL);
+			byChunk.computeIfAbsent(key, k -> new ArrayList<>()).add(pos);
+		}
+		List<BlockPos> fresh = new ArrayList<>();
+		for (List<BlockPos> list : byChunk.values()) {
+			LevelChunk chunk = level.getChunkAt(list.getFirst());
+			DugColumn before = column(chunk);
+			DugColumn column = before;
+			for (BlockPos pos : list) {
+				if (!column.isDug(world, pos.getX(), pos.getY(), pos.getZ())) {
+					column = column.with(world, pos.getX(), pos.getY(), pos.getZ());
+					fresh.add(pos);
+				}
+			}
+			if (column != before) {
+				chunk.setAttached(DUG, column);
+			}
+		}
+		return fresh;
+	}
+
 	/** A cell wholly inside Skyrim's geometry: dug out of it, and the block it's made of put there. */
 	public static void digCell(ServerLevel level, int world, BlockPos pos, int material) {
+		if (dev.skycraft.breach.SkyBreach.claim(level, world, pos)) {
+			return; // a breach antechamber's cell (built whole the first time it's reached)
+		}
 		if (!markDug(level, world, pos)) {
 			return;
 		}

@@ -25,6 +25,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Bed sleep | `bed_sleep` | A full night in a Minecraft bed passes the night in Skyrim (needs time sync for beds to work at night) | `time/SkyTime` | `WorldState::PassTime` | none | `SkyCraft-time` | Built |
 | Deep mining | none | Bedrock 64 blocks down, ores by depth, deepslate layer | `world/SkyDig` | `Dig.cpp` | none | `SkyCraft` | Tested |
 | Deep creatures | `deep_creatures` | Skeevers, skeletons and draugr spawn in dark tunnels you dug, by depth | `deep/` (SkyDeep, DeepRules) | `Spawn.cpp` | `skycraft-deep.txt` | `SkyCraft-deep` | Built |
+| Breach doors | `breach_doors` | A hidden antechamber under each dungeon entrance (12 blocks down for low levels, deeper for higher ones), walled in the dungeon's theme (Nordic, Dwemer, Falmer, mine, fort, lair, cave). Its walls need a good enough pickaxe (iron for Dwemer and lairs, stone for Nordic, Falmer and forts); its sealed iron door takes you into the real dungeon. Particles and sounds leak through the rock near it, its name shows when you break in, and the first breach of an uncleared dungeon has a loot chest | `breach/` (SkyBreach, BreachPlanner, BreachRoom, BreachStore, BreachBlocks), hooks in `world/SkyDig` and `world/SkyDigBlast` | breach table, `kEvEnterDungeon` | `skycraft-dungeons.txt` (chest tables), `skycraft-breaches.txt` in the world's save folder | `SkyCraft-breach` | Built |
 | Gear sets | none | Skyrim Iron through Daedric weapons and armor, new materials, recipes, original textures | `gear/` (SkyGear, GearTiers), `mixin/SmithingMixin` | none | data in the jar | none | Built |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
@@ -36,7 +37,6 @@ player's town and place and merchants' buy lists. Place changes are logged as `S
 | Feature | Notes |
 |---|---|
 | Farming on Skyrim soil | May already work with dug dirt; needs a test first |
-| Breach doors | Dig into a hidden pocket under a dungeon entrance to break into the real dungeon |
 | Tamed companions | A Skyrim dog or horse shows up as a Minecraft wolf or horse that follows you |
 | Artifacts | About 20 named Skyrim artifacts as unique Minecraft items with real enchantments |
 
@@ -53,6 +53,8 @@ The shared memory protocol went from 12 to 13 for these features. Both halves mu
 | `ItemEvent.quest` | Skyrim to Minecraft | Item conversion skips quest items |
 | `kEvSleep` | Minecraft to Skyrim | Bed sleep |
 | `kEvSpawnCreature` | Minecraft to Skyrim | Deep creatures |
+| `BreachTable` | Skyrim to Minecraft | Breach doors |
+| `kEvEnterDungeon` | Minecraft to Skyrim | Breach doors |
 
 ## Testing a build
 

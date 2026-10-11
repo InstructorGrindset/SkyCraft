@@ -83,6 +83,7 @@ public final class SkyCombat {
 			if (dev.skycraft.net.SkyNet.isHost(player)) {
 				dev.skycraft.loot.SkyBridge.tick(player);
 				dev.skycraft.time.SkyTime.tick(server, player);
+				dev.skycraft.breach.SkyBreach.tick(server, player, players);
 			}
 		}
 		if (SkyLink.readActors(ACTORS)) {
@@ -192,6 +193,7 @@ public final class SkyCombat {
 		dev.skycraft.loot.SkyLoot.reset();
 		dev.skycraft.time.SkyTime.reset();
 		dev.skycraft.deep.SkyDeep.reset();
+		dev.skycraft.breach.SkyBreach.reset();
 		if (PROXIES.isEmpty()) {
 			return;
 		}

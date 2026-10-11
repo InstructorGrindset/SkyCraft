@@ -20,7 +20,8 @@ public final class Features {
 		MERCHANTS("merchants", "right click a Skyrim vendor with an empty hand to trade (skycraft-trades.txt, skycraft-towns.txt)"),
 		TIME_SYNC("time_sync", "Minecraft's clock follows Skyrim's"),
 		BED_SLEEP("bed_sleep", "a night in a Minecraft bed passes the night in Skyrim"),
-		DEEP_CREATURES("deep_creatures", "Skyrim creatures spawn in dark tunnels you dug (skycraft-deep.txt)");
+		DEEP_CREATURES("deep_creatures", "Skyrim creatures spawn in dark tunnels you dug (skycraft-deep.txt)"),
+		BREACH_DOORS("breach_doors", "a hidden antechamber under each dungeon entrance; dig in and open its sealed door to enter the dungeon");
 
 		public final String key;
 		public final String about;
