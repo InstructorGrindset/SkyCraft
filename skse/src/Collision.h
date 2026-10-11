@@ -78,6 +78,7 @@ namespace skycraft
 			bool                 diggable{ false };
 			bool                 terrain{ false };
 			bool                 tree{ false };
+			std::uint32_t        turned{ 0 };  // strip triangles turned back to face out (see Collect)
 		};
 		struct Body
 		{
@@ -93,7 +94,9 @@ namespace skycraft
 
 		void GatherBodies(RE::hkpWorld* a_world);
 		void Harvest(int a_rx, int a_ry, int a_rz);
-		void Collect(const RE::hkpShape* a_shape, const float* a_xf, const float a_lo[3], const float a_hi[3], Job& a_job, int a_depth, RE::hkpShapeKey a_key);
+		// a_turned: a triangle of Skyrim's strip collision that comes turned round (swapped back).
+		void Collect(const RE::hkpShape* a_shape, const float* a_xf, const float a_lo[3], const float a_hi[3], Job& a_job, int a_depth, RE::hkpShapeKey a_key,
+			bool a_turned = false);
 		void EmitAabbFallback(const RE::hkpShape* a_shape, const float* a_xf, Job& a_job, RE::hkpShapeKey a_key);
 		std::uint32_t FlagsFor(const Job& a_job, RE::hkpShapeKey a_key) const;
 
