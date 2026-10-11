@@ -12,6 +12,14 @@ SKYCRAFT_CARRIED (CarriedFlags, default 0; 1 = an Elder Scroll) sets SkyState.ca
 Breach doors: outside (no interior place flag) it publishes two dungeon entrances near the fake
 player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
 events Minecraft sends back (SKYCRAFT_BREACHES=0 publishes none).
+
+World spaces: the fake player is in a made-up Skyrim world (SKYCRAFT_WORLD, hex; default FF0FA4E0),
+so Minecraft gives it a space of its own and the test blocks never land in a real Skyrim world's.
+Every coordinate here is in that world's own terms, as a real Skyrim's are; kColClear names the world.
+After the first script it goes through a load door into a second made-up world (an interior), checks
+that Minecraft reports the player in that world's terms and that the cobblestone placed in the first
+world isn't drawn there, then goes back and checks it's drawn again. It prints which space Minecraft
+says each world is in (McState spaceWorld).
 """
 
 import mmap
@@ -45,12 +53,16 @@ COL_DATA = COL_BYTES - 0x80
 
 W, H = 1280, 720
 FLOOR_Y = 100  # blocks
-X0 = 100000    # test area origin (blocks); must be a multiple of 8
+X0 = 0         # test area origin (blocks, in the fake world's own terms); must be a multiple of 8
 TOWN = os.environ.get("SKYCRAFT_TOWN", "Whiterun")
 PLACE = int(os.environ.get("SKYCRAFT_PLACE", "4"), 0)
 CARRIED = int(os.environ.get("SKYCRAFT_CARRIED", "0"), 0)  # SkyState.carried: 1 = an Elder Scroll
 BREACHES = os.environ.get("SKYCRAFT_BREACHES", "1") != "0"
-WORLD_ID = 0x3C  # Tamriel, as in SkyState.worldId
+# A made-up worldspace FormID (load order FF, as no plugin uses), as in SkyState.worldId: Minecraft gives
+# it a space of its own (SkySpace). 0x3C (Tamriel) puts the test blocks at the real Tamriel's origin.
+WORLD_ID = int(os.environ.get("SKYCRAFT_WORLD", "FF0FA4E0"), 16)
+WORLD_B = 0xFF0FA4E1  # a second made-up world (an interior cell) for the world-change check
+PLACE_INTERIOR = 1
 
 # McEvent types (skycraft_protocol.h)
 EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE, EV_ENTER_DUNGEON = range(1, 10)
@@ -109,6 +121,9 @@ class Link:
         self.events = []
         self.sections = 0
         self.atlas = None
+        self.world = WORLD_ID
+        self.since_clear = []  # (sx, sy, sz, vertices) of every block section since the last clear-all
+        self.clears = 0
 
     def heartbeat(self):
         struct.pack_into("<Q", self.m, 0x10, tick())
@@ -158,6 +173,7 @@ class Link:
             elif typ == 2:
                 sx, sy, sz, verts = struct.unpack_from("<iiiI", self.m, base + 0x88 + pos)
                 self.sections += 1
+                self.since_clear.append((sx, sy, sz, verts))
                 if self.sections <= 5:
                     print(f"  render: section ({sx},{sy},{sz}) {verts} vertices")
                     vbase = base + 0x98 + pos
@@ -172,6 +188,8 @@ class Link:
                         print(f"    v{k}: pos ({x:.2f},{y:.2f},{z:.2f}) uv ({u:.4f},{v:.4f}) rgba ({r},{g},{b},{a}) light {light:#x} flags {flags}{texel}")
             elif typ == 3:
                 print("  render: clear all")
+                self.since_clear = []
+                self.clears += 1
             tail += (8 + n + 7) & ~7
         struct.pack_into("<Q", self.m, base + 0x40, tail)
 
@@ -184,8 +202,9 @@ class Link:
         self.actor_seq += 1
         struct.pack_into("<I", self.m, OFF_ACTORS, self.actor_seq * 2)
 
-    def write_breaches(self, records, world_id=WORLD_ID):
+    def write_breaches(self, records, world_id=None):
         """Skyrim -> MC: the dungeon entrances near the player (BreachTable, seqlock: seq odd while writing)."""
+        world_id = self.world if world_id is None else world_id
         records = records[:MAX_BREACHES]
         self.breach_seq += 1
         struct.pack_into("<I", self.m, OFF_BREACHES, self.breach_seq * 2 - 1)
@@ -203,7 +222,7 @@ class Link:
     def write_sky(self, flags, pos, yaw, pitch, teleport_seq, epoch, town=None, place=None):
         self.sky_seq += 1
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2 - 1)
-        struct.pack_into("<IIIdddffIIIf", self.m, OFF_SKY + 4, flags, 0x3C, epoch, pos[0], pos[1], pos[2],
+        struct.pack_into("<IIIdddffIIIf", self.m, OFF_SKY + 4, flags, self.world, epoch, pos[0], pos[1], pos[2],
                          yaw, pitch, teleport_seq, W, H, self.game_hour)
         town = TOWN if town is None else town
         place = PLACE if place is None else place
@@ -224,7 +243,9 @@ class Link:
     def read_mc(self):
         raw = self.m[OFF_MC:OFF_MC + 0x68]
         seq, flags, x, y, z, yaw, pitch, eye, sens, ack, gui, frame, fov, bph, bam, _, ex, ey, ez = struct.unpack("<IIdddffffIIQfffIddd", raw)
-        return dict(flags=flags, pos=(x, y, z), yaw=yaw, pitch=pitch, eye=eye, ack=ack, frame=frame)
+        # McState spaceWorld, spaceX, spaceZ (@0xC8): where Minecraft keeps the blocks of the world its player is in.
+        space_world, space_x, space_z = struct.unpack_from("<Iii", self.m, OFF_MC + 0xC8)
+        return dict(flags=flags, pos=(x, y, z), yaw=yaw, pitch=pitch, eye=eye, ack=ack, frame=frame, space=(space_world, space_x, space_z))
 
     def push_input(self, typ, code, a=0, b=0, c=0):
         a, b, c = (v - (1 << 32) if v >= 1 << 31 else v for v in (a, b, c))
@@ -255,6 +276,11 @@ class Link:
         w, h, flags = struct.unpack_from("<III", self.m, OFF_OVL_HDR + self.front * 0x40)
         start = OFF_PIX + self.front * SLOT
         return w, h, flags, bytes(self.m[start:start + w * h * 4])
+
+
+def clear_payload(epoch, world):
+    """kColClear: the new epoch and the Skyrim world it describes (Minecraft puts its regions in that world's space)."""
+    return struct.pack("<II", epoch, world)
 
 
 def region_payload(rx, ry, rz, epoch, block_fn):
@@ -367,25 +393,32 @@ def main():
     checked = False
     tseq = int(time.time()) % 100000 + 2  # new teleport every run
     last_breaches = 0.0
+    place, town = PLACE, TOWN
+    last_space = None
+    door = 0  # world-change check: 0 not yet, 1 in world B, 2 back in world A, 3 done
+    results = []
     while time.time() - start < seconds:
         link.heartbeat()
-        link.write_sky(1, spawn, yaw, pitch, tseq, epoch)
+        link.write_sky(1, spawn, yaw, pitch, tseq, epoch, town, place)
         if time.time() - last_breaches >= 1.0:  # Skyrim refreshes the table about once a second; empty indoors
             last_breaches = time.time()
             first = not link.breaches
-            link.write_breaches(fake_breaches(spawn) if BREACHES and not PLACE & 1 else [])
+            link.write_breaches(fake_breaches(spawn) if BREACHES and not place & PLACE_INTERIOR else [])
             if first and link.breaches:
                 print("breach doors published: " + ", ".join(f"{door:08X} {name}" for door, name in link.breaches.items()))
         if link.mc_alive() and not sent:
-            link.write_col(1, struct.pack("<I", epoch))
+            link.write_col(1, clear_payload(epoch, link.world))
             for rx in range(X0 // 8 - 3, X0 // 8 + 3):
                 for rz in range(-3, 3):
                     for ry in range(11, 15):
                         link.write_col(3, floor_tris_payload(rx, ry, rz, epoch))
                         link.write_col(2, region_payload(rx, ry, rz, epoch, world))
             sent = True
-            print("collision sent")
+            print(f"collision sent (world {link.world:08X}, epoch {epoch})")
         mc = link.read_mc()
+        if mc["space"][0] and mc["space"] != last_space:
+            last_space = mc["space"]
+            print(f"Minecraft keeps world {mc['space'][0]:08X}'s blocks in its space at {mc['space'][1]} {mc['space'][2]}")
         in_world = mc["flags"] & 1 and mc["ack"] == tseq and sent and abs(mc["pos"][1] - FLOOR_Y) < 0.05 and abs(mc["pos"][0] - spawn[0]) < 1
         if in_world and script_t0 is None:
             script_t0 = time.time()
@@ -457,6 +490,35 @@ def main():
                 checked = 6
                 queued = link.push_item(0x0005ACE4, 2, TAG_ORE_INGOT, "Iron Ingot", container=0x000ABC01)
                 print(f"looted 2 x Iron Ingot from a chest in {TOWN!r} (place flags {PLACE:#x}): {'sent' if queued else 'item ring full'}")
+            # World spaces: through a load door into world B (same coordinates in Skyrim's terms), and back.
+            if 21.0 <= t and door == 0:
+                door = 1
+                blocks_in_a = [s for s in link.since_clear if s[3] > 0]
+                print(f"world A has {len(blocks_in_a)} block sections drawn; through a door into world {WORLD_B:08X} (an interior)")
+                link.world, place, town = WORLD_B, PLACE_INTERIOR, "Fake Interior"
+                epoch += 1
+                tseq += 1
+                sent = False
+                yaw, pitch = 0.0, 55.0
+            if 28.0 <= t and door == 1:
+                door = 2
+                there = mc["ack"] == tseq and abs(mc["pos"][0] - spawn[0]) < 1 and abs(mc["pos"][2] - spawn[2]) < 1
+                results.append(("world B: Minecraft reports the player in B's own terms", there, f"pos {mc['pos']}, space {mc['space']}"))
+                results.append(("world B: Minecraft's space is B's", mc["space"][0] == WORLD_B, f"space {mc['space']}"))
+                leaked = [s for s in link.since_clear if s[3] > 0]
+                results.append(("world B: none of world A's blocks drawn", link.clears >= 2 and not leaked, f"{len(leaked)} sections with blocks: {leaked[:4]}"))
+                print(f"back through the door into world {WORLD_ID:08X}")
+                link.world, place, town = WORLD_ID, PLACE, TOWN
+                epoch += 1
+                tseq += 1
+                sent = False
+            if 35.0 <= t and door == 2:
+                door = 3
+                back = [s for s in link.since_clear if s[3] > 0]
+                results.append(("world A again: its blocks drawn again", bool(back), f"{len(back)} sections with blocks"))
+                results.append(("world A again: Minecraft's space is A's", mc["space"][0] == WORLD_ID, f"space {mc['space']}"))
+                for what, ok, detail in results:
+                    print(f"{'PASS' if ok else 'FAIL'} {what} ({detail})")
             if 10 <= t and not saved:
                 frame = link.acquire_overlay()
                 if frame:

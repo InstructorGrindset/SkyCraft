@@ -9,7 +9,14 @@
 // BreachTable.
 //
 // All multi-byte values are little-endian. Skyrim creates the mapping; Minecraft opens it.
-// Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted.
+// Coordinates in this protocol are always Minecraft space (blocks, Y up, Z south) unless noted, in the
+// terms of the current Skyrim world: its own position / 70 (Link.h SkyToMc), the same for every world.
+// Inside Minecraft each Skyrim world (each worldspace, each interior cell, as SkyState::worldId names
+// them) keeps its blocks in a space of its own in the mirror, so worlds that overlap in Skyrim (every
+// interior sits near 0,0) never share blocks. Minecraft owns that table (skycraft-spaces.txt in its
+// world, beside the blocks) and moves every coordinate into and out of the world's space itself (Java
+// SkySpace/SkyLink); Skyrim never sees a space. McState::spaceWorld says which one Minecraft's player
+// is in, for the log.
 #pragma once
 
 #include <cstddef>
@@ -182,8 +189,17 @@ namespace skycraft::proto
 		// the eye, after its own zoom collision (Minecraft blocks and Skyrim's triangles).
 		std::uint32_t cameraMode;
 		float         cameraDistance;
+
+		// Where Minecraft keeps the blocks of the Skyrim world its player stands in (added within version 13:
+		// zeros from an older Minecraft). spaceWorld is that world as SkyState::worldId names it (0: none
+		// known, or the player is in another dimension), spaceX/spaceZ its space's origin in Minecraft blocks.
+		// Every position in this protocol is already in the world's own terms; these are for the log only.
+		std::uint32_t spaceWorld;
+		std::int32_t  spaceX, spaceZ;
+		std::uint32_t spacePad;
 	};
-	static_assert(sizeof(McState) == 0xC8);
+	static_assert(sizeof(McState) == 0xD8);
+	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
 	static_assert(sizeof(McState) <= 0x100);
 
 	// ---- overlay triple buffer @0x300 --------------------------------------------------------
@@ -740,7 +756,9 @@ namespace skycraft::proto
 	enum ColType : std::uint32_t
 	{
 		kColPad = 0,
-		kColClear = 1,   // payload: u32 epoch
+		kColClear = 1,   // payload: u32 epoch, u32 worldId (the Skyrim world, as SkyState::worldId, the epoch's
+		                 // regions describe: Minecraft puts them in its space. Added within version 13; an older
+		                 // plugin sends the epoch alone and Minecraft waits for SkyState to show it)
 		kColRegion = 2,  // payload: ColRegion + ColBlock[count]
 		kColTris = 3,    // payload: ColRegion (count = triangles) + ColTri[count]; sent before kColRegion
 	};

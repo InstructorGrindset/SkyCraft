@@ -282,7 +282,7 @@ namespace skycraft
 		worker_.detach();
 	}
 
-	void Collision::Reset(std::uint32_t a_epoch)
+	void Collision::Reset(std::uint32_t a_epoch, std::uint32_t a_worldId)
 	{
 		epoch_ = a_epoch;
 		harvested_.clear();
@@ -291,6 +291,7 @@ namespace skycraft
 		Job job{};
 		job.clear = true;
 		job.epoch = a_epoch;
+		job.worldId = a_worldId;
 		queue_.push_back(std::move(job));
 		cv_.notify_one();
 	}
@@ -726,8 +727,10 @@ namespace skycraft
 						boxes_.clear();
 						++boxesGen_;
 					}
-					std::vector<std::uint8_t> payload(4);
+					// The epoch, and whose world it is (Minecraft keeps each Skyrim world in a space of its own).
+					std::vector<std::uint8_t> payload(8);
 					std::memcpy(payload.data(), &job.epoch, 4);
+					std::memcpy(payload.data() + 4, &job.worldId, 4);
 					Send(payload, proto::kColClear);
 				} else if (job.epoch == epoch_.load()) {
 					SendTriangles(job);

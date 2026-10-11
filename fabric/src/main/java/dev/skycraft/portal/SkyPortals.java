@@ -109,8 +109,8 @@ import org.jspecify.annotations.Nullable;
  * </ul>
  *
  * <p>The network is kept in the world's {@code skycraft-portals.txt} (PortalStore), keyed by Skyrim
- * world and Minecraft position in the mirror (Skyrim's worldspaces and interiors share one set of Minecraft
- * coordinates) and by dimension elsewhere. Breaking a frame (or the portal going out any other way) takes it
+ * world and Minecraft position in the mirror (each Skyrim world's blocks sit in a space of their own,
+ * SkySpace, so a mirror position already names its world) and by dimension elsewhere. Breaking a frame (or the portal going out any other way) takes it
  * out of the network and unbinds its partner. Everything is under the {@code portals} switch. Server thread
  * only. Log tag {@code SkyCraft-portal}.
  */
@@ -908,7 +908,7 @@ public final class SkyPortals {
 			return;
 		}
 		int flags = to.interior() ? Proto.PORTAL_INTERIOR : 0;
-		SkyLink.pushEvent(Proto.EV_PORTAL_TRAVEL, to.world(), (float) exit[0], (float) exit[1], (float) exit[2], (float) exit[3], flags, SKY.worldId);
+		SkyLink.pushEventAt(Proto.EV_PORTAL_TRAVEL, to.world(), exit[0], exit[1], exit[2], (float) exit[3], flags, SKY.worldId); // in to's world's terms
 		pending = new Pending(from != null ? from.id() : 0, to.id(), placeName(to), player.getUUID(), now, SKY.worldId, SKY.teleportSeq, SkyCollision.epoch());
 		player.connection.send(new ClientboundLevelEventPacket(LevelEvent.SOUND_PORTAL_TRAVEL, BlockPos.ZERO, 0, false));
 		player.sendOverlayMessage(Component.literal("The portal pulls you toward " + placeName(to) + "..."));
@@ -957,7 +957,7 @@ public final class SkyPortals {
 			return;
 		}
 		int flags = to.interior() ? Proto.PORTAL_INTERIOR : 0;
-		SkyLink.pushEvent(Proto.EV_PORTAL_TRAVEL, to.world(), (float) exit[0], (float) exit[1], (float) exit[2], (float) exit[3], flags, SKY.worldId);
+		SkyLink.pushEventAt(Proto.EV_PORTAL_TRAVEL, to.world(), exit[0], exit[1], exit[2], (float) exit[3], flags, SKY.worldId); // in to's world's terms
 		returning = new Return(player.getUUID(), to.id(), to.world(), exit, placeName(to), now);
 		player.sendOverlayMessage(Component.literal("The crack pulls Skyrim toward " + placeName(to) + "..."));
 		SkyCraft.LOG.info("SkyCraft-portal: {} steps through {} back to {}: Skyrim moves its parked player from {} first", player.getName().getString(), fromName,

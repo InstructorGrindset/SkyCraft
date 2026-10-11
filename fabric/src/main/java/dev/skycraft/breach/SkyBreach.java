@@ -180,6 +180,37 @@ public final class SkyBreach {
 		}
 	}
 
+	/**
+	 * Rooms planned before each Skyrim world had a space of its own (SkySpace) are round the origin; a
+	 * room of a worldspace other than Tamriel (whose space is the origin) moves into its world's space.
+	 * Its blocks are cells dug in that world, which SpaceMigration moves with the world's other dug cells.
+	 * Returns how many rooms moved.
+	 */
+	public static int moveIntoSpaces(MinecraftServer server) {
+		BreachStore s = store(server);
+		List<BreachStore.Entry> moved = new ArrayList<>();
+		for (BreachStore.Entry e : s.all()) {
+			BreachRoom r = e.room();
+			if (r.world() == dev.skycraft.link.WorldSpaces.TAMRIEL || r.world() == 0 || dev.skycraft.link.WorldSpaces.spaceAt(r.bx(), r.bz()) != 0) {
+				continue;
+			}
+			int dx = dev.skycraft.link.SkySpace.originX(r.world()), dz = dev.skycraft.link.SkySpace.originZ(r.world());
+			if (dx == 0 && dz == 0) {
+				continue;
+			}
+			moved.add(new BreachStore.Entry(new BreachRoom(r.world(), r.doorRef(), r.bx() + dx, r.floorY(), r.bz() + dz, r.facing(), r.shell(), r.theme()),
+				e.state(), e.name()));
+		}
+		for (BreachStore.Entry e : moved) {
+			s.put(e);
+			SkyCraft.LOG.info("SkyCraft-breach: the antechamber of {} moved into its world's space ({} {})", displayName(e), e.room().bx(), e.room().bz());
+		}
+		if (!moved.isEmpty()) {
+			save(server, s);
+		}
+		return moved.size();
+	}
+
 	private static String displayName(BreachStore.Entry e) {
 		if (!e.name().isEmpty()) {
 			return e.name();
@@ -223,7 +254,7 @@ public final class SkyBreach {
 			return;
 		}
 		if ((SKY.place & Proto.PLACE_INTERIOR) != 0) {
-			reset(); // Skyrim interiors share coordinates: no rooms in them
+			reset(); // no dungeon entrances indoors (Skyrim sends none): no rooms
 			return;
 		}
 		if (SKY.worldId != currentWorld) {
@@ -239,7 +270,7 @@ public final class SkyBreach {
 		int before = s.size();
 		NEAR.clear();
 		for (SkyLink.Breach b : TABLE) {
-			if (b.doorRef() == 0 || !Float.isFinite(b.x()) || !Float.isFinite(b.y()) || !Float.isFinite(b.z())) {
+			if (b.doorRef() == 0 || !Double.isFinite(b.x()) || !Double.isFinite(b.y()) || !Double.isFinite(b.z())) {
 				continue;
 			}
 			NEAR.put(b.doorRef(), b);

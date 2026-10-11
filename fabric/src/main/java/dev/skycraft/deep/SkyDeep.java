@@ -133,8 +133,8 @@ public final class SkyDeep {
 		if (spot == null) {
 			return;
 		}
-		SkyLink.pushEvent(Proto.EV_SPAWN_CREATURE, spot.kind, spot.pos.getX() + 0.5F, spot.pos.getY(), spot.pos.getZ() + 0.5F, (float) r.despawnDistance(),
-			r.maxAlive());
+		SkyLink.pushEventAt(Proto.EV_SPAWN_CREATURE, spot.kind, spot.pos.getX() + 0.5, spot.pos.getY(), spot.pos.getZ() + 0.5, (float) r.despawnDistance(),
+			r.maxAlive(), 0);
 		aliveSpawned++; // until the actor table shows it
 		PACER.spawned(tick, r.cooldownTicks(random.nextDouble()));
 		SkyCraft.LOG.info("SkyCraft-deep: a {} comes out of the dark at {} ({} blocks down, {} blocks from the player)", DeepRules.kindName(spot.kind),

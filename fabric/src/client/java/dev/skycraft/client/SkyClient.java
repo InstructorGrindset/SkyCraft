@@ -35,6 +35,11 @@ public final class SkyClient {
 	private static int lastTeleportSeq = -1;
 	private static int teleportAck;
 	private static boolean teleportPending;
+	// The Skyrim world and its space (SkySpace) at the last teleport: should that world's space turn out
+	// to be elsewhere (the world's table opened, or a guest heard it, after Skyrim put the player there),
+	// the player goes there.
+	private static int teleportedWorld;
+	private static int teleportedSpace = Integer.MIN_VALUE;
 	private static LocalPlayer lastPlayer;
 	private static Vec3 holdPos;
 	private static Vec3 unlinkedHold;
@@ -134,6 +139,12 @@ public final class SkyClient {
 			lastTeleportSeq = sky.teleportSeq;
 			teleportPending = true;
 		}
+		if (sky.worldId == teleportedWorld && sky.space != teleportedSpace && teleportedSpace != Integer.MIN_VALUE) {
+			SkyCraft.LOG.info("SkyCraft: Skyrim world {}'s blocks are in space {} (not {}); the player goes there", String.format("%08X", sky.worldId), sky.space,
+				teleportedSpace);
+			teleportedSpace = sky.space;
+			teleportPending = true;
+		}
 		// Minecraft view (MinecraftView): Skyrim moves nobody while the player is in another dimension.
 		// Back from one alive, Minecraft's position leads: the player waits here for Skyrim's ground,
 		// and Skyrim's latest teleport counts as done (Skyrim moves its own player here instead).
@@ -143,13 +154,18 @@ public final class SkyClient {
 		} else if (MinecraftView.takeReturn()) {
 			teleportPending = false;
 			teleportAck = sky.teleportSeq;
+			teleportedWorld = sky.worldId;
+			teleportedSpace = sky.space;
 			holdPos = player.position();
 			SkyCraft.LOG.info("SkyCraft: back in the Skyrim mirror at {}; Skyrim's player follows", holdPos);
 		}
-		if (teleportPending && sky.inGame() && !sky.loading()) {
+		// (A guest waits until the host has said where this Skyrim world's blocks are: sky.space -1.)
+		if (teleportPending && sky.inGame() && !sky.loading() && sky.space >= 0) {
 			requestTeleport(minecraft, sky.x, sky.y, sky.z, sky.yaw, sky.pitch);
 			teleportAck = sky.teleportSeq;
 			teleportPending = false;
+			teleportedWorld = sky.worldId;
+			teleportedSpace = sky.space;
 			holdPos = new Vec3(sky.x, sky.y, sky.z);
 		}
 
@@ -274,6 +290,7 @@ public final class SkyClient {
 		mc.walkDist = bob ? avatar.getInterpolatedWalkDistance(1.0F) : 0.0F;
 		mc.bobO = bob ? avatar.getInterpolatedBob(0.0F) : 0.0F;
 		mc.bob = bob ? avatar.getInterpolatedBob(1.0F) : 0.0F;
+		mc.inMirror = dev.skycraft.SkyDimension.inMirror(minecraft.level);
 		SkyLink.writeMcState(mc);
 	}
 
@@ -415,6 +432,8 @@ public final class SkyClient {
 			flags |= Proto.MC_OTHER_DIMENSION; // Minecraft view: Skyrim parks its player and shows this frame
 		}
 		mc.flags = flags;
+		// Positions go to Skyrim in its world's terms, unless they're another dimension's (SkySpace).
+		mc.inMirror = dev.skycraft.SkyDimension.inMirror(minecraft.level);
 		mc.sensitivity = minecraft.options.sensitivity().get().floatValue();
 		mc.teleportAck = holdPos == null ? teleportAck : teleportAck - 1; // not "arrived" until we are released
 		mc.guiScale = minecraft.getWindow().getGuiScale();

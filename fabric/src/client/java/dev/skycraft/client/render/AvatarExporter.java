@@ -454,7 +454,8 @@ final class AvatarExporter implements SubmitNodeCollector {
 		}
 		ByteBuffer header = ByteBuffer.allocate((origin != null ? 24 : 0) + 8 + used.size() * 16).order(ByteOrder.LITTLE_ENDIAN);
 		if (origin != null) {
-			header.putDouble(origin[0]).putDouble(origin[1]).putDouble(origin[2]);
+			// In the terms of the Skyrim world whose space the camera is in (SkySpace).
+			header.putDouble(dev.skycraft.link.SkySpace.local(origin[0])).putDouble(origin[1]).putDouble(dev.skycraft.link.SkySpace.local(origin[2]));
 		}
 		header.putInt(used.size()).putInt(vertices);
 		ByteBuffer body = ByteBuffer.allocateDirect(vertices * Proto.REN_VERTEX_BYTES).order(ByteOrder.LITTLE_ENDIAN);

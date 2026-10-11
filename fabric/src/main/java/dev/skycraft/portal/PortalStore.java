@@ -14,9 +14,9 @@ import org.jspecify.annotations.Nullable;
 /**
  * The portal network of one Minecraft world (pure; SkyPortals keeps it in the world's save folder as
  * {@code skycraft-portals.txt}). A portal is a lit Nether portal's rectangle of portal blocks plus where
- * it is: in the Skyrim mirror a Skyrim world (Skyrim's worldspaces and interior cells all share one set of
- * Minecraft coordinates, so a place there is a Skyrim world id and a Minecraft position), anywhere else a
- * Minecraft dimension ({@link Portal#dimension}).
+ * it is: in the Skyrim mirror a Skyrim world id and a Minecraft position (in that world's space, SkySpace;
+ * events to Skyrim convert it to the world's own terms), anywhere else a Minecraft dimension
+ * ({@link Portal#dimension}).
  *
  * <p>Portals are cracks between places that resemble each other: each is bound to exactly one other
  * portal, for good ({@link #bind}), and leads only there. The one exception is the Time-Wound's crack,
