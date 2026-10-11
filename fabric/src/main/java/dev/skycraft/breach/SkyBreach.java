@@ -64,8 +64,9 @@ import org.jspecify.annotations.Nullable;
  * <p>How it fits digging (SkyDig): a room is planned (BreachPlanner) once the land over it is
  * known, and kept in the world's {@code skycraft-breaches.txt}. Until it's reached it's ordinary
  * virtual rock. The first time any of its cells is dug into (a reveal, a mined surface or an
- * explosion; see {@link #claim}) the whole room is built at once: every cell of it is marked dug
- * (Skyrim's geometry cut out), the shell becomes the theme's blocks, the interior open air, and the
+ * explosion; see {@link #claim}) the whole room is built at once: the shell becomes the theme's
+ * blocks, then every cell of it is marked dug (Skyrim's geometry cut out; a shell cell only once
+ * its block is in, so the room never opens into the rock's void), the interior open air, and the
  * door, lights, decor and (for an uncleared dungeon) a loot chest go in. Near a room the player's
  * tunnel leaks the theme's particles and sounds. Planning, leaks and opening the seal are the
  * host's (their Skyrim is on the link); the walls and door are real blocks for everyone.
@@ -384,34 +385,45 @@ public final class SkyBreach {
 		if (!loaded(level, r)) {
 			return; // all of it or nothing; it's built when next dug into
 		}
-		List<BlockPos> cells = new ArrayList<>();
+		// Cells dug before (an old tunnel through here) stay as they are: that part of the wall is
+		// already breached.
+		List<BlockPos> fresh = new ArrayList<>();
 		for (int x = r.minX(); x <= r.maxX(); x++) {
 			for (int y = r.minY(); y <= r.maxY(); y++) {
 				for (int z = r.minZ(); z <= r.maxZ(); z++) {
-					cells.add(new BlockPos(x, y, z));
+					BlockPos p = new BlockPos(x, y, z);
+					if (!SkyDig.isDug(level, r.world(), p)) {
+						fresh.add(p);
+					}
 				}
 			}
 		}
-		// Every cell is the room's now (Skyrim's geometry cut out). Cells dug before (an old tunnel
-		// through here) stay as they are: that part of the wall is already breached.
-		List<BlockPos> fresh = SkyDig.markDug(level, r.world(), cells);
+		// The walls and the door first, then every fresh cell is the room's (Skyrim's geometry cut
+		// out): a cell is never open to Skyrim and Minecraft before its block is in.
 		Direction facing = Direction.from2DDataValue(r.facing());
 		int walls = 0;
+		List<BlockPos> claimed = new ArrayList<>(fresh.size());
 		for (BlockPos p : fresh) {
 			int kind = r.kind(p.getX(), p.getY(), p.getZ());
-			if (kind == BreachRoom.INTERIOR || kind == BreachRoom.OUTSIDE) {
+			if (kind == BreachRoom.OUTSIDE) {
 				continue;
 			}
-			BlockState here = level.getBlockState(p);
-			if (!here.isAir() && !here.canBeReplaced()) {
-				continue; // a Minecraft block someone put there
+			if (kind != BreachRoom.INTERIOR) {
+				BlockState here = level.getBlockState(p);
+				if (here.isAir() || here.canBeReplaced()) {
+					BlockState state = kind == BreachRoom.DOOR
+						? BreachBlocks.door(facing, r.u(p.getX(), p.getZ()) == BreachRoom.DOOR_U + 1, r.v(p.getY()) == 1)
+						: BreachBlocks.shell(r, p.getX(), p.getY(), p.getZ());
+					level.setBlock(p, state, FLAGS);
+					walls++;
+				}
+				if (level.getBlockState(p).isAir()) {
+					continue; // no wall went in (it can't be open): it stays Skyrim's rock
+				}
 			}
-			BlockState state = kind == BreachRoom.DOOR
-				? BreachBlocks.door(facing, r.u(p.getX(), p.getZ()) == BreachRoom.DOOR_U + 1, r.v(p.getY()) == 1)
-				: BreachBlocks.shell(r, p.getX(), p.getY(), p.getZ());
-			level.setBlock(p, state, FLAGS);
-			walls++;
+			claimed.add(p);
 		}
+		SkyDig.markDug(level, r.world(), claimed);
 		furnish(level, r);
 		BreachStore.Entry built = e.with(BreachStore.BUILT);
 		built = loot(level, built);

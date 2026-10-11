@@ -54,6 +54,11 @@ public final class SkyClient {
 		return linked;
 	}
 
+	/** True while the player is held still where Skyrim put them, waiting for Skyrim's ground there. */
+	static boolean holding() {
+		return holdPos != null;
+	}
+
 	/**
 	 * True once Skyrim has connected in this session. From then on Minecraft never touches the
 	 * real mouse or keyboard again (even if Skyrim closes), since its window is hidden.
@@ -188,6 +193,7 @@ public final class SkyClient {
 		SkyDigClient.tick(minecraft);
 		freezeWhileUnlinked(minecraft);
 		holdUntilReady(minecraft);
+		FallGuard.tick(minecraft);
 		publishTick(minecraft);
 	}
 
@@ -286,6 +292,12 @@ public final class SkyClient {
 				player.setPos(safe.x, safe.y, safe.z);
 				player.yo = safe.y;
 				SkyCraft.LOG.info("SkyCraft: lifted player {} blocks out of the ground", String.format("%.3f", safe.y - holdPos.y));
+			}
+			// Skyrim can put the player inside a rock or blocks (where its own rescue puts them back on
+			// the land, say), or over a hole: the nearest open spot with ground instead.
+			Vec3 open = FallGuard.arrival(minecraft, player, safe);
+			if (!open.equals(safe)) {
+				FallGuard.moveTo(minecraft, open.x, open.y, open.z);
 			}
 			holdPos = null;
 			return;
