@@ -10,9 +10,13 @@
 // interior: disabled first, and deleted only once Skyrim has finished disabling them.
 namespace skycraft::Spawn
 {
-	// At plugin load (SKSEPluginLoad): what was placed is kept in SKSE's co-save, so a loaded
-	// game still knows which of its actors came out of the dark.
-	void Install();
+	// What was placed is kept in SKSE's co-save (CoSave.cpp), so a loaded game still knows which of its
+	// actors came out of the dark: the record type, writing it, reading one (its body), forgetting what
+	// a load read. Main thread.
+	inline constexpr std::uint32_t kSaveRecord = 0x44454550;  // 'DEEP'
+	void Save(SKSE::SerializationInterface* a_intfc);
+	void Load(SKSE::SerializationInterface* a_intfc, std::uint32_t a_version);
+	void Revert();
 	// Main thread: Minecraft asks for a creature (only while Minecraft drives the player).
 	void OnEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_event);
 	// Main thread, every frame: takes away creatures left behind.

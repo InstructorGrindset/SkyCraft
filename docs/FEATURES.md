@@ -33,6 +33,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Portal network | `portals` | Portals are cracks between places that resemble each other. An obsidian frame lit in Skyrim makes a real Nether portal, but vanilla Nether travel never happens, in the mirror or in any other world: a portal outside the network leads nowhere. A filled Greater, Grand or Black soul gem from Skyrim (bought or looted filled) becomes a Filled Soul Gem; used on a lit portal it becomes an Attuned Soul Gem, and used on a second lit portal it binds the two for good and is spent. After Minecraft's usual portal wait a bound portal takes the host to its partner behind a loading screen, like a load door, between worldspaces and interiors alike. Keys open a lit portal in Skyrim onto another world, building the partner portal at that world's arrival point (obsidian frame, solid floor, lava and water sealed off) and binding the pair; the key is spent and the partner leads back: a Daedra Heart opens onto the Nether, a Tonal Key (crafted from a dwarven metal ingot, redstone and an amethyst shard) onto Tamriel Wilds. A portal lit at the Time-Wound on the Throat of the World's summit opens one way onto Home when Skyrim's player carries an Elder Scroll. In Home the Far Lands' strata (past 12,550,821 on either axis, the crack too) drop Seamstone; the first one picked up is the ending (a title, a few lines, and a lit portal opens in the crack). Seamstone held to any lit portal opens a chest of every place you've been (the worlds' arrival points, every portal you stood at, bound or built); pick one and step in. It's never spent. Obsidian frames light in Tamriel Wilds and Home too. Unbound portals do nothing but say how to open them; breaking a frame unbinds its partner. Merchants sell obsidian dear (smiths, cheapest in Markarth, and general stores). See [Portals into the worlds](#portals-into-the-worlds) | `portal/` (SkyPortals, PortalStore, PortalItems, SoulGemItem, PortalKeyItem, PortalKeys, PortalPlan, PortalBuilder, TimeWound, Destinations, SeamMenu, Ending), `mixin/NetherPortalBlockMixin`, `mixin/BaseFireBlockMixin`, soul gem rules in `loot/ItemRules`, obsidian in `trade/TradeRules` | `Travel.cpp` (MoveTo_Impl with no target reference), `Loot.cpp` (soul gem tags), `WorldState.cpp` (`Carried`: the Elder Scrolls), `kEvPortalTravel`, `SkyState.carried` | `skycraft-portals.txt` in the world's save folder, `skycraft-items.txt` ("Soul gems" section), `skycraft-trades.txt` | `SkyCraft-portal` | Built |
 | World spaces | none | Every Skyrim world (each worldspace and each interior cell) keeps its Minecraft blocks in a space of its own in the mirror, so what you build, dig or reveal in one interior never shows in another or in the sky over Tamriel. Tamriel's space is the origin (outdoor builds stay put); the others are 32,768 blocks apart on a spiral round it, in the order you first visit them. A world made before this sorts itself out once: other worlds' dug cells move to their spaces with the blocks in and against them (see [DESIGN](DESIGN.md) section 4) | `link/SkySpace`, `link/WorldSpaces`, `link/SkyLink` (every position crossing the link), `world/SkyCollision`, `world/SpaceMigration`, client `render/WorldExporter`, guests' copy via `net/SkyNet` | none (the protocol stays in each world's own terms); `kColClear` names the world, `Game.cpp` logs McState `spaceWorld` | `skycraft-spaces.txt` in the world's save folder | `SkyCraft-space` | Built |
 | Worlds | none | Three dimensions beside the mirror world: the Nether, Tamriel Wilds and Home (Steve's seed, ending in the Far Lands), reached through the portal network. See [Worlds](#worlds) | `worlds/` (Worlds, SkyWorlds, HomeChunkGenerator, HomeTerrain, ClassicNoise, FarLands, SteveCamp, HomeCamp, WorldArrivals), `worlds/mixin/` | none | data in the jar | `SkyCraft-worlds` | Built |
+| Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -192,12 +193,91 @@ skycraft:daedra_heart`; `/give @s skycraft:tonal_key`; `/give @s skycraft:seamst
 takes you to the summit (`MQ305ReturnToTamrielMarker`, nine blocks from the Time-Wound; the map marker
 `000162C4` is twelve blocks off). Build and light the frame within 16 blocks of the wound.
 
+## Companions
+
+Minecraft's taming rules on Skyrim's animals, so a Minecraft player's habits work on Skyrim's creatures
+(switch `companions`). Skyrim decides what each actor is and whose it is and says so in the actor table
+(`AnimalKind` and the companion bits); Minecraft rolls the taming and sends `kEvCompanion`; Skyrim makes it so
+with its own means and checks every request (the actor is alive, loaded, within 64 blocks, of the kind
+Minecraft named, not essential, not summoned, nobody riding it).
+
+**Which animals.** By race editor ID (`skse/src/AnimalKinds.h`, unit tested in `skse/tests/AnimalKindsTest.cpp`):
+werewolves and werebears never; "horse" is a horse; "dog", "husky" and "hound" are dogs; "wolf" is a wolf.
+So DogRace, DogCompanionRace, WolfRace, HorseRace, Dawnguard's huskies and death hounds are covered, and so are
+most mods' races. Foxes, sabre cats, trolls and the like are not.
+
+| You do | On | What happens (vanilla 26.3's numbers) |
+|---|---|---|
+| Right click with a bone | a dog or wolf that isn't yours | The bone is eaten; one time in three (`Wolf.tryToTame`) it's tamed: hearts, and "Wolf is tamed and sits". Otherwise smoke. One you hit in the last 30 seconds is angry and won't take it |
+| Right click with wheat, sugar, an apple, a carrot, a golden carrot or a golden apple | a horse that isn't yours | Eaten; its temper rises as `AbstractHorse.handleEating` says (3, 3, 3, 3, 5, 10), then the meal counts as a mount attempt (`RunAroundLikeCrazyGoal`): tamed if a roll under 100 is below the temper (hearts, "is your horse now"), else it shies (smoke, angry neigh) and gains 5 temper. About five apples on average. Hay only heals a hurt horse. Temper is remembered per horse until Minecraft restarts |
+| Right click with an empty hand | a dog, wolf or other animal companion | Sits (waits) or follows, by turns; the action bar says which |
+| Sneak and right click with an empty hand | your horse | Stays or follows |
+| Right click with an empty hand | your horse | Rides it: the click goes to Skyrim's activation (click to activate) and Skyrim takes the player while riding |
+| Right click with its food | a hurt companion | Heals it: meat, fish or rabbit stew heal a dog or wolf twice their nutrition of a wolf's 40 health (cooked beef 40%); horse food heals as for a Minecraft horse of 22.5 health (hay 89%, an apple 13%). Nothing is eaten at full health |
+
+**Skyrim's side** (`Companion.cpp`). A tamed dog or wolf becomes Skyrim's animal follower exactly as a stray dog
+does when you ask it along: SkyCraft calls the vanilla `DialogueFollowerScript.SetAnimal` on the DialogueFollower
+quest (found by editor ID), which ranks it an Ally of the player, makes it a teammate and puts it in the quest's
+animal alias, whose packages follow the player, through load doors too, and fight beside them. Wild wolves also
+stop their fight and are made no more than Aggressive (they never pick fights with neutral folk). Sitting is the
+`WaitingForPlayer` actor value those packages read, set directly (the vanilla wait without its three-day timer: a
+sitting Minecraft wolf waits as long as it takes). A tamed horse becomes the player's own (ownership, as a bought
+horse) and keeps to its own ways (a stable's horse stays by its stable) until told to follow; following puts it in the
+same animal slot. Skyrim keeps one animal follower: whichever companion you last told to follow has the slot, and the
+one it took it from stays yours but is left behind (it goes about its own business near where it was, and shows as
+sitting in Minecraft). What
+Minecraft tamed is kept in the SKSE co-save (record `CMPN`, `CoSave.cpp`), so it's still tamed when that game is
+loaded again; a game saved before this build has no record and nothing is tamed. Counted as tamed already: the
+actor in the animal slot (Meeko, Vigilance, a stray, bought or Hearthfire dog, a husky), any dog, wolf or horse that
+is the player's teammate, and horses the player owns. Barbas counts only while Skyrim makes him a teammate or he
+holds the slot; on his own quest he is essential and his quest leads him, so a bone does nothing to him.
+
+**In Minecraft** the stand-in of a companion is named "Meeko (tamed)" (stand-ins aren't drawn, so the name shows in
+Minecraft's own messages and logs; a collar tint can't be shown, Skyrim draws the animal), the action bar answers
+each order, hearts and smoke are Minecraft particles (drawn in Skyrim like any), and a companion's death is told in
+chat, as Minecraft tells a pet's owner. Only the host tames and orders: a guest's clicks on the host's animals are
+left alone.
+
+**Riding.** Mounting already works while Minecraft drives the player: a right click on a horse with an empty hand
+(or G) is Skyrim's activation, and once Skyrim's player is on a mount Skyrim takes the player ("Skyrim takes the
+player (riding)" in SkyCraft.log): Skyrim's controls and camera ride the horse, and Minecraft picks the player up
+again where they dismount. Riding your tamed horse is riding your own; riding an untamed one is stealing it, as in
+Skyrim. Not played yet with this feature.
+
+**Try it** (cheats on). Skyrim console: `player.placeatme 00023ABE` (a Wolf; `00023ABF` an Ice Wolf),
+`player.placeatme 00023A92` (a Dog), `player.placeatme 00109487` (a Stray Dog), `player.placeatme 00109E3D` (a
+stables horse, unowned when placed); `player.moveto 000D95EA` (Meeko, at his shack), `player.moveto 0009A7AB`
+(Vigilance, Markarth stables). Minecraft chat: `/give @s minecraft:bone 16`, `/give @s minecraft:cooked_beef 8`,
+`/give @s minecraft:apple 16`, `/give @s minecraft:golden_carrot 8`, `/give @s minecraft:hay_block 2`.
+
+1. Place a wolf and let it come at you. Right click it with bones until hearts show. It stops fighting, sits, and
+   both logs have a `SkyCraft-companion` line saying it's tamed. In the Skyrim console (click it): `getplayerteammate`
+   is 1, `getav WaitingForPlayer` is 1, `getav Aggression` at most 1; `sqv DialogueFollower` shows it in the animal
+   alias.
+2. Right click it with an empty hand: "Wolf follows you"; walk off, through a load door: it follows. Again: it sits.
+3. Hit a fresh wolf, then feed it a bone at once: nothing (angry for 30 seconds). Feed one to a Dog: the same odds.
+4. Hurt your wolf (console, click it: `damageav health 50`), feed it cooked beef: health goes up 40% of its maximum
+   (`getav health`, and the log line `fed ... health a -> b`). At full health beef stays in your hand.
+5. `player.moveto 000D95EA`, talk to Meeko and ask him along: in Minecraft an empty-hand click sits him and makes him
+   follow, by turns; his stand-in is "Meeko (tamed)". Tame a wolf now: the wolf takes the slot (sitting), Meeko
+   stays yours but behind; tell Meeko to follow and the wolf is the one left behind.
+6. Place a horse; feed it apples until hearts (about five). Skyrim's prompt over it no longer marks riding it a theft
+   (no red text), and an empty-hand right click rides it. Sneak and right click: "follows you", and it follows on foot;
+   again: "waits here".
+7. Save, load the save: the tamed wolf and horse are still "(tamed)"; SkyCraft.log says how many the co-save had.
+   Load a save from before the taming (or before this build): nothing is tamed, no errors.
+8. Kill a tamed companion (console `kill`): Minecraft's chat says "Wolf died".
+9. Set `companions = off` in `skycraft-features.txt` and restart Minecraft: bones and empty hands do what they did
+   before (Skyrim's activation), and no stand-in is named "(tamed)".
+
+Headless: `SKYCRAFT_COMPANION=1 python tools/fake_skyrim.py` adds a wild wolf five blocks west of the start and
+answers `kEvCompanion` as Skyrim would (tamed and sitting, follow and wait, healing).
+
 ## Planned
 
 | Feature | Notes |
 |---|---|
 | Farming on Skyrim soil | May already work with dug dirt; needs a test first |
-| Tamed companions | A Skyrim dog or horse shows up as a Minecraft wolf or horse that follows you |
 | Artifacts | About 20 named Skyrim artifacts as unique Minecraft items with real enchantments |
 
 ## Protocol 13
@@ -235,6 +315,15 @@ World spaces added these within 13, without a version bump (an older half ignore
 |---|---|---|
 | `kColClear` payload `u32 worldId` after the epoch | Skyrim to Minecraft | Minecraft puts the epoch's collision in that world's space. Without it Minecraft waits for SkyState to show the epoch |
 | `McState.spaceWorld`, `spaceX`, `spaceZ` (0xC8..0xD3; McState is 0xD8 bytes now) | Minecraft to Skyrim | Which Skyrim world's space Minecraft's player is in, and its origin; Skyrim logs it. Every coordinate on the link stays in the current world's own terms |
+
+Companions added these within 13, without a version bump (an older half ignores them: an older plugin never sets the bits
+and drops the event type, an older Minecraft ignores the bits):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `ActorFlags` `kActorCompanion` (bit 5), `kActorCompanionWaiting` (bit 6), in `ActorRecord.flags` (offset 4 of each 64-byte record; records from 0x12040) | Skyrim to Minecraft | The actor is the player's animal; it isn't following now (told to wait, or left behind because another holds the animal follower slot) |
+| `ActorRecord.flags` bits 8 to 11: `AnimalKind` (`kActorKindShift` 8, `kActorKindMask` 0xF00; 0 none, 1 dog, 2 wolf, 3 horse) | Skyrim to Minecraft | Which taming rules apply, from the race (`AnimalKinds.h`) |
+| `kEvCompanion` (14), `CompanionAction` 1 tame, 2 follow, 3 wait, 4 heal | Minecraft to Skyrim | `McEvent` (32 bytes from 0x17080): formId @4 = the actor, flags @24 = the action, weapon @28 = the AnimalKind Minecraft saw (Skyrim refuses a taming of another kind), a @8 = heal: the share of maximum health to restore. Event 14 because 12 and 13 are the Minecraft view's |
 
 ## Testing a build
 

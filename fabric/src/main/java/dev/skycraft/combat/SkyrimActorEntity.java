@@ -37,6 +37,12 @@ public class SkyrimActorEntity extends LivingEntity {
 	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant. Synced so the client
 	// knows a right click on a merchant opens the shop (and isn't one for Skyrim, client.ClickActivate).
 	private static final EntityDataAccessor<Integer> VENDOR = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
+	// The Skyrim actor's Proto.ACTOR_* flags (hostile, dead, essential, companion, waiting, its animal kind). Synced so
+	// the client knows a click on a Skyrim animal is for the companions feature (companion.SkyCompanions), not Skyrim.
+	private static final EntityDataAccessor<Integer> SKY_FLAGS = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
+
+	// The actor's Skyrim name (server side), without what the stand-in's own name adds to it ("(tamed)").
+	private String skyrimName = "";
 
 	// This tick's hit, flushed to Skyrim by SkyCombat after all attacks for the tick have landed
 	// (Player.attack adds its sprint/enchantment knockback after hurtServer returns).
@@ -71,11 +77,38 @@ public class SkyrimActorEntity extends LivingEntity {
 		this.entityData.set(VENDOR, vendor);
 	}
 
+	public int getSkyFlags() {
+		return this.entityData.get(SKY_FLAGS);
+	}
+
+	public void setSkyFlags(int flags) {
+		this.entityData.set(SKY_FLAGS, flags);
+	}
+
+	/** The actor's Skyrim name, as the actor table has it. */
+	public String skyrimName() {
+		return this.skyrimName.isEmpty() ? this.getName().getString() : this.skyrimName;
+	}
+
+	/** Its Skyrim name, and the stand-in's own name ({@code shown}: the Skyrim name, or "Meeko (tamed)"), when they change. */
+	public void setNames(String skyrim, String shown) {
+		this.skyrimName = skyrim;
+		if (shown.isEmpty()) {
+			return;
+		}
+		var current = this.getCustomName();
+		if (current == null || !current.getString().equals(shown)) {
+			this.setCustomName(net.minecraft.network.chat.Component.literal(shown));
+		}
+	}
+
 	/**
 	 * Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen.
 	 * Both sides take the click, as a villager does, so the client counts it as used and Skyrim
-	 * doesn't also start a conversation (client.ClickActivate). Any other click passes, and with
-	 * nothing else to use it on, Skyrim activates the NPC (talks to them) as G does.
+	 * doesn't also start a conversation (client.ClickActivate). On a Skyrim dog, wolf or horse the
+	 * companions feature may take it (a bone, horse food, an empty hand on a tamed one: see
+	 * companion.SkyCompanions). Any other click passes, and with nothing else to use it on, Skyrim
+	 * activates the NPC (talks to them, rides the horse) as G does.
 	 */
 	@Override
 	public InteractionResult interact(Player player, InteractionHand hand, Vec3 at) {
@@ -85,6 +118,12 @@ public class SkyrimActorEntity extends LivingEntity {
 				dev.skycraft.trade.SkyTrade.open(serverPlayer, this);
 			}
 			return InteractionResult.SUCCESS;
+		}
+		if (this.getVendor() == 0) {
+			InteractionResult companion = dev.skycraft.companion.SkyCompanions.interact(this, player, hand);
+			if (companion != null) {
+				return companion;
+			}
 		}
 		return super.interact(player, hand, at);
 	}
@@ -96,6 +135,7 @@ public class SkyrimActorEntity extends LivingEntity {
 		builder.define(WIDTH, 0.6F);
 		builder.define(HEIGHT, 1.8F);
 		builder.define(VENDOR, 0);
+		builder.define(SKY_FLAGS, 0);
 	}
 
 	public void setSize(float width, float height) {

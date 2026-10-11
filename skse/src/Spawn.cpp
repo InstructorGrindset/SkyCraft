@@ -49,11 +49,9 @@ namespace skycraft::Spawn
 		constexpr float       kWatchSeconds = 30.0f;
 		constexpr std::uint8_t kRoseLogged = 1u << kProbeSeconds.size();
 
-		// SKSE co-save: which of a saved game's actors came out of the dark, so a loaded game still
-		// takes them away (and counts them) like any other. Record: count, then per creature its
-		// FormID and despawn distance.
-		constexpr std::uint32_t kSaveId = 0x53434450;     // 'SCDP'
-		constexpr std::uint32_t kSaveRecord = 0x44454550; // 'DEEP'
+		// SKSE co-save (CoSave.cpp registers it): which of a saved game's actors came out of the dark, so
+		// a loaded game still takes them away (and counts them) like any other. Record kSaveRecord ('DEEP'):
+		// count, then per creature its FormID and despawn distance.
 		constexpr std::uint32_t kSaveVersion = 1;
 		constexpr std::uint32_t kMaxSaved = 64;
 
@@ -273,65 +271,48 @@ namespace skycraft::Spawn
 				}
 			}
 		}
+	}
 
-		// ---- the co-save (main thread: SKSE saves and loads there) --------------------------------
-		void OnSave(SKSE::SerializationInterface* a_intfc)
-		{
-			if (!a_intfc->OpenRecord(kSaveRecord, kSaveVersion)) {
-				logger::warn("SkyCraft-deep: couldn't write the spawned creatures to the co-save");
-				return;
-			}
-			const auto count = static_cast<std::uint32_t>(std::min<std::size_t>(spawned.size(), kMaxSaved));
-			a_intfc->WriteRecordData(count);
-			for (std::uint32_t i = 0; i < count; ++i) {
-				a_intfc->WriteRecordData(spawned[i].formId);
-				a_intfc->WriteRecordData(spawned[i].despawnBlocks);
-			}
+	// ---- the co-save (main thread: SKSE saves and loads there; CoSave.cpp calls these) ------------
+	void Save(SKSE::SerializationInterface* a_intfc)
+	{
+		if (!a_intfc->OpenRecord(kSaveRecord, kSaveVersion)) {
+			logger::warn("SkyCraft-deep: couldn't write the spawned creatures to the co-save");
+			return;
 		}
-
-		void OnLoad(SKSE::SerializationInterface* a_intfc)
-		{
-			loaded.clear();
-			std::uint32_t type = 0, version = 0, length = 0;
-			while (a_intfc->GetNextRecordInfo(type, version, length)) {
-				if (type != kSaveRecord || version != kSaveVersion) {
-					continue;
-				}
-				std::uint32_t count = 0;
-				if (a_intfc->ReadRecordData(count) != sizeof(count)) {
-					continue;
-				}
-				for (std::uint32_t i = 0; i < count && i < kMaxSaved; ++i) {
-					RE::FormID id = 0;
-					float      despawn = kDefaultDespawnBlocks;
-					if (a_intfc->ReadRecordData(id) != sizeof(id) || a_intfc->ReadRecordData(despawn) != sizeof(despawn)) {
-						break;
-					}
-					RE::FormID now = 0;
-					if (a_intfc->ResolveFormID(id, now) && now != 0) {
-						loaded.emplace_back(now, std::isfinite(despawn) && despawn > 0.0f ? despawn : kDefaultDespawnBlocks);
-					}
-				}
-			}
-		}
-
-		void OnRevert(SKSE::SerializationInterface*)
-		{
-			loaded.clear();
+		const auto count = static_cast<std::uint32_t>(std::min<std::size_t>(spawned.size(), kMaxSaved));
+		a_intfc->WriteRecordData(count);
+		for (std::uint32_t i = 0; i < count; ++i) {
+			a_intfc->WriteRecordData(spawned[i].formId);
+			a_intfc->WriteRecordData(spawned[i].despawnBlocks);
 		}
 	}
 
-	void Install()
+	void Load(SKSE::SerializationInterface* a_intfc, std::uint32_t a_version)
 	{
-		const auto* serialization = SKSE::GetSerializationInterface();
-		if (!serialization) {
-			logger::warn("SkyCraft-deep: no SKSE co-save; creatures from a saved game won't be taken away after it's loaded");
+		if (a_version != kSaveVersion) {
 			return;
 		}
-		serialization->SetUniqueID(kSaveId);
-		serialization->SetSaveCallback(OnSave);
-		serialization->SetLoadCallback(OnLoad);
-		serialization->SetRevertCallback(OnRevert);
+		std::uint32_t count = 0;
+		if (a_intfc->ReadRecordData(count) != sizeof(count)) {
+			return;
+		}
+		for (std::uint32_t i = 0; i < count && i < kMaxSaved; ++i) {
+			RE::FormID id = 0;
+			float      despawn = kDefaultDespawnBlocks;
+			if (a_intfc->ReadRecordData(id) != sizeof(id) || a_intfc->ReadRecordData(despawn) != sizeof(despawn)) {
+				break;
+			}
+			RE::FormID now = 0;
+			if (a_intfc->ResolveFormID(id, now) && now != 0) {
+				loaded.emplace_back(now, std::isfinite(despawn) && despawn > 0.0f ? despawn : kDefaultDespawnBlocks);
+			}
+		}
+	}
+
+	void Revert()
+	{
+		loaded.clear();
 	}
 
 	void OnEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_event)

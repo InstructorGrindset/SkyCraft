@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRe
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -95,6 +94,7 @@ public final class SkyCombat {
 		if (SkyLink.readActors(ACTORS)) {
 			dev.skycraft.loot.SkyLoot.onActors(level, ACTORS, server.getTickCount());
 			dev.skycraft.deep.SkyDeep.onActors(ACTORS);
+			dev.skycraft.companion.SkyCompanions.onActors(server, ACTORS, server.getTickCount());
 			sync(level);
 		}
 		for (ServerPlayer player : players) {
@@ -107,6 +107,7 @@ public final class SkyCombat {
 			float[] hit = proxy.takeHit();
 			if (hit != null && (hit[0] > 0.0F || hit[3] > 0.0F)) {
 				dev.skycraft.loot.SkyLoot.recordHit(proxy.formId(), server.getTickCount());
+				dev.skycraft.companion.SkyCompanions.onHit(proxy.formId(), server.getTickCount());
 				SkyLink.pushEvent(
 					Proto.EV_HIT_ACTOR, proxy.formId(), hit[0], hit[1], hit[2], hit[3], Float.floatToRawIntBits(hit[4]), Float.floatToRawIntBits(hit[5])
 				);
@@ -137,11 +138,10 @@ public final class SkyCombat {
 				proxy = new SkyrimActorEntity(SKYRIM_ACTOR, level);
 				proxy.setFormId(a.formId());
 				proxy.setVendor(a.vendor());
+				proxy.setSkyFlags(a.flags());
 				proxy.setSize(a.width(), a.height());
 				proxy.snapTo(a.x(), a.y(), a.z(), a.yaw(), 0.0F);
-				if (!a.name().isEmpty()) {
-					proxy.setCustomName(Component.literal(a.name()));
-				}
+				proxy.setNames(a.name(), dev.skycraft.companion.SkyCompanions.displayName(a));
 				if (!level.addFreshEntity(proxy)) {
 					continue;
 				}
@@ -149,6 +149,8 @@ public final class SkyCombat {
 				continue;
 			}
 			proxy.setVendor(a.vendor());
+			proxy.setSkyFlags(a.flags());
+			proxy.setNames(a.name(), dev.skycraft.companion.SkyCompanions.displayName(a)); // "Meeko (tamed)" once it's the player's
 			proxy.setSize(a.width(), a.height());
 			proxy.setPos(a.x(), a.y(), a.z());
 			proxy.setYRot(a.yaw());
@@ -200,6 +202,7 @@ public final class SkyCombat {
 		dev.skycraft.time.SkyTime.reset();
 		dev.skycraft.deep.SkyDeep.reset();
 		dev.skycraft.breach.SkyBreach.reset();
+		dev.skycraft.companion.SkyCompanions.reset();
 		if (PROXIES.isEmpty()) {
 			return;
 		}

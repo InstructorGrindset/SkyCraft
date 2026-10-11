@@ -61,6 +61,24 @@ public final class Proto {
 	public static final int ACTOR_IN_COMBAT = 1 << 3;
 	/** A creature EV_SPAWN_CREATURE brought. */
 	public static final int ACTOR_SPAWNED = 1 << 4;
+	/**
+	 * Companions (added within protocol 13; an older Skyrim plugin never sets it): the player's animal. Tamed through
+	 * Minecraft (EV_COMPANION), Skyrim's own animal follower (Meeko, Vigilance, a stray or bought dog, ...), another dog,
+	 * wolf or horse that is the player's teammate, or a horse the player owns.
+	 */
+	public static final int ACTOR_COMPANION = 1 << 5;
+	/** A companion that isn't following now: told to wait (sit), or another animal holds Skyrim's one animal follower slot. */
+	public static final int ACTOR_COMPANION_WAITING = 1 << 6;
+	/** Bits 8-11 of the actor flags: the actor's ANIMAL_* kind, from its race (Skyrim's AnimalKinds.h). Added within 13. */
+	public static final int ACTOR_KIND_SHIFT = 8;
+	public static final int ACTOR_KIND_MASK = 0xF << ACTOR_KIND_SHIFT;
+	// AnimalKind
+	public static final int ANIMAL_NONE = 0;
+	/** Dogs, huskies, death hounds: tamed like a Minecraft wolf. */
+	public static final int ANIMAL_DOG = 1;
+	/** Wolves (not werewolves): tamed like a Minecraft wolf. */
+	public static final int ANIMAL_WOLF = 2;
+	public static final int ANIMAL_HORSE = 3;
 
 	// Event ring (relative to OFF_EVENT_RING)
 	public static final int EVENT_RING_ENTRIES = 512;
@@ -99,6 +117,21 @@ public final class Proto {
 	public static final int EV_PORTAL_TRAVEL = 11;
 	/** EV_PORTAL_TRAVEL flags: the destination formId is an interior cell. */
 	public static final int PORTAL_INTERIOR = 1;
+	/**
+	 * Companions (companion.SkyCompanions): Minecraft's taming rules on a Skyrim animal. formId = the actor, flags = a
+	 * COMPANION_* action, weapon = the ANIMAL_* kind read for it in the actor table (Skyrim refuses a taming whose kind
+	 * isn't its own), a = COMPANION_HEAL's share of the animal's maximum health (0..1). Added within protocol 13 (event
+	 * 12 and 13 are the Minecraft view's); an older Skyrim plugin ignores it.
+	 */
+	public static final int EV_COMPANION = 14;
+	/** The taming roll came up: dogs and wolves become Skyrim's animal follower, waiting (sitting); horses the player's own. */
+	public static final int COMPANION_TAME = 1;
+	/** Follow the player (taking Skyrim's one animal follower slot). */
+	public static final int COMPANION_FOLLOW = 2;
+	/** Wait here (sit). */
+	public static final int COMPANION_WAIT = 3;
+	/** Fed: restore a share of its health. */
+	public static final int COMPANION_HEAL = 4;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;

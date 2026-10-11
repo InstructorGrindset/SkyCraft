@@ -1,4 +1,5 @@
 #include "Breach.h"
+#include "Companion.h"
 #include "Game.h"
 #include "Loot.h"
 #include "WorldState.h"
@@ -197,7 +198,7 @@ namespace skycraft
 				r.formId = actor->GetFormID();
 				r.flags = (actor->IsHostileToActor(a_player) ? proto::kActorHostile : 0u) | (actor->IsDead() ? proto::kActorDead : 0u) |
 				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u) |
-				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u);
+				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u) | Companion::Flags(actor, a_player);
 				const auto mc = SkyToMc(pos);
 				r.x = static_cast<float>(mc.x);
 				r.y = static_cast<float>(mc.y);
@@ -875,6 +876,8 @@ namespace skycraft
 						Breach::Enter(a_player, ev.formId);
 					} else if (ev.type == proto::kEvPortalTravel) {
 						Travel::Request(a_player, ev);  // checks the player's state itself
+					} else if (ev.type == proto::kEvCompanion) {
+						Companion::OnEvent(a_player, ev);  // a taming or an order sent just before Skyrim took the player
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
@@ -885,6 +888,7 @@ namespace skycraft
 				Spawn::Update(a_player, a_delta);
 				Breach::Update(a_player, a_delta);
 				Travel::Update(a_player, a_delta);
+				Companion::Update(a_player, a_delta);
 				return;
 			}
 			// Skyrim can't kill the player while Minecraft decides: one huge hit knocks them down
@@ -931,6 +935,9 @@ namespace skycraft
 				case proto::kEvPortalTravel:
 					Travel::Request(a_player, ev);
 					break;
+				case proto::kEvCompanion:
+					Companion::OnEvent(a_player, ev);
+					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
 						TrainSkill(a_player, static_cast<RE::ActorValue>(ev.formId), ev.a);
@@ -945,6 +952,7 @@ namespace skycraft
 			Spawn::Update(a_player, a_delta);
 			Breach::Update(a_player, a_delta);
 			Travel::Update(a_player, a_delta);
+			Companion::Update(a_player, a_delta);
 			for (auto it = pendingExplosions.begin(); it != pendingExplosions.end();) {
 				it->delay -= a_delta;
 				if (it->delay <= 0.0f) {

@@ -8,6 +8,7 @@ bit, prints Minecraft's reported player state, and saves the overlay frame to a 
 SKYCRAFT_TOWN (default Whiterun) and SKYCRAFT_PLACE (PlaceFlags: 1 interior, 2 dungeon, 4 town;
 default 4) set where the fake player is; SKYCRAFT_PLACE=3 makes it a dungeon interior.
 SKYCRAFT_CARRIED (CarriedFlags, default 0; 1 = an Elder Scroll) sets SkyState.carried.
+SKYCRAFT_COMPANION=1 adds a wild wolf to tame with bones (Companions): see COMPANION below.
 
 Breach doors: outside (no interior place flag) it publishes two dungeon entrances near the fake
 player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
@@ -67,6 +68,17 @@ PLACE_INTERIOR = 1
 # McEvent types (skycraft_protocol.h)
 EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE, EV_ENTER_DUNGEON = range(1, 10)
 EV_PORTAL_TRAVEL = 11  # portal network: printed, not acted on (a real Skyrim moves the player)
+EV_COMPANION = 14  # companions: answered for the fake wolf (SKYCRAFT_COMPANION=1)
+COMPANION_TAME, COMPANION_FOLLOW, COMPANION_WAIT, COMPANION_HEAL = 1, 2, 3, 4
+# ActorFlags and AnimalKind (skycraft_protocol.h)
+ACTOR_HOSTILE, ACTOR_COMPANION, ACTOR_COMPANION_WAITING = 1, 1 << 5, 1 << 6
+ACTOR_KIND_SHIFT = 8
+ANIMAL_DOG, ANIMAL_WOLF, ANIMAL_HORSE = 1, 2, 3
+# Companions: SKYCRAFT_COMPANION=1 publishes a wild wolf five blocks behind the fake bandit (west of the start). Give
+# yourself bones in Minecraft (/give @s minecraft:bone 16) and right click it: Minecraft's one-in-three roll sends
+# kEvCompanion and this answers as Skyrim does (tamed, sitting; an empty hand toggles follow; meat heals it).
+COMPANION = os.environ.get("SKYCRAFT_COMPANION", "0") != "0"
+FAKE_WOLF = 0xFF00ABCE
 SRC_CONTAINER = 2
 TAG_ORE_INGOT = 1 << 3
 
@@ -124,6 +136,8 @@ class Link:
         self.world = WORLD_ID
         self.since_clear = []  # (sx, sy, sz, vertices) of every block section since the last clear-all
         self.clears = 0
+        self.companions = {}  # FormID -> "waiting" / "following": what Minecraft tamed (SKYCRAFT_COMPANION)
+        self.wolf_health = 0.5  # the fake wolf starts hurt, so meat heals it once it's tamed
 
     def heartbeat(self):
         struct.pack_into("<Q", self.m, 0x10, tick())
@@ -149,6 +163,9 @@ class Link:
                 came_from = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
                 kind = "interior cell" if flags & 1 else "worldspace"
                 print(f"  event from Minecraft: portal travel to {kind} {form:08X} at ({a:.2f},{b:.2f},{c:.2f}) facing {d:.0f}, sent from {came_from:08X}")
+            elif typ == EV_COMPANION:
+                kind = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
+                self.companion_event(form, flags, a, kind)
             else:
                 print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
             self.events.append(typ)
@@ -194,13 +211,50 @@ class Link:
         struct.pack_into("<Q", self.m, base + 0x40, tail)
 
     def write_actor(self, form, x, y, z, vendor=0, name="Test Bandit"):
-        """One hostile actor; vendor is its VendorBuys mask (0: not a merchant)."""
+        """One hostile actor; vendor is its VendorBuys mask (0: not a merchant). With SKYCRAFT_COMPANION=1 the fake
+        wolf is published beside it."""
+        actors = [(form, ACTOR_HOSTILE, x, y, z, 0.6, 1.8, vendor, name)]
+        if COMPANION:
+            actors.append(self.fake_wolf(x - 5.0, y, z))
+        self.write_actors(actors)
+
+    def fake_wolf(self, x, y, z):
+        """The fake wolf (SKYCRAFT_COMPANION=1): a hostile wolf until Minecraft tames it, then the player's (companion
+        bits as Companion.cpp sets them: tamed ones wait until told to follow)."""
+        state = self.companions.get(FAKE_WOLF)
+        flags = ANIMAL_WOLF << ACTOR_KIND_SHIFT
+        if state is None:
+            flags |= ACTOR_HOSTILE
+        else:
+            flags |= ACTOR_COMPANION | (ACTOR_COMPANION_WAITING if state == "waiting" else 0)
+        return (FAKE_WOLF, flags, x, y, z, 0.7, 0.9, 0, "Wolf")
+
+    def write_actors(self, actors):
+        """The actor table: (form, flags, x, y, z, width, height, vendor, name) per actor."""
         struct.pack_into("<I", self.m, OFF_ACTORS, self.actor_seq * 2 + 1)
-        rec = struct.pack("<IIfffffffHH24s", form, 1, x, y, z, 90.0, 0.6, 1.8, 1.0, 10, vendor, name.encode("utf-8")[:23])
-        struct.pack_into("<I", self.m, OFF_ACTORS + 4, 1)
-        self.m[OFF_ACTORS + 0x40:OFF_ACTORS + 0x40 + 64] = rec
+        for i, (form, flags, x, y, z, width, height, vendor, name) in enumerate(actors):
+            health = self.wolf_health if form == FAKE_WOLF else 1.0
+            rec = struct.pack("<IIfffffffHH24s", form, flags, x, y, z, 90.0, width, height, health, 10, vendor, name.encode("utf-8")[:23])
+            self.m[OFF_ACTORS + 0x40 + i * 64:OFF_ACTORS + 0x40 + (i + 1) * 64] = rec
+        struct.pack_into("<I", self.m, OFF_ACTORS + 4, len(actors))
         self.actor_seq += 1
         struct.pack_into("<I", self.m, OFF_ACTORS, self.actor_seq * 2)
+
+    def companion_event(self, form, action, share, kind):
+        """kEvCompanion, answered the way Companion.cpp does for the fake wolf (anything else: refused, as Skyrim would
+        for an actor that isn't there)."""
+        names = {COMPANION_TAME: "tame", COMPANION_FOLLOW: "follow", COMPANION_WAIT: "wait", COMPANION_HEAL: "heal"}
+        print(f"  event from Minecraft: companion {names.get(action, action)} {form:08X} (kind {kind}){f', heal {share:.2f}' if action == COMPANION_HEAL else ''}")
+        if form != FAKE_WOLF:
+            print("    (not the fake wolf: Skyrim would refuse)")
+            return
+        if action == COMPANION_TAME and kind == ANIMAL_WOLF:
+            self.companions[form] = "waiting"  # a freshly tamed wolf sits
+        elif action in (COMPANION_FOLLOW, COMPANION_WAIT) and form in self.companions:
+            self.companions[form] = "following" if action == COMPANION_FOLLOW else "waiting"
+        elif action == COMPANION_HEAL and form in self.companions:
+            self.wolf_health = min(1.0, self.wolf_health + share)
+        print(f"    the fake wolf is {self.companions.get(form, 'wild')}, health {self.wolf_health:.2f}")
 
     def write_breaches(self, records, world_id=None):
         """Skyrim -> MC: the dungeon entrances near the player (BreachTable, seqlock: seq odd while writing)."""

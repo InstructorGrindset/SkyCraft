@@ -279,6 +279,27 @@ namespace skycraft::proto
 		kActorEssential = 1u << 2,
 		kActorInCombat = 1u << 3,
 		kActorSpawned = 1u << 4,    // a creature kEvSpawnCreature brought (Minecraft counts the live ones)
+
+		// Companions (added within version 13: an older plugin never sets these bits, an older Minecraft ignores them).
+		kActorCompanion = 1u << 5,         // the player's animal: one Minecraft tamed (kEvCompanion), Skyrim's own animal
+		                                   // follower (the animal slot of the DialogueFollower quest: Meeko, Vigilance, a stray
+		                                   // or bought dog, a husky, ...), another dog, wolf or horse that is the player's
+		                                   // teammate, or a horse the player owns
+		kActorCompanionWaiting = 1u << 6,  // a companion that isn't following the player now: told to wait (Minecraft's sit),
+		                                   // or left behind because another animal holds Skyrim's one animal follower slot
+	};
+
+	// Bits 8-11 of ActorRecord::flags: what kind of animal the actor is, from its race (AnimalKind; Skyrim's
+	// AnimalKinds.h decides). Added within version 13 (zero from an older plugin: no animal).
+	inline constexpr std::uint32_t kActorKindShift = 8;
+	inline constexpr std::uint32_t kActorKindMask = 0xFu << kActorKindShift;
+
+	enum AnimalKind : std::uint32_t
+	{
+		kAnimalNone = 0,   // not one Minecraft's taming rules know (people, trolls, foxes, summoned creatures, ...)
+		kAnimalDog = 1,    // tamed like a Minecraft wolf: dogs, huskies, death hounds
+		kAnimalWolf = 2,   // tamed like a Minecraft wolf: wolves, ice wolves (not werewolves)
+		kAnimalHorse = 3,  // tamed like a Minecraft horse
 	};
 
 	struct ActorRecord
@@ -359,11 +380,32 @@ namespace skycraft::proto
 		                       // partner portal, on its exit side), d = the yaw they face there (MC degrees), flags =
 		                       // PortalTravelFlags, weapon = SkyState::worldId when Minecraft sent it: Skyrim drops the request
 		                       // if the player is no longer in that world. Added within version 13 (an older plugin ignores it)
+		// (12 and 13 are McViewEventType's, below the McFlags.)
+		kEvCompanion = 14,     // Minecraft's taming rules on a Skyrim animal (Companions): formId = the actor, flags =
+		                       // CompanionAction, weapon = the AnimalKind Minecraft read for it in the actor table (Skyrim
+		                       // refuses a taming whose kind isn't its own), a = kCompanionHeal: the share of the animal's
+		                       // maximum health to restore (0..1). Skyrim checks the actor is alive, near the player and
+		                       // (for every action but kCompanionTame) the player's companion. Added within version 13 (an
+		                       // older plugin ignores the type)
 	};
 
 	enum PortalTravelFlags : std::uint32_t
 	{
 		kPortalInterior = 1u << 0,  // kEvPortalTravel's formId is an interior cell, not a worldspace
+	};
+
+	// What kEvCompanion asks for (its flags).
+	enum CompanionAction : std::uint32_t
+	{
+		kCompanionTame = 1,    // Minecraft's taming roll came up (a bone for a dog or wolf, horse food for a horse): the animal
+		                       // becomes the player's. Dogs and wolves become Skyrim's animal follower (the way a stray dog
+		                       // joins: DialogueFollowerScript.SetAnimal) told to wait, as a freshly tamed Minecraft wolf
+		                       // sits; an animal that held the slot before stays the player's, left behind. Horses become the
+		                       // player's own, as a bought horse is (ownership)
+		kCompanionFollow = 2,  // follow the player: the animal takes Skyrim's animal follower slot if it hasn't got it, and
+		                       // stops waiting (the WaitingForPlayer actor value Skyrim's follower packages read)
+		kCompanionWait = 3,    // wait here (Minecraft's sit): WaitingForPlayer 1
+		kCompanionHeal = 4,    // fed: restore a = a share of its maximum health
 	};
 
 	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).
