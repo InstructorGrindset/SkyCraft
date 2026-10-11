@@ -88,8 +88,18 @@ namespace skycraft::proto
 		std::uint32_t viewportW, viewportH;
 		float         gameHour;
 		char          town[32];  // the city/town/settlement the player is in (or their location's name), UTF-8, NUL-terminated
+		std::uint32_t place;     // PlaceFlags
+		std::uint32_t reserved;
 	};
-	static_assert(sizeof(SkyState) == 0x60);
+	static_assert(sizeof(SkyState) == 0x68);
+
+	// What kind of place the player is in (SkyState::place).
+	enum PlaceFlags : std::uint32_t
+	{
+		kPlaceInterior = 1u << 0,  // an interior cell
+		kPlaceDungeon = 1u << 1,   // a cave, crypt, ruin, mine, camp, lair, ... (LocTypeDungeon and kin)
+		kPlaceTown = 1u << 2,      // inside a city, town or settlement
+	};
 	static_assert(kOffSkyState + sizeof(SkyState) <= kOffMcState);
 
 	// ---- MC -> Skyrim state @0x200 (seqlock) ------------------------------------------------
@@ -270,6 +280,7 @@ namespace skycraft::proto
 		                    // 10 Smithing, 11 Heavy Armor, 12 Light Armor), a = uses (as Skyrim's AdvanceSkill counts them)
 		kEvTakeItem = 6,    // Minecraft converted a looted item: formId = the item's base form, a = how many to remove
 		                    // from the Skyrim player's inventory (see ItemEvent)
+		kEvSleep = 7,       // the player slept in a Minecraft bed: a = game hours to pass in Skyrim
 	};
 
 	enum HitFlags : std::uint32_t
@@ -355,8 +366,10 @@ namespace skycraft::proto
 		std::uint32_t tags;    // ItemTags
 		std::uint8_t  material;  // ItemMaterial
 		std::uint8_t  source;    // ItemSource
-		std::uint16_t pad;
-		char          name[32];  // display name, UTF-8, NUL-terminated (truncated)
+		std::uint8_t  chest;    // 1 when the container is a chest, strongbox or coffer (not a barrel, sack, urn, ...)
+		std::uint8_t  pad;
+		char          name[28];   // display name, UTF-8, NUL-terminated (truncated)
+		std::uint32_t container;  // FormID of the reference it came from (chest, corpse), 0 if none
 	};
 	static_assert(sizeof(ItemEvent) == 48);
 	static_assert(kOffItemRing >= kOffEventRing + kEventRingDataOff + sizeof(McEvent) * kEventRingEntries);

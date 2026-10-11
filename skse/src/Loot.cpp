@@ -1,5 +1,8 @@
 #include "Loot.h"
 
+#include <algorithm>
+#include <cstring>
+
 namespace skycraft::Loot
 {
 	namespace
@@ -38,6 +41,7 @@ namespace skycraft::Loot
 		{
 			std::string        text;
 			proto::ItemSource  kind = proto::kSrcWorld;
+			bool               chest = false;
 		};
 
 		// Where the item came from: the world, a corpse, a container or a living actor.
@@ -56,7 +60,9 @@ namespace skycraft::Loot
 				const bool dead = actor->IsDead();
 				return { std::format("{} of {}", dead ? "corpse" : "actor", label), dead ? proto::kSrcCorpse : proto::kSrcActor };
 			}
-			return { "container " + label, proto::kSrcContainer };
+			const bool chest = label.find("Chest") != std::string::npos || label.find("chest") != std::string::npos || label.find("Strongbox") != std::string::npos ||
+			                   label.find("Coffer") != std::string::npos;
+			return { "container " + label, proto::kSrcContainer, chest };
 		}
 
 		proto::ItemMaterial MaterialFrom(std::string_view a_keyword)
@@ -184,6 +190,8 @@ namespace skycraft::Loot
 				}
 				const Source from = FromWhere(a_event->oldContainer);
 				ev.source = from.kind;
+				ev.container = a_event->oldContainer;
+				ev.chest = from.chest ? 1 : 0;
 				const char* name = item->GetName();
 				strncpy_s(ev.name, name ? name : "", _TRUNCATE);
 				logger::info("SkyCraft-loot: got {} x {} [{} {:08X}] value {} from {} | {}", ev.count, name && *name ? name : "?", type, ev.formId, value, from.text,
@@ -251,20 +259,99 @@ namespace skycraft::Loot
 		return mask ? mask : static_cast<std::uint16_t>(proto::kVendorAny);
 	}
 
-	void TownName(RE::PlayerCharacter* a_player, char (&a_out)[32])
+	void Place(RE::PlayerCharacter* a_player, char (&a_town)[32], std::uint32_t& a_flags)
 	{
-		a_out[0] = '\0';
-		auto* location = a_player ? a_player->GetCurrentLocation() : nullptr;
+		a_town[0] = '\0';
+		a_flags = 0;
+		if (!a_player) {
+			return;
+		}
+		auto*      location = a_player->GetCurrentLocation();
+		// Runs every frame: only re-read the location's keywords when it changes.
+		static RE::BGSLocation* cachedLocation = nullptr;
+		static bool             cachedValid = false;
+		static char             cachedTown[32] = {};
+		static std::uint32_t    cachedFlags = 0;
+		if (cachedValid && cachedLocation == location) {
+			std::memcpy(a_town, cachedTown, sizeof(a_town));
+			a_flags = cachedFlags;
+			return;
+		}
+		struct Store
+		{
+			char (&town)[32];
+			std::uint32_t& flags;
+			RE::BGSLocation* location;
+			~Store()
+			{
+				std::memcpy(cachedTown, town, sizeof(cachedTown));
+				cachedFlags = flags;
+				cachedLocation = location;
+				cachedValid = true;
+				logger::info("SkyCraft: now in '{}' (place flags {:X})", town, flags);
+			}
+		};
+		Store store{ a_town, a_flags, location };
+		static constexpr std::string_view kDungeonTypes[] = { "LocTypeDungeon", "LocTypeDraugrCrypt", "LocTypeDwarvenAutomatons", "LocTypeFalmerHive",
+			"LocTypeBanditCamp", "LocTypeVampireLair", "LocTypeWarlockLair", "LocTypeForswornCamp", "LocTypeAnimalDen", "LocTypeHagravenNest",
+			"LocTypeMine", "LocTypeSprigganGrove", "LocTypeDragonPriestLair", "LocTypeGiantCamp" };
+		if (location) {
+			for (const auto type : kDungeonTypes) {
+				if (location->HasKeywordString(type)) {
+					a_flags |= proto::kPlaceDungeon;
+					break;
+				}
+			}
+		}
 		for (auto* l = location; l; l = l->parentLoc) {
 			if (l->HasKeywordString("LocTypeCity") || l->HasKeywordString("LocTypeTown") || l->HasKeywordString("LocTypeSettlement")) {
 				const char* name = l->GetName();
-				strncpy_s(a_out, name ? name : "", _TRUNCATE);
+				strncpy_s(a_town, name ? name : "", _TRUNCATE);
+				a_flags |= proto::kPlaceTown;
 				return;
 			}
 		}
 		if (location) {
 			const char* name = location->GetName();
-			strncpy_s(a_out, name ? name : "", _TRUNCATE);
+			strncpy_s(a_town, name ? name : "", _TRUNCATE);
 		}
+	}
+
+	void PlaceWithCell(RE::PlayerCharacter* a_player, char (&a_town)[32], std::uint32_t& a_flags)
+	{
+		Place(a_player, a_town, a_flags);
+		if (a_player && a_player->GetParentCell() && a_player->GetParentCell()->IsInteriorCell()) {
+			a_flags |= proto::kPlaceInterior;
+		}
+	}
+
+	void PassTime(float a_hours)
+	{
+		auto* cal = RE::Calendar::GetSingleton();
+		if (!cal || !cal->gameHour || !cal->gameDaysPassed || !cal->gameDay || !cal->gameMonth || !cal->gameYear || !(a_hours > 0.0f) || a_hours > 24.0f) {
+			return;
+		}
+		const float before = cal->gameHour->value;
+		cal->gameDaysPassed->value += a_hours / 24.0f;
+		float hour = before + a_hours;
+		if (hour >= 24.0f) {
+			// Roll the date over like Skyrim's own clock does (Skyrim months have Earth's lengths).
+			static constexpr int kDays[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+			hour -= 24.0f;
+			float day = cal->gameDay->value + 1.0f;
+			const int month = static_cast<int>(cal->gameMonth->value);
+			if (day > static_cast<float>(kDays[std::clamp(month, 0, 11)])) {
+				day = 1.0f;
+				if (month >= 11) {
+					cal->gameMonth->value = 0.0f;
+					cal->gameYear->value += 1.0f;
+				} else {
+					cal->gameMonth->value = static_cast<float>(month + 1);
+				}
+			}
+			cal->gameDay->value = day;
+		}
+		cal->gameHour->value = hour;
+		logger::info("SkyCraft: slept in a Minecraft bed, Skyrim time {:.2f} -> {:.2f} (+{:.1f} h)", before, hour, a_hours);
 	}
 }

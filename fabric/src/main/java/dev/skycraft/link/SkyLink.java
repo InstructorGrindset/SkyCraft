@@ -202,6 +202,8 @@ public final class SkyLink {
 		public int teleportSeq;
 		public int viewportW, viewportH;
 		public float gameHour;
+		public String town = "";
+		public int place;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -283,6 +285,8 @@ public final class SkyLink {
 			out.viewportW = s.get(JAVA_INT, b + SS_VIEWPORT_W);
 			out.viewportH = s.get(JAVA_INT, b + SS_VIEWPORT_H);
 			out.gameHour = s.get(JAVA_FLOAT, b + SS_GAME_HOUR);
+			out.town = readName(s, b + SS_TOWN, 32);
+			out.place = s.get(JAVA_INT, b + SS_PLACE);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -404,7 +408,8 @@ public final class SkyLink {
 	// ---- actor table (read) ----------------------------------------------------------------
 
 	/** One nearby Skyrim actor (see ActorRecord in the protocol header). */
-	public record Actor(int formId, int flags, float x, float y, float z, float yaw, float width, float height, float healthFrac, int level, String name) {
+	public record Actor(int formId, int flags, float x, float y, float z, float yaw, float width, float height, float healthFrac, int level, int vendor,
+		String name) {
 		public boolean dead() {
 			return (this.flags & ACTOR_DEAD) != 0;
 		}
@@ -435,7 +440,8 @@ public final class SkyLink {
 					s.get(JAVA_INT, r), s.get(JAVA_INT, r + 4),
 					s.get(JAVA_FLOAT, r + 8), s.get(JAVA_FLOAT, r + 12), s.get(JAVA_FLOAT, r + 16),
 					s.get(JAVA_FLOAT, r + 20), s.get(JAVA_FLOAT, r + 24), s.get(JAVA_FLOAT, r + 28),
-					s.get(JAVA_FLOAT, r + 32), Short.toUnsignedInt(s.get(JAVA_SHORT, r + 36)), readName(s, r + 40, 24)
+					s.get(JAVA_FLOAT, r + 32), Short.toUnsignedInt(s.get(JAVA_SHORT, r + 36)),
+					Short.toUnsignedInt(s.get(JAVA_SHORT, r + 38)), readName(s, r + 40, 24)
 				));
 			}
 			VarHandle.loadLoadFence();
@@ -463,7 +469,7 @@ public final class SkyLink {
 	// ---- item ring (consume) ---------------------------------------------------------------
 
 	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */
-	public record Item(int formId, int count, int tags, int material, int source, String name) {
+	public record Item(int formId, int count, int tags, int material, int source, String name, int container, boolean chest) {
 	}
 
 	/** Takes every queued item event off the ring, oldest first. */
@@ -481,7 +487,8 @@ public final class SkyLink {
 		while (tail < head) {
 			long e = base + ITR_DATA + (tail & (ITEM_RING_ENTRIES - 1)) * ITEM_BYTES;
 			Item item = new Item(s.get(JAVA_INT, e), s.get(JAVA_INT, e + 4), s.get(JAVA_INT, e + 8), Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 12)),
-				Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 13)), readName(s, e + 16, 32));
+				Byte.toUnsignedInt(s.get(JAVA_BYTE, e + 13)), readName(s, e + 16, 28), s.get(JAVA_INT, e + 44),
+				s.get(JAVA_BYTE, e + 14) != 0);
 			tail++;
 			sink.accept(item);
 		}

@@ -8,7 +8,7 @@ public final class Proto {
 	}
 
 	public static final int MAGIC = 0x43594B53;
-	public static final int VERSION = 12;
+	public static final int VERSION = 13;
 	// A second client on the same PC (multiplayer testing) talks to its own stand-in Skyrim:
 	// -Dskycraft.link=Local\SkyCraft_guest (see tools/fake_guest.py).
 	public static final String MAPPING_NAME = System.getProperty("skycraft.link", "Local\\SkyCraft_v1");
@@ -72,6 +72,8 @@ public final class Proto {
 	public static final int EV_SKILL_USE = 5;
 	/** Minecraft converted a looted item: formId = the item's base form, a = how many Skyrim removes. */
 	public static final int EV_TAKE_ITEM = 6;
+	/** The player slept in a Minecraft bed: a = game hours Skyrim passes. */
+	public static final int EV_SLEEP = 7;
 
 	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
 	public static final int ITEM_RING_ENTRIES = 64;
@@ -79,6 +81,13 @@ public final class Proto {
 	public static final long ITR_TAIL = 0x40;
 	public static final long ITR_DATA = 0x80;
 	public static final long ITEM_BYTES = 48;
+	// ItemSource
+	public static final int SRC_WORLD = 0;
+	public static final int SRC_CORPSE = 1;
+	public static final int SRC_CONTAINER = 2;
+	public static final int SRC_ACTOR = 3;
+	/** Skyrim skill (ActorValue) trained by trading with a Minecraft merchant screen. */
+	public static final int SKILL_SPEECH = 17;
 	// Skyrim skills (ActorValue) Minecraft reports use of; weapon skills come from EV_HIT_ACTOR.
 	public static final int SKILL_BLOCK = 9;
 	public static final int SKILL_SMITHING = 10;
@@ -154,6 +163,26 @@ public final class Proto {
 	public static final long SS_VIEWPORT_W = 0x34;
 	public static final long SS_VIEWPORT_H = 0x38;
 	public static final long SS_GAME_HOUR = 0x3C;
+	public static final long SS_TOWN = 0x40;   // char[32]
+	public static final long SS_PLACE = 0x60;  // PlaceFlags
+	public static final int PLACE_INTERIOR = 1;
+	public static final int PLACE_DUNGEON = 1 << 1;
+	public static final int PLACE_TOWN = 1 << 2;
+
+	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
+	public static final int VENDOR_ANY = 1;
+	public static final int VENDOR_WEAPON = 1 << 1;
+	public static final int VENDOR_ARMOR = 1 << 2;
+	public static final int VENDOR_INGOT = 1 << 3;
+	public static final int VENDOR_POTION = 1 << 4;
+	public static final int VENDOR_INGREDIENT = 1 << 5;
+	public static final int VENDOR_FOOD = 1 << 6;
+	public static final int VENDOR_ARROW = 1 << 7;
+	public static final int VENDOR_JEWELRY = 1 << 8;
+	public static final int VENDOR_BOOK = 1 << 9;
+	public static final int VENDOR_HIDE = 1 << 10;
+	public static final int VENDOR_TOOL = 1 << 11;
+	public static final int VENDOR_STOLEN = 1 << 12;
 
 	public static final int SKY_IN_GAME = 1;
 	public static final int SKY_MENU_OPEN = 1 << 1;

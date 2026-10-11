@@ -992,7 +992,7 @@ namespace skycraft
 			if (auto* calendar = RE::Calendar::GetSingleton()) {
 				sky.gameHour = calendar->GetHour();
 			}
-			Loot::TownName(a_player, sky.town);
+			Loot::PlaceWithCell(a_player, sky.town, sky.place);
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;
