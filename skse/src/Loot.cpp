@@ -172,6 +172,14 @@ namespace skycraft::Loot
 				case RE::FormType::Scroll:
 					ev.tags |= proto::kTagBook;
 					break;
+				case RE::FormType::SoulGem:
+					// Portal keys: the filled base forms (SoulGemGrandFilled and kin) hold their soul on the form.
+					// A gem filled by Soul Trap keeps its soul on the inventory stack instead, so it isn't tagged.
+					ev.tags |= proto::kTagSoulGem;
+					if (const auto* gem = item->As<RE::TESSoulGem>(); gem && gem->GetContainedSoul() != RE::SOUL_LEVEL::kNone) {
+						ev.tags |= proto::kTagSoulFilled;
+					}
+					break;
 				default:
 					break;
 				}

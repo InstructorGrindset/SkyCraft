@@ -89,6 +89,16 @@ public final class Proto {
 	 * on, as G does, at most once per 0.4 s. No fields. Added within protocol 13; an older Skyrim plugin ignores it.
 	 */
 	public static final int EV_ACTIVATE = 10;
+	/**
+	 * The host stood in a bound portal (portal.SkyPortals): Skyrim moves the player to its partner behind a loading screen,
+	 * as a load door does. formId = the destination Skyrim world as SkyState worldId names it (a worldspace FormID outside,
+	 * an interior cell FormID when flags has PORTAL_INTERIOR), a/b/c = where the feet go (MC coords, just in front of the
+	 * partner portal on its exit side), d = the yaw to face (MC degrees), weapon = SkyState worldId when sent (Skyrim drops
+	 * the request once the player is anywhere else). Added within protocol 13; an older Skyrim plugin ignores it.
+	 */
+	public static final int EV_PORTAL_TRAVEL = 11;
+	/** EV_PORTAL_TRAVEL flags: the destination formId is an interior cell. */
+	public static final int PORTAL_INTERIOR = 1;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;

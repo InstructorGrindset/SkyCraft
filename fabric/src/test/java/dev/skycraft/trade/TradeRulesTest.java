@@ -301,4 +301,26 @@ class TradeRulesTest {
 		assertEquals(1.1, rules.town("Riften").multiplier("food"), 1e-9);
 		assertEquals(0.7, rules.town("Whiterun").multiplier("food"), 1e-9);
 	}
+
+	@Test
+	void obsidianForPortalsIsSoldDearAndNeverBought() {
+		TradeRules rules = defaults();
+		Set<String> sellers = new HashSet<>();
+		for (TradeRules.Trade t : rules.trades()) {
+			if (!t.item().equals("minecraft:obsidian")) {
+				continue;
+			}
+			assertTrue(t.sell(), "merchants never buy obsidian: " + t);
+			sellers.add(t.category());
+			// Ten blocks make a frame: a portal costs hundreds of coins even where it's cheapest.
+			for (TradeRules.Town town : rules.towns().values()) {
+				assertTrue(t.price() * town.multiplier(t.category()) / t.count() >= 20.0, town.name() + " " + t);
+			}
+		}
+		assertEquals(Set.of("ingot", "tool"), sellers);
+		// Markarth's smiths (ingots 0.7) sell it for less than a general store elsewhere.
+		Map<String, Integer> ingot = basePrices(rules, "ingot");
+		double markarth = ingot.get("sell 2 minecraft:obsidian") * rules.town("Markarth").multiplier("ingot") / 2.0;
+		assertTrue(markarth < basePrices(rules, "tool").get("sell 1 minecraft:obsidian"), "Markarth " + markarth);
+	}
 }

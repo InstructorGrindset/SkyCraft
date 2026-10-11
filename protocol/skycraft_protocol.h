@@ -300,6 +300,18 @@ namespace skycraft::proto
 		                       // it): Skyrim activates whatever its own crosshair is on when this arrives, as the G key does,
 		                       // at most once per 0.4 s; nothing there, nothing happens. Added within version 13 (an older
 		                       // plugin ignores the type)
+		kEvPortalTravel = 11,  // the player stood in a bound Minecraft portal: Skyrim moves them to its partner behind a
+		                       // loading screen, as a load door does (Travel.cpp). formId = the destination Skyrim world as
+		                       // SkyState::worldId names it: a worldspace FormID outside, an interior cell FormID when flags
+		                       // has kPortalInterior. a/b/c = where the player's feet go (MC coords: just in front of the
+		                       // partner portal, on its exit side), d = the yaw they face there (MC degrees), flags =
+		                       // PortalTravelFlags, weapon = SkyState::worldId when Minecraft sent it: Skyrim drops the request
+		                       // if the player is no longer in that world. Added within version 13 (an older plugin ignores it)
+	};
+
+	enum PortalTravelFlags : std::uint32_t
+	{
+		kPortalInterior = 1u << 0,  // kEvPortalTravel's formId is an interior cell, not a worldspace
 	};
 
 	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).
@@ -368,6 +380,8 @@ namespace skycraft::proto
 		kTagGem = 1u << 14,        // VendorItemGem
 		kTagClutter = 1u << 15,    // VendorItemClutter
 		kTagBook = 1u << 16,       // form type Book or Scroll
+		kTagSoulGem = 1u << 17,    // form type SoulGem (VendorItemSoulGem; not the misc soul gem fragments)
+		kTagSoulFilled = 1u << 18, // a soul gem that holds a soul as it comes (the filled base forms Skyrim sells and loots)
 	};
 
 	// Weapon/armor material from WeapMaterial*/ArmorMaterial* keywords.

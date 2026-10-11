@@ -3,6 +3,7 @@
 #include "Loot.h"
 #include "Game.h"
 #include "Spawn.h"
+#include "Travel.h"
 
 namespace
 {
@@ -43,6 +44,7 @@ namespace
 			skycraft::Game::OnGameLoaded();
 			skycraft::Spawn::Reset();
 			skycraft::Breach::Reset();
+			skycraft::Travel::Reset();  // portal network
 			break;
 		default:
 			break;

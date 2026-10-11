@@ -143,7 +143,8 @@ class ItemRulesTest {
 		int found = 0;
 		while (m.find()) {
 			found++;
-			assertTrue(dev.skycraft.gear.GearTiers.allItemIds().contains(m.group(1)), "unknown item skycraft:" + m.group(1));
+			assertTrue(dev.skycraft.gear.GearTiers.allItemIds().contains(m.group(1)) || dev.skycraft.portal.PortalStore.ITEM_IDS.contains(m.group(1)),
+				"unknown item skycraft:" + m.group(1));
 		}
 		assertTrue(found >= 8, "expected the gear material rules in the defaults");
 	}
@@ -357,5 +358,23 @@ class ItemRulesTest {
 	@Test
 	void tagNamesForLogs() {
 		assertEquals("food,foodraw", ItemRules.tagNames(tags("food", "foodraw")));
+	}
+
+	@Test
+	void filledBigSoulGemsBecomePortalKeys() {
+		ItemRules rules = defaults();
+		// Skyrim's filled base forms share the empty gems' names; the filled tag tells them apart.
+		assertEquals("skycraft:filled_soul_gem 1", convert(rules, tags("soulgem", "filled"), 0, CONTAINER, "Grand Soul Gem"));
+		assertEquals("skycraft:filled_soul_gem 1", convert(rules, tags("soulgem", "filled"), 0, BOUGHT, "Greater Soul Gem"));
+		assertEquals("skycraft:filled_soul_gem 1", convert(rules, tags("soulgem", "filled"), 0, CORPSE, "Black Soul Gem"));
+		assertEquals("keep", convert(rules, tags("soulgem"), 0, CONTAINER, "Grand Soul Gem"));
+		assertEquals("keep", convert(rules, tags("soulgem"), 0, BOUGHT, "Black Soul Gem"));
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, CONTAINER, "Common Soul Gem"));
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, CONTAINER, "Petty Soul Gem"));
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, WORLD, "Azura's Star"));
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, WORLD, "The Black Star"));
+		// Soul gem fragments are misc items, not soul gems.
+		assertEquals("keep", convert(rules, tags("clutter"), 0, CONTAINER, "Soul Gem Fragment"));
+		assertEquals("soulgem,filled", ItemRules.tagNames(tags("soulgem", "filled")));
 	}
 }

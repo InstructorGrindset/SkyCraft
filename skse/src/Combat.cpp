@@ -3,6 +3,7 @@
 #include "Loot.h"
 #include "WorldState.h"
 #include "Spawn.h"
+#include "Travel.h"
 
 namespace skycraft
 {
@@ -871,6 +872,8 @@ namespace skycraft
 						WorldState::PassTime(ev.a);
 					} else if (ev.type == proto::kEvEnterDungeon) {
 						Breach::Enter(a_player, ev.formId);
+					} else if (ev.type == proto::kEvPortalTravel) {
+						Travel::Request(a_player, ev);  // checks the player's state itself
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
@@ -880,6 +883,7 @@ namespace skycraft
 				link.WriteActors(nullptr, 0);
 				Spawn::Update(a_player, a_delta);
 				Breach::Update(a_player, a_delta);
+				Travel::Update(a_player, a_delta);
 				return;
 			}
 			// Skyrim can't kill the player while Minecraft decides: one huge hit knocks them down
@@ -923,6 +927,9 @@ namespace skycraft
 				case proto::kEvEnterDungeon:
 					Breach::Enter(a_player, ev.formId);
 					break;
+				case proto::kEvPortalTravel:
+					Travel::Request(a_player, ev);
+					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
 						TrainSkill(a_player, static_cast<RE::ActorValue>(ev.formId), ev.a);
@@ -936,6 +943,7 @@ namespace skycraft
 			UpdateFlings(a_delta);
 			Spawn::Update(a_player, a_delta);
 			Breach::Update(a_player, a_delta);
+			Travel::Update(a_player, a_delta);
 			for (auto it = pendingExplosions.begin(); it != pendingExplosions.end();) {
 				it->delay -= a_delta;
 				if (it->delay <= 0.0f) {
