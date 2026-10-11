@@ -479,7 +479,7 @@ public final class SkyPortals {
 			return;
 		}
 		int flags = to.interior() ? Proto.PORTAL_INTERIOR : 0;
-		SkyLink.pushEvent(Proto.EV_PORTAL_TRAVEL, to.world(), (float) exit[0], (float) exit[1], (float) exit[2], (float) exit[3], flags, SKY.worldId);
+		SkyLink.pushEventAt(Proto.EV_PORTAL_TRAVEL, to.world(), exit[0], exit[1], exit[2], (float) exit[3], flags, SKY.worldId); // in to's world's terms
 		pending = new Pending(from.id(), to.id(), placeName(to), player.getUUID(), now, SKY.worldId, SKY.teleportSeq, SkyCollision.epoch());
 		player.connection.send(new ClientboundLevelEventPacket(LevelEvent.SOUND_PORTAL_TRAVEL, BlockPos.ZERO, 0, false));
 		player.sendOverlayMessage(Component.literal("The portal pulls you toward " + placeName(to) + "..."));

@@ -281,6 +281,13 @@ public final class Proto {
 	public static final long MS_TICK_MS = 0xB8;
 	public static final long MS_CAMERA_MODE = 0xC0;
 	public static final long MS_CAMERA_DISTANCE = 0xC4;
+	/**
+	 * The Skyrim world whose space (SkySpace) Minecraft's player stands in, 0 if none or not in the mirror, and that
+	 * space's origin (Minecraft blocks). Added within protocol 13; for Skyrim's log only.
+	 */
+	public static final long MS_SPACE_WORLD = 0xC8;
+	public static final long MS_SPACE_X = 0xCC;
+	public static final long MS_SPACE_Z = 0xD0;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -333,6 +340,7 @@ public final class Proto {
 	public static final long CR_DATA = 0x80;
 	public static final long CR_DATA_BYTES = COLLISION_RING_BYTES - CR_DATA;
 	public static final int COL_PAD = 0;
+	/** Payload: u32 epoch, then (added within protocol 13) u32 worldId: the Skyrim world the epoch's regions are of. */
 	public static final int COL_CLEAR = 1;
 	public static final int COL_REGION = 2;
 	public static final int COL_TRIS = 3;

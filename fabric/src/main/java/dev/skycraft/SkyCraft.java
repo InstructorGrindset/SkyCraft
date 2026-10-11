@@ -23,6 +23,7 @@ public final class SkyCraft implements ModInitializer {
 	public void onInitialize() {
 		SkyCombat.init();
 		dev.skycraft.gear.SkyGear.init();
+		dev.skycraft.world.SpaceMigration.init(); // each Skyrim world's blocks in a space of their own (SkySpace)
 		dev.skycraft.net.SkyNet.init();
 		dev.skycraft.world.SkyDig.init();
 		dev.skycraft.breach.SkyBreach.init();

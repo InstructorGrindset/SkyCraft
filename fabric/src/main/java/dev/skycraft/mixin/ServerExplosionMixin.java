@@ -72,6 +72,6 @@ public abstract class ServerExplosionMixin {
 			return;
 		}
 		var center = self.center();
-		SkyLink.pushEvent(Proto.EV_EXPLOSION, 0, (float) center.x, (float) center.y, (float) center.z, self.radius(), 0);
+		SkyLink.pushEventAt(Proto.EV_EXPLOSION, 0, center.x, center.y, center.z, self.radius(), 0, 0);
 	}
 }

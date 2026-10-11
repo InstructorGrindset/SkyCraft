@@ -61,6 +61,6 @@ public abstract class AbstractArrowMixin {
 		float pitch = (float) (Mth.atan2(v.y, v.horizontalDistance()) * Mth.RAD_TO_DEG);
 		int texture = self instanceof SpectralArrow ? 2 : self instanceof Arrow tippable && tippable.getColor() > 0 ? 1 : 0;
 		Vec3 at = this.skycraft$hitAt;
-		SkyLink.pushEvent(Proto.EV_ARROW_STUCK, actor.formId(), (float) at.x, (float) at.y, (float) at.z, yaw, Float.floatToRawIntBits(pitch), texture);
+		SkyLink.pushEventAt(Proto.EV_ARROW_STUCK, actor.formId(), at.x, at.y, at.z, yaw, Float.floatToRawIntBits(pitch), texture);
 	}
 }

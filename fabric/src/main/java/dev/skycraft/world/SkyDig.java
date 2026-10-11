@@ -51,7 +51,8 @@ import org.jspecify.annotations.Nullable;
  * ({@link #wallShape}).</li>
  * </ul>
  * Which cells are dug is kept per chunk (saved with the world, synced to every player) and per
- * Skyrim world (worldspace or interior cell: interiors share coordinates), and sent to Skyrim.
+ * Skyrim world (worldspace or interior cell), and sent to Skyrim. Each Skyrim world has a space of its
+ * own in the mirror (SkySpace), so its dug cells and the blocks they reveal are in its space only.
  * Opening and revealing are decided by the digging player's client, which knows Skyrim's geometry
  * around them; the server just applies it.
  */
@@ -139,6 +140,39 @@ public final class SkyDig {
 			}
 			return new DugColumn(List.copyOf(out));
 		}
+
+		/** This column without one Skyrim world's sections. */
+		public DugColumn without(int world) {
+			List<DugSection> out = new ArrayList<>(this.sections.size());
+			for (DugSection s : this.sections) {
+				if (s.world != world) {
+					out.add(s);
+				}
+			}
+			return out.size() == this.sections.size() ? this : new DugColumn(List.copyOf(out));
+		}
+
+		/** This column with a section's cells added (to its world's section at that height, if any). */
+		public DugColumn merged(DugSection add) {
+			List<DugSection> out = new ArrayList<>(this.sections.size() + 1);
+			boolean found = false;
+			for (DugSection s : this.sections) {
+				if (s.world == add.world && s.sectionY == add.sectionY && s.bits.length == 64 && add.bits.length == 64) {
+					long[] bits = s.bits.clone();
+					for (int k = 0; k < 64; k++) {
+						bits[k] |= add.bits[k];
+					}
+					out.add(new DugSection(s.world, s.sectionY, bits));
+					found = true;
+				} else {
+					out.add(s);
+				}
+			}
+			if (!found) {
+				out.add(add);
+			}
+			return new DugColumn(List.copyOf(out));
+		}
 	}
 
 	public static final AttachmentType<DugColumn> DUG = AttachmentRegistry.<DugColumn>builder()
@@ -154,6 +188,11 @@ public final class SkyDig {
 	public static DugColumn column(LevelChunk chunk) {
 		DugColumn column = chunk.getAttached(DUG);
 		return column != null ? column : DugColumn.EMPTY;
+	}
+
+	/** Replaces a chunk's dug cells (none: the attachment goes). Synced and saved like any dig. */
+	public static void setColumn(LevelChunk chunk, DugColumn column) {
+		chunk.setAttached(DUG, column.sections().isEmpty() ? null : column);
 	}
 
 	public static boolean isDug(Level level, int world, BlockPos pos) {

@@ -700,7 +700,7 @@ namespace skycraft
 				link.ResetOverlay();
 				settleTimer = kSettleSeconds;
 				++epoch;
-				Collision::Get().Reset(epoch);
+				Collision::Get().Reset(epoch, worldId);
 				teleportPending = true;
 			}
 			mcWasAlive = mcAlive;
@@ -732,10 +732,19 @@ namespace skycraft
 					worldId = id;
 					Dig::SetWorld(id);
 					++epoch;
-					Collision::Get().Reset(epoch);
+					Collision::Get().Reset(epoch, id);
 					teleportPending = true;
 					settleTimer = kSettleSeconds;
 				}
+			}
+
+			// Minecraft keeps each Skyrim world's blocks in a space of its own and says which one its player
+			// is in (everything on the link is in our world's terms either way): logged for checking.
+			static std::uint32_t loggedSpace = 0;
+			if (haveMc && (mc.flags & proto::kMcInWorld) && mc.spaceWorld != 0 && mc.spaceWorld != loggedSpace) {
+				loggedSpace = mc.spaceWorld;
+				logger::info("Minecraft's player is in world {:08X}'s space (its blocks at {} {}){}", mc.spaceWorld, mc.spaceX, mc.spaceZ,
+					mc.spaceWorld == worldId ? "" : "; that isn't ours yet");
 			}
 
 			// Minecraft view (View.cpp): Minecraft's player is in another dimension (the Nether, ...) and
