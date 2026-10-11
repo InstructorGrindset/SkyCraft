@@ -6,6 +6,7 @@ import dev.skycraft.SkyCraft;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
 import dev.skycraft.world.SkyClip;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.nio.ByteBuffer;
@@ -63,6 +64,15 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class WorldExporter {
 	private static final int SECTIONS_PER_FRAME = 12;
 	private static final double ENTITY_RANGE = 96.0;
+	// Dropped and thrown items this close to the camera are drawn with Minecraft's own model
+	// (AvatarExporter's scene: sprites extruded a pixel thick, block models, a few copies for a
+	// stack, Minecraft's bobbing and spinning); further ones, or past the count, as a flat sprite or
+	// a small cube from here, which costs far less to send every frame.
+	private static final double ITEM_MODEL_RANGE = 16.0;
+	private static final int ITEM_MODEL_MAX = 24;
+	private static final IntOpenHashSet MODELLED = new IntOpenHashSet();
+	private static final List<Entity> NEAR_ITEMS = new ArrayList<>();
+	private static boolean itemModelsOff;
 
 	private static final LongLinkedOpenHashSet DIRTY = new LongLinkedOpenHashSet();
 	private static final LongOpenHashSet SENT = new LongOpenHashSet(); // sections Skyrim holds a mesh for
@@ -315,12 +325,51 @@ public final class WorldExporter {
 		return true;
 	}
 
+	/** True if AvatarExporter's scene draws this dropped or thrown item this frame, with Minecraft's own model. */
+	static boolean modelled(Entity e) {
+		return MODELLED.contains(e.getId());
+	}
+
+	/** An item's model couldn't be captured: every item is drawn from here (flat sprite, cube) from now on. */
+	static void stopModellingItems() {
+		if (!itemModelsOff) {
+			itemModelsOff = true;
+			SkyCraft.LOG.warn("SkyCraft: dropped items go to Skyrim as flat sprites from now on");
+		}
+	}
+
+	/** The dropped and thrown items nearest the camera, up to ITEM_MODEL_MAX within ITEM_MODEL_RANGE. */
+	private static void pickModelledItems(Minecraft minecraft, ClientLevel level) {
+		MODELLED.clear();
+		NEAR_ITEMS.clear();
+		if (itemModelsOff) {
+			return;
+		}
+		Vec3 cam = minecraft.gameRenderer.mainCamera().position();
+		for (Entity e : level.entitiesForRendering()) {
+			if ((e instanceof ItemEntity || e instanceof ItemSupplier) && !(e instanceof AbstractArrow) && e.distanceToSqr(cam) <= ITEM_MODEL_RANGE * ITEM_MODEL_RANGE) {
+				NEAR_ITEMS.add(e);
+			}
+		}
+		if (NEAR_ITEMS.size() > ITEM_MODEL_MAX) {
+			NEAR_ITEMS.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(cam)));
+		}
+		for (int i = 0; i < NEAR_ITEMS.size() && i < ITEM_MODEL_MAX; i++) {
+			MODELLED.add(NEAR_ITEMS.get(i).getId());
+		}
+		NEAR_ITEMS.clear();
+	}
+
 	private static void exportEntities(Minecraft minecraft, ClientLevel level, float partialTick) {
 		ENTITIES.clear();
+		pickModelledItems(minecraft, level);
 		Vec3 eye = minecraft.player.getEyePosition(partialTick);
 		for (Entity e : level.entitiesForRendering()) {
 			if (ENTITIES.size() >= Proto.MAX_WORLD_ENTITIES || e.distanceToSqr(eye) > ENTITY_RANGE * ENTITY_RANGE) {
 				continue;
+			}
+			if (MODELLED.contains(e.getId())) {
+				continue; // AvatarExporter's scene has it
 			}
 			Vec3 p = e.getPosition(partialTick);
 			if (e instanceof AbstractArrow arrow) {

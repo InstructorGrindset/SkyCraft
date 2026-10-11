@@ -663,8 +663,9 @@ namespace skycraft::proto
 		float         u, v;     // atlas UV
 		std::uint32_t color;    // RGBA8 (tint * ambient occlusion; Minecraft's fixed face shading is left out)
 		std::uint32_t light;    // low byte: block light 0-15, next byte: sky light 0-15
-		std::uint32_t flags;    // bit0: cutout (alpha test), bit1: translucent,
-		                        // bits 4-6: face normal as MC Direction ordinal + 1 (0 = none: lit without a normal)
+		std::uint32_t flags;    // bit0: cutout (alpha test), bit1: translucent, bit3: full-detail texture (no mips),
+		                        // bits 4-6: face normal as MC Direction ordinal + 1 (0 = none: lit without a normal;
+		                        // 7: the triangle's own), bit7: glows, unlit (experience orbs)
 	};
 	static_assert(sizeof(RenVertex) == 32);
 
