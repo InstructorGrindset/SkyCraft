@@ -1,2 +1,2 @@
-# Every Minecraft 26.3 item, for checking conversion rule ids.
-net.minecraft.world.item.Items
+# Every Minecraft 26.3 item: its item model definition.
+list:assets/minecraft/items/
