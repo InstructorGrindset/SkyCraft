@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
  * Minecraft items per Skyrim item; {@code +} joins several items. A bracket after one of the
  * {@link #POTION_ITEMS} names the vanilla potion it holds, one of {@link #POTIONS}; braces list
  * effects of its own instead ({@link Effect}), with an optional {@code #rrggbb} color and
- * {@code "name"}. Effect ranges scale with the Skyrim name's tier ({@link #TIERS}).
+ * {@code "name"}. Effect ranges scale with the Skyrim name's tier ({@link #TIERS}). Braces after any other item list
+ * enchantments ({@link #ENCHANTMENTS}, {@code id:level}) and an optional name instead: Skyrim gear that keeps its enchantment.
  * Skyrim sends names cut to 27 bytes; {@link #fullName} gives back the known long ones.
  * Pure Java on purpose, so it's unit tested without Minecraft.
  */
@@ -62,6 +63,17 @@ public final class ItemRules {
 	/** Items that hold a potion (the potion_contents component), so a rule can write {@code minecraft:potion[healing]}. */
 	public static final List<String> POTION_ITEMS = List.of("minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion",
 		"minecraft:tipped_arrow");
+	/**
+	 * Enchantment ids, as Minecraft 26.3 registers them (net.minecraft.world.item.enchantment.Enchantments), for gear that
+	 * keeps a Skyrim enchantment: {@code skycraft:ebony_sword{fire_aspect:2}}. On an enchanted book they're its stored ones.
+	 */
+	public static final List<String> ENCHANTMENTS = List.of("aqua_affinity", "bane_of_arthropods", "binding_curse", "blast_protection", "breach",
+		"channeling", "density", "depth_strider", "efficiency", "feather_falling", "fire_aspect", "fire_protection", "flame", "fortune", "frost_walker",
+		"impaling", "infinity", "knockback", "looting", "loyalty", "luck_of_the_sea", "lunge", "lure", "mending", "multishot", "piercing", "power",
+		"projectile_protection", "protection", "punch", "quick_charge", "respiration", "riptide", "sharpness", "silk_touch", "smite", "soul_speed",
+		"sweeping_edge", "swift_sneak", "thorns", "unbreaking", "vanishing_curse", "wind_burst");
+	/** The highest enchantment level a rule may give (vanilla's own top is V). */
+	public static final int MAX_ENCHANT_LEVEL = 10;
 	/**
 	 * How strong a Skyrim potion or poison is, from the words of its name: Minor and Weak are tier 0, a name
 	 * without a tier word is tier 1, and Ultimate, Grand and Prime are tier 5. The strongest word counts.
@@ -122,18 +134,28 @@ public final class ItemRules {
 		}
 	}
 
+	/** An enchantment an item comes with: a 26.3 enchantment id ({@link #ENCHANTMENTS}) and its level. */
+	public record Enchant(String id, int level) {
+	}
+
 	/**
 	 * {@code item} null means keep it in Skyrim; {@code potion} is the vanilla potion the item holds, or null;
 	 * {@code effects} its own effects; {@code color} 0xRRGGBB or -1; {@code name} the Minecraft name, or null for
-	 * Minecraft's own; {@code also} more items given with it.
+	 * Minecraft's own; {@code also} more items given with it; {@code enchantments} what a non-potion item comes
+	 * enchanted with.
 	 */
-	public record Result(String item, int perItem, String potion, List<Effect> effects, int color, String name, List<Result> also) {
+	public record Result(String item, int perItem, String potion, List<Effect> effects, int color, String name, List<Result> also,
+		List<Enchant> enchantments) {
 		public Result(String item, int perItem) {
 			this(item, perItem, null);
 		}
 
 		public Result(String item, int perItem, String potion) {
 			this(item, perItem, potion, List.of(), -1, null, List.of());
+		}
+
+		public Result(String item, int perItem, String potion, List<Effect> effects, int color, String name, List<Result> also) {
+			this(item, perItem, potion, effects, color, name, also, List.of());
 		}
 
 		public boolean keep() {
@@ -157,6 +179,9 @@ public final class ItemRules {
 			if (this.custom()) {
 				sb.append('{').append(this.effects.stream().map(Effect::text).collect(Collectors.joining("+"))).append('}');
 			}
+			if (!this.enchantments.isEmpty()) {
+				sb.append('{').append(this.enchantments.stream().map(e -> e.id() + ":" + e.level()).collect(Collectors.joining("+"))).append('}');
+			}
 			return sb.toString();
 		}
 
@@ -177,7 +202,7 @@ public final class ItemRules {
 			List<Effect> fx = this.effects.stream().map(e -> e.at(tier)).toList();
 			String n = this.name != null ? this.name : this.custom() && skyrimName != null ? skyrimName.strip() : null;
 			List<Result> more = this.also.stream().map(r -> r.at(tier, skyrimName)).toList();
-			return new Result(this.item, this.perItem, this.potion, fx, this.color, n, more);
+			return new Result(this.item, this.perItem, this.potion, fx, this.color, n, more, this.enchantments);
 		}
 	}
 
@@ -228,6 +253,9 @@ public final class ItemRules {
 		#   conditions = minecraft:potion[healing] N   (a vanilla potion; see "Potions and poisons" below)
 		#   conditions = minecraft:potion{speed:0-1:60-180 + jump_boost:0:60 #3a9a3a "Name"} N
 		#                                     (a potion with effects of its own; see "Potions and poisons")
+		#   conditions = skycraft:ebony_sword{fire_aspect:2 + looting:1 "Name"} N
+		#                                     (gear that keeps a Skyrim enchantment, levels 1 to 10, and
+		#                                     maybe its name; an enchanted_book stores them)
 		# Conditions (all must hold): tag <t>, name <word>, material <m>, from <where>
 		#   tags: food foodraw hide oreingot potion poison ingredient weapon armor clothing jewelry
 		#         gold key arrow gem clutter book soulgem filled (a soul gem that comes with a soul)
@@ -1062,7 +1090,7 @@ public final class ItemRules {
 				}
 				Result first = outputs.get(0);
 				result = new Result(first.item(), first.perItem(), first.potion(), first.effects(), first.color(), first.name(),
-					List.copyOf(outputs.subList(1, outputs.size())));
+					List.copyOf(outputs.subList(1, outputs.size())), first.enchantments());
 			}
 			out.add(new Rule(tagMask, material, sourceMask, List.copyOf(names), result));
 		}
@@ -1145,12 +1173,15 @@ public final class ItemRules {
 			problems.add("line " + n + ": needs an item and a count from 1 to 64");
 			return null;
 		}
-		if (potion != null || body != null) {
-			String id = right[0].toLowerCase(Locale.ROOT);
-			if (!POTION_ITEMS.contains(id.indexOf(':') < 0 ? "minecraft:" + id : id)) {
-				problems.add("line " + n + ": only potion, splash_potion, lingering_potion and tipped_arrow hold a potion, not '" + right[0] + "'");
-				return null;
-			}
+		String itemId = right[0].toLowerCase(Locale.ROOT);
+		boolean holdsPotion = POTION_ITEMS.contains(itemId.indexOf(':') < 0 ? "minecraft:" + itemId : itemId);
+		if (potion != null && !holdsPotion) {
+			problems.add("line " + n + ": only potion, splash_potion, lingering_potion and tipped_arrow hold a potion, not '" + right[0] + "'");
+			return null;
+		}
+		if (body != null && !holdsPotion) {
+			// Gear that keeps its Skyrim enchantment, and maybe its name: skycraft:daedric_sword{sharpness:3 "Mehrunes' Razor"}.
+			return parseEnchanted(right[0], per, body, n, problems);
 		}
 		if (potion != null) {
 			if (potion.isEmpty()) {
@@ -1222,6 +1253,55 @@ public final class ItemRules {
 			effects = List.copyOf(fx);
 		}
 		return new Result(right[0], per, potion, effects, color, name, List.of());
+	}
+
+	/** A non-potion item with braces: {@code item{enchantment:level + ... "name"} N}. Null (and a problem) when it's bad. */
+	private static Result parseEnchanted(String item, int per, String body, int n, List<String> problems) {
+		List<Enchant> enchants = new ArrayList<>();
+		String name = null;
+		for (String token : effectTokens(body)) {
+			if (token.startsWith("\"")) {
+				if (token.length() < 2 || !token.endsWith("\"")) {
+					problems.add("line " + n + ": no closing '\"' after the name");
+					return null;
+				}
+				name = token.substring(1, token.length() - 1).strip();
+				if (name.isEmpty()) {
+					problems.add("line " + n + ": '\"\"' names nothing");
+					return null;
+				}
+				continue;
+			}
+			String spec = token.toLowerCase(Locale.ROOT);
+			if (spec.startsWith("minecraft:")) {
+				spec = spec.substring("minecraft:".length());
+			}
+			String[] p = spec.split(":", -1);
+			if (p.length != 2 || p[0].isEmpty()) {
+				problems.add("line " + n + ": '" + token + "' needs enchantment:level, like sharpness:2 (only potions take effects)");
+				return null;
+			}
+			if (!ENCHANTMENTS.contains(p[0])) {
+				problems.add("line " + n + ": unknown enchantment '" + p[0] + "'");
+				return null;
+			}
+			int level;
+			try {
+				level = Integer.parseInt(p[1]);
+			} catch (NumberFormatException e) {
+				level = -1;
+			}
+			if (level < 1 || level > MAX_ENCHANT_LEVEL) {
+				problems.add("line " + n + ": level '" + p[1] + "' of '" + token + "' isn't 1 to " + MAX_ENCHANT_LEVEL);
+				return null;
+			}
+			enchants.add(new Enchant(p[0], level));
+		}
+		if (enchants.isEmpty() && name == null) {
+			problems.add("line " + n + ": '{}' names no enchantment");
+			return null;
+		}
+		return new Result(item, per, null, List.of(), -1, name, List.of(), List.copyOf(enchants));
 	}
 
 	/** Where the brace opened at {@code open} closes, skipping quoted text; -1 when it doesn't. */
