@@ -12,3 +12,16 @@ data/minecraft/tags/worldgen/biome/has_structure/village_plains.json
 data/minecraft/tags/worldgen/biome/has_structure/village_taiga.json
 data/minecraft/tags/worldgen/biome/has_structure/village_snowy.json
 data/minecraft/loot_table/entities/spider.json
+# Gear drops (claude/feedback-gear): vanilla equipment drop chance, Looting, durability damage, arrows.
+-c net.minecraft.world.entity.DropChances
+-c net.minecraft.world.entity.Mob
+data/minecraft/enchantment/looting.json
+data/minecraft/loot_table/entities/skeleton.json
+data/minecraft/loot_table/entities/pillager.json
+net.minecraft.world.item.ItemStack
+net.minecraft.world.item.ItemInstance
+net.minecraft.core.RegistryAccess
+net.minecraft.core.HolderLookup$Provider
+net.minecraft.core.HolderGetter
+net.minecraft.world.entity.item.ItemEntity
+net.minecraft.world.entity.LivingEntity
