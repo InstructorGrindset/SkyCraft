@@ -15,13 +15,40 @@ data/minecraft/loot_table/entities/spider.json
 
 # Natural spawns outside the mirror (claude/feedback-spawns). A class javap can't find stops the probe,
 # so the uncertain ones go last; the log tail holds about 5000 lines.
-net.minecraft.server.level.ServerLevel
-net.minecraft.server.MinecraftServer
-net.minecraft.world.level.dimension.DimensionType
-net.minecraft.world.level.CustomSpawner
--c net.minecraft.server.level.ServerChunkCache
-data/minecraft/dimension_type/overworld.json
-data/minecraft/dimension_type/the_nether.json
-data/minecraft/world_clock/overworld.json
-data/minecraft/tags/timeline/in_overworld.json
--c net.minecraft.server.commands.TimeCommand
+-c net.minecraft.world.level.block.NetherPortalBlock
+net.minecraft.world.entity.MobCategory
+net.minecraft.tags.BiomeTags
+data/minecraft/worldgen/biome/river.json
+data/minecraft/worldgen/biome/frozen_river.json
+data/minecraft/worldgen/biome/cold_ocean.json
+data/minecraft/worldgen/biome/frozen_ocean.json
+data/minecraft/worldgen/biome/snowy_plains.json
+data/minecraft/worldgen/biome/plains.json
+data/minecraft/worldgen/biome/desert.json
+data/minecraft/worldgen/structure/village_plains.json
+data/minecraft/worldgen/structure/village_taiga.json
+data/minecraft/worldgen/structure/village_snowy.json
+data/minecraft/worldgen/structure/pillager_outpost.json
+data/minecraft/worldgen/structure/igloo.json
+data/minecraft/worldgen/structure/trail_ruins.json
+data/minecraft/worldgen/structure/ocean_ruin_cold.json
+data/minecraft/worldgen/structure/shipwreck.json
+data/minecraft/worldgen/structure/trial_chambers.json
+data/minecraft/worldgen/structure_set/villages.json
+data/minecraft/worldgen/structure_set/pillager_outposts.json
+data/minecraft/worldgen/structure_set/igloos.json
+data/minecraft/worldgen/structure_set/trail_ruins.json
+data/minecraft/worldgen/structure_set/ocean_ruins.json
+data/minecraft/worldgen/structure_set/shipwrecks.json
+data/minecraft/worldgen/structure_set/trial_chambers.json
+data/minecraft/tags/worldgen/biome/has_structure/pillager_outpost.json
+data/minecraft/tags/worldgen/biome/has_structure/igloo.json
+data/minecraft/tags/worldgen/biome/has_structure/trail_ruins.json
+data/minecraft/tags/worldgen/biome/has_structure/ocean_ruin_cold.json
+data/minecraft/tags/worldgen/biome/has_structure/shipwreck.json
+data/minecraft/tags/worldgen/biome/has_structure/trial_chambers.json
+data/minecraft/tags/worldgen/biome/spawns_snow_foxes.json
+data/minecraft/tags/worldgen/biome/spawns_white_rabbits.json
+data/minecraft/tags/worldgen/biome/spawns_cold_variant_farm_animals.json
+net.minecraft.world.level.levelgen.structure.BuiltinStructures
+net.minecraft.world.attribute.EnvironmentAttributes
