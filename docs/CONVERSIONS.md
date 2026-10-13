@@ -165,6 +165,7 @@ An existing `config/skycraft-items.txt` keeps its old rules: delete it (or merge
 | Flawless Amethyst | 2 amethyst_shard | 4 amethyst_shard | Same |
 | Woodcutter's Axe, bought | iron war axe | iron_axe | It's a tool |
 | Pickaxes and Woodcutter's Axe, looted | iron_ingot | the tool | The tool is worth more than its ingot |
+| Orcish, Dwarven, Elven, Glass, Ebony, Daedric, Imperial, Ancient Nord, Falmer, Silver and Dragon weapons and armor, looted | stayed in Skyrim | their smithing material | See [Looted gear](#looted-gear) |
 
 ### Stays in Skyrim on purpose
 
@@ -198,6 +199,60 @@ Also commented out. A gem in the name gives the gem plus gold nuggets; otherwise
 | Silver (Silver Ring) | 4 iron_nugget |
 | Copper (Copper and Onyx Circlet) | 4 copper_nugget |
 | Anything else (Saarthal Amulet, Amulet of Mara) | 3 iron_nugget |
+
+## Looted gear
+
+Weapons and armor looted from a corpse or a container salvage into their material's smithing material, one for a weapon and two for a piece of armor, as iron and steel always did, so nothing NPCs carry is useless in Minecraft. The material comes from the item's WeapMaterial or ArmorMaterial keyword. Bought gear still becomes the SkyCraft piece itself, and bows, crossbows, pickaxes, woodcutter's axes and arrows keep their own rules from anywhere.
+
+| Material | Weapon | Armor | Why |
+|---|---|---|---|
+| Iron | iron_ingot | 2 iron_ingot | As before |
+| Steel | steel_ingot | 2 steel_ingot | As before |
+| Imperial | steel_ingot | 2 steel_ingot | Skyrim's Imperial gear is steel |
+| Ancient Nord (draugr) | steel_ingot | 2 steel_ingot | Ancient Nord weapons hit like steel ones |
+| Orcish | orichalcum_ingot | 2 orichalcum_ingot | Its Skyrim smithing material, and the SkyCraft Orcish set's |
+| Dwarven | dwarven_metal_ingot | 2 dwarven_metal_ingot | The same |
+| Elven | refined_moonstone | 2 refined_moonstone | The same |
+| Glass | refined_malachite | 2 refined_malachite | The same |
+| Ebony | ebony_ingot | 2 ebony_ingot | The same |
+| Daedric | ebony_ingot + daedra_heart | 2 ebony_ingot + daedra_heart | Ebony forged with one Daedra heart a piece (Skyrim's recipes and SkyCraft's); Skyrim's apothecaries sell hearts anyway |
+| Dragon (dragonbone, dragonscale, dragonplate) | ebony_ingot + 2 bone | 2 ebony_ingot + 4 bone | The top tier, like Daedric, and dragon bone is bone |
+| Falmer | turtle_scute | 2 turtle_scute | Falmer gear is chaurus chitin, which is turtle_scute here |
+| Silver | 4 iron_nugget | 8 iron_nugget | Silver melts to iron, like Skyrim's other silver |
+| Hide, leather, studded, fur | (none) | 2 leather | As before |
+
+Still in Skyrim: gear with no material keyword (Forsworn, Stormcloak and guard armor, Nordic, Stalhrim, Blades, staffs), the Hearthfire Wooden Sword, clothing and jewelry (pending your call above).
+
+## Gear drops
+
+Not a rule in `skycraft-items.txt`: a Skyrim person or creature you kill (your hit in its last 10 seconds) rolls each piece it wore, the way a Minecraft mob rolls its equipment, and drops the Minecraft version at the corpse (`loot/GearMap`, switch `gear_drops`). The odds are Minecraft 26.3's, set in `skycraft-gear-drops.txt`: 8.5% a piece (`DropChances.DEFAULT_EQUIPMENT_DROP_CHANCE`), plus 1% per level of Looting on your weapon (Looting's `equipment_drops` effect), with the random wear `Mob.dropCustomDeathLoot` gives a dropped piece. Arrows and bolts drop as a skeleton's arrows: 0 to 2, plus 0 to 1 per level of Looting, never more than it had. The Skyrim gear stays on the corpse, to loot and salvage as ever. Your followers, and actors a spell summoned or raised, never drop.
+
+| Skyrim piece (words in the name) | Minecraft gear |
+|---|---|
+| Sword, greatsword, dagger, blade, scimitar, katana; a metal weapon with no weapon word (Chillrend) | `<tier>_sword` |
+| War axe, battleaxe, mace, warhammer, hammer | `<tier>_war_axe` |
+| Helmet, helm, hood, mask, crown, hat | `<tier>_helmet` |
+| Gauntlets, bracers, gloves | `<tier>_greaves` (Minecraft has no glove slot) |
+| Boots, shoes | `<tier>_boots` |
+| Any other armor (Armor, Cuirass, Mail) | `<tier>_cuirass` |
+| Shield | shield |
+| Bow, crossbow | bow, crossbow |
+| Arrows and bolts | arrow |
+| Pickaxe, Woodcutter's Axe | iron_pickaxe, iron_axe |
+| Staffs, spells, clothing, jewelry | nothing |
+
+| Material | Tier |
+|---|---|
+| Iron, Steel, Orcish, Dwarven, Elven, Glass, Ebony, Daedric | Its own SkyCraft set (`skycraft:steel_sword`, ...) |
+| Imperial, Ancient Nord (draugr) | Steel |
+| Falmer | Orcish |
+| Silver | Skyrim Iron |
+| Dragon (dragonbone, dragonscale, dragonplate) | Daedric |
+| Hide, leather, studded, fur | Minecraft leather armor (leather_helmet, leather_chestplate, leather_leggings, leather_boots) |
+| No material keyword (Forsworn, Stormcloak, guards, Nordic) | Weapons Skyrim Iron, armor Minecraft chainmail |
+| Wood | wooden_sword, wooden_axe |
+
+Headless: `SKYCRAFT_GEAR=1 python tools/fake_skyrim.py` kills the fake bandit after the script's punch and sends what it wore (an Iron Sword, an Iron Helmet, Hide Boots, a Hunting Bow and 12 Iron Arrows); with `chance = 1` in `skycraft-gear-drops.txt` every piece drops.
 
 ## Potions and poisons
 

@@ -41,7 +41,10 @@ public final class ItemRules {
 	/** Material names, by value (see ItemMaterial in the protocol header). */
 	public static final List<String> MATERIALS = List.of("none", "wood", "iron", "steel", "imperial", "orcish", "dwarven", "elven", "glass", "ebony", "daedric",
 		"dragon", "silver", "hide", "draugr", "falmer");
-	/** Source names, by value (see ItemSource); "looted" means corpse or container, "bought" is Skyrim's shop. */
+	/**
+	 * Source names, by value (see ItemSource); "looted" means corpse or container, "bought" is Skyrim's shop. Gear
+	 * a dying actor wore (5, Proto.SRC_WORN) never reaches the rules: SkyBridge sends it to GearDrops.
+	 */
 	public static final List<String> SOURCES = List.of("world", "corpse", "container", "actor", "bought");
 	/** Vanilla potion ids, as Minecraft 26.3 registers them (net.minecraft.world.item.alchemy.PotionIds). */
 	public static final List<String> POTIONS = List.of("water", "mundane", "thick", "awkward", "night_vision", "long_night_vision", "invisibility",
@@ -200,6 +203,21 @@ public final class ItemRules {
 			return words.containsAll(this.nameWords);
 		}
 	}
+
+	/**
+	 * Every default this file shipped with before, by hash (dev builds b91819f to 5d0fcdf): a config file still
+	 * holding one of them untouched gets {@link #DEFAULT_TEXT} instead (config.Config.read). Add the hash of the
+	 * current default here ({@code Config.sha256(DEFAULT_TEXT)}) whenever you change it.
+	 */
+	public static final List<String> OLD_DEFAULTS = List.of(
+		"sha256:23db7152d9a9466a0130577639c6f45eaccbd1de8f2cb4b97004c1e1b44bcf75",
+		"sha256:72429211b2cc3fdeae1485a4fd7a0ee2f3e71a60c38a25a5bafffe426106f6d3",
+		"sha256:a7258817f22d2f5a226d286d1a54e9e6849096bf9533346d9d4f489224b61fd9",
+		"sha256:7a18a0ff6b8752a2f0eca4a2db157ce8c86c6237ae31eb8c97d4233db3386f9b",
+		"sha256:7d17ee41c5c4cb8b6a480fcc5645b70eb3a4a2a296d5f466101dce40e882eeb6",
+		"sha256:4aec26e2a45bc3e7c3bfbce89cdb6c91d938fa7478e17c2458791c7b1cebdbe9",
+		"sha256:58ad79f0b836d9dbaa6a73e01f80728b09ef5cedb9699de289d4c39d2eef6625",
+		"sha256:04dca244c63b2906470fb972eebc8aef79af2f286530dd3877ef81ec1e0cdfd6");
 
 	public static final String DEFAULT_TEXT = """
 		# SkyCraft item conversion: which Skyrim items become Minecraft items when you get them.
@@ -711,11 +729,36 @@ public final class ItemRules {
 		tag armor material daedric name gauntlets from bought = skycraft:daedric_greaves 1
 		tag armor material daedric name boots from bought = skycraft:daedric_boots 1
 
-		# Looted iron and steel gear salvages into ingots
+		# Looted gear salvages into its smithing material: one for a weapon, two for armor. Materials without
+		# a SkyCraft ingot take the nearest: Imperial and Ancient Nord (draugr) gear is steel, Falmer gear is
+		# chaurus chitin (turtle scute), silver melts to iron nuggets, dragonbone and dragonscale give ebony
+		# and bone. Every Daedric piece is forged with a Daedra heart and gives it back.
 		tag weapon material iron from looted = minecraft:iron_ingot 1
 		tag weapon material steel from looted = skycraft:steel_ingot 1
+		tag weapon material imperial from looted = skycraft:steel_ingot 1
+		tag weapon material draugr from looted = skycraft:steel_ingot 1
+		tag weapon material orcish from looted = skycraft:orichalcum_ingot 1
+		tag weapon material dwarven from looted = skycraft:dwarven_metal_ingot 1
+		tag weapon material elven from looted = skycraft:refined_moonstone 1
+		tag weapon material glass from looted = skycraft:refined_malachite 1
+		tag weapon material ebony from looted = skycraft:ebony_ingot 1
+		tag weapon material daedric from looted = skycraft:ebony_ingot 1 + skycraft:daedra_heart 1
+		tag weapon material dragon from looted = skycraft:ebony_ingot 1 + minecraft:bone 2
+		tag weapon material falmer from looted = minecraft:turtle_scute 1
+		tag weapon material silver from looted = minecraft:iron_nugget 4
 		tag armor material iron from looted = minecraft:iron_ingot 2
 		tag armor material steel from looted = skycraft:steel_ingot 2
+		tag armor material imperial from looted = skycraft:steel_ingot 2
+		tag armor material draugr from looted = skycraft:steel_ingot 2
+		tag armor material orcish from looted = skycraft:orichalcum_ingot 2
+		tag armor material dwarven from looted = skycraft:dwarven_metal_ingot 2
+		tag armor material elven from looted = skycraft:refined_moonstone 2
+		tag armor material glass from looted = skycraft:refined_malachite 2
+		tag armor material ebony from looted = skycraft:ebony_ingot 2
+		tag armor material daedric from looted = skycraft:ebony_ingot 2 + skycraft:daedra_heart 1
+		tag armor material dragon from looted = skycraft:ebony_ingot 2 + minecraft:bone 4
+		tag armor material falmer from looted = minecraft:turtle_scute 2
+		tag armor material silver from looted = minecraft:iron_nugget 8
 		tag armor material hide from looted = minecraft:leather 2
 
 		# Clothing (pending your call)
