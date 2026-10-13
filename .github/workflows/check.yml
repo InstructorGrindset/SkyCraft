@@ -52,7 +52,6 @@ jobs:
 
   probe:
     runs-on: ubuntu-latest
-    if: hashFiles('.github/probe.txt') != ''
     steps:
       - uses: actions/checkout@v4
 
@@ -88,7 +87,7 @@ jobs:
               */*) for j in ${cp//:/ }; do unzip -p "$j" "$line" 2>/dev/null && break; done ;;
               *) javap -p -cp "$cp" "$line" 2>&1 ;;
             esac
-          done < .github/probe.txt
+          done < <(cat .github/probe.txt 2>/dev/null)
           echo; echo "======== end of probe"
 
   skse:
