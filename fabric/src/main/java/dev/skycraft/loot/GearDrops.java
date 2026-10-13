@@ -92,7 +92,7 @@ public final class GearDrops {
 
 	/** Rolls one worn piece of a credited kill and drops its Minecraft gear at the corpse. */
 	private static void roll(ServerLevel level, Kill kill, SkyLink.Item it) {
-		GearMap.Gear gear = GearMap.of(it.tags(), it.material(), it.name());
+		GearMap.Gear gear = GearMap.of(it.tags(), it.kind(), it.material(), it.name());
 		if (gear == null) {
 			return;
 		}

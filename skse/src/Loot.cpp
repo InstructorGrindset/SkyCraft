@@ -131,7 +131,59 @@ namespace skycraft::Loot
 			return out;
 		}
 
-		// What every ItemEvent says about an item: tags from its form type and keywords, its material and
+		// What kind of weapon or armor piece an item is, as Skyrim types it: a weapon's type, the biped slots an
+		// armor piece covers (the body wins over the head, for robes with a hood). kKindNone for anything else.
+		proto::ItemKind KindOf(RE::TESForm* a_item)
+		{
+			if (const auto* weapon = a_item->As<RE::TESObjectWEAP>()) {
+				switch (weapon->GetWeaponType()) {
+				case RE::WEAPON_TYPE::kHandToHandMelee:
+					return proto::kKindHandToHand;
+				case RE::WEAPON_TYPE::kOneHandSword:
+					return proto::kKindSword;
+				case RE::WEAPON_TYPE::kOneHandDagger:
+					return proto::kKindDagger;
+				case RE::WEAPON_TYPE::kOneHandAxe:
+					return proto::kKindWarAxe;
+				case RE::WEAPON_TYPE::kOneHandMace:
+					return proto::kKindMace;
+				case RE::WEAPON_TYPE::kTwoHandSword:
+					return proto::kKindGreatsword;
+				case RE::WEAPON_TYPE::kTwoHandAxe:
+					return proto::kKindBattleaxe;
+				case RE::WEAPON_TYPE::kBow:
+					return proto::kKindBow;
+				case RE::WEAPON_TYPE::kStaff:
+					return proto::kKindStaff;
+				case RE::WEAPON_TYPE::kCrossbow:
+					return proto::kKindCrossbow;
+				default:
+					return proto::kKindNone;
+				}
+			}
+			if (const auto* armor = a_item->As<RE::TESObjectARMO>()) {
+				using Slot = RE::BGSBipedObjectForm::BipedObjectSlot;
+				const auto on = [armor](Slot a_slot) { return armor->HasPartOf(a_slot); };
+				if (on(Slot::kShield)) {
+					return proto::kKindShield;
+				}
+				if (on(Slot::kBody)) {
+					return proto::kKindCuirass;
+				}
+				if (on(Slot::kHead) || on(Slot::kHair) || on(Slot::kLongHair) || on(Slot::kCirclet)) {
+					return proto::kKindHelmet;
+				}
+				if (on(Slot::kHands) || on(Slot::kForearms)) {
+					return proto::kKindGauntlets;
+				}
+				if (on(Slot::kFeet) || on(Slot::kCalves)) {
+					return proto::kKindBoots;
+				}
+			}
+			return proto::kKindNone;
+		}
+
+		// What every ItemEvent says about an item: tags from its form type and keywords, its kind, material and
 		// name. Returns the keyword list as text, for the log.
 		std::string Describe(RE::TESForm* a_item, proto::ItemEvent& a_ev)
 		{
@@ -170,6 +222,7 @@ namespace skycraft::Loot
 			if (a_ev.tags & (proto::kTagClothing | proto::kTagJewelry)) {
 				a_ev.tags &= ~proto::kTagArmor;
 			}
+			a_ev.tags |= (static_cast<std::uint32_t>(KindOf(a_item)) << proto::kTagKindShift) & proto::kTagKindMask;
 			const char* name = a_item->GetName();
 			strncpy_s(a_ev.name, name ? name : "", _TRUNCATE);
 			return keywords;
@@ -266,7 +319,8 @@ namespace skycraft::Loot
 					list += ", ";
 				}
 				const std::string_view name(ev.name);
-				list += piece.count > 1 ? std::format("{} x {}", piece.count, name) : std::string(name);
+				const auto             kind = (ev.tags & proto::kTagKindMask) >> proto::kTagKindShift;
+				list += piece.count > 1 ? std::format("{} x {} (kind {})", piece.count, name, kind) : std::format("{} (kind {})", name, kind);
 			}
 			logger::info("SkyCraft-loot: {} died wearing {}", label, list);
 		}
@@ -321,8 +375,8 @@ namespace skycraft::Loot
 					ev.quest = it != inventory.end() && it->second.second && it->second.second->IsQuestObject() ? 1 : 0;
 				}
 				const char* name = item->GetName();
-				logger::info("SkyCraft-loot: got {} x {} [{} {:08X}] value {} from {} | {}", ev.count, name && *name ? name : "?", type, ev.formId, value, from.text,
-					keywords);
+				logger::info("SkyCraft-loot: got {} x {} [{} {:08X} kind {}] value {} from {} | {}", ev.count, name && *name ? name : "?", type, ev.formId,
+					(ev.tags & proto::kTagKindMask) >> proto::kTagKindShift, value, from.text, keywords);
 				Link::Get().PushItem(ev);
 				return RE::BSEventNotifyControl::kContinue;
 			}
