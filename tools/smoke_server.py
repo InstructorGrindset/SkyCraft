@@ -47,10 +47,25 @@ BAD_LOG = ("Mixin apply failed", "InvalidInjectionException", "InvalidMixinExcep
            "This crash report", "Encountered an unexpected exception", "Caused by:")
 
 
+def fetch(url):
+    """The body at url; three tries, two minutes each (Fabric's servers sometimes hang or answer 502)."""
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:
+                return response.read()
+        except OSError as e:
+            if attempt == 2:
+                raise
+            print(f"retrying {url}: {e}")
+            time.sleep(15)
+
+
 def download(url, path):
     if not os.path.exists(path):
         print(f"downloading {url}")
-        urllib.request.urlretrieve(url, path)
+        data = fetch(url)
+        with open(path, "wb") as f:
+            f.write(data)
 
 
 def rcon_packet(sock, req_id, kind, body):
@@ -75,7 +90,7 @@ def main():
     jar = os.path.abspath(sys.argv[1])
     work = os.path.abspath(sys.argv[2] if len(sys.argv) > 2 else "smoke")
     os.makedirs(os.path.join(work, "mods"), exist_ok=True)
-    installers = json.load(urllib.request.urlopen("https://meta.fabricmc.net/v2/versions/installer"))
+    installers = json.loads(fetch("https://meta.fabricmc.net/v2/versions/installer"))
     installer = next(i["version"] for i in installers if i.get("stable"))
     launcher = os.path.join(work, "fabric-server-launch.jar")
     download(f"https://meta.fabricmc.net/v2/versions/loader/{MINECRAFT}/{LOADER}/{installer}/server/jar", launcher)
@@ -118,7 +133,7 @@ def main():
                 failures.append("the server didn't start within 15 minutes")
                 break
         if not failures:
-            with socket.create_connection(("127.0.0.1", RCON_PORT), timeout=600) as sock:
+            with socket.create_connection(("127.0.0.1", RCON_PORT), timeout=120) as sock:
                 rid, _ = rcon_packet(sock, 1, 3, RCON_PASSWORD)
                 if rid == -1:
                     raise RuntimeError("rcon login refused")
