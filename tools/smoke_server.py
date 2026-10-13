@@ -6,7 +6,8 @@ Usage: python tools/smoke_server.py <skycraft jar> [work dir]
 What it proves without Skyrim: the mod loads, every mixin whose target class loads at startup or
 while the commands below run applies (a broken mixin crashes the server), the worlds data pack
 loads (Tamriel Wilds, Home, the Nether), and structures are found in a world made like SkyCraft's
-(the mirror preset, seed 0, structures off). Runs on Windows only: SkyLink binds kernel32 when it
+(the mirror preset, seed 0, structures off). The server runs the mod's common half, as the client's
+integrated server does. Runs on Windows only: SkyLink binds kernel32 when it
 loads. The server's log is printed at the end; the exit code is 1 when a check fails.
 """
 import json
@@ -17,6 +18,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import zipfile
 
 MINECRAFT = "26.3"
 LOADER = "0.19.5"
@@ -79,8 +81,14 @@ def main():
     download(f"https://meta.fabricmc.net/v2/versions/loader/{MINECRAFT}/{LOADER}/{installer}/server/jar", launcher)
     download(f"https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/{FABRIC_API}/fabric-api-{FABRIC_API.replace('+', '%2B')}.jar",
              os.path.join(work, "mods", "fabric-api.jar"))
-    with open(jar, "rb") as src, open(os.path.join(work, "mods", "skycraft.jar"), "wb") as dst:
-        dst.write(src.read())
+    # The mod says it's client only (a dedicated server would skip it); a copy that says "*" runs its common half here,
+    # which is what the integrated server inside the client runs.
+    with zipfile.ZipFile(jar) as src, zipfile.ZipFile(os.path.join(work, "mods", "skycraft.jar"), "w", zipfile.ZIP_DEFLATED) as dst:
+        for entry in src.infolist():
+            data = src.read(entry.filename)
+            if entry.filename == "fabric.mod.json":
+                data = data.replace(b'"environment": "client"', b'"environment": "*"', 1)
+            dst.writestr(entry, data)
     with open(os.path.join(work, "eula.txt"), "w") as f:
         f.write("eula=true\n")
     # Made like the SkyCraft world (MirrorWorld): the mirror preset, seed 0, structures off.
