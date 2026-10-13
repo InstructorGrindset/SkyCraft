@@ -12,9 +12,3 @@ data/minecraft/tags/worldgen/biome/has_structure/village_plains.json
 data/minecraft/tags/worldgen/biome/has_structure/village_taiga.json
 data/minecraft/tags/worldgen/biome/has_structure/village_snowy.json
 data/minecraft/loot_table/entities/spider.json
-
-# Natural spawns outside the mirror (claude/feedback-spawns). A class javap can't find stops the probe,
-# and the log tail holds about 5000 lines: ServerLevel goes last so its end (isSpawningMonsters) shows.
-data/minecraft/tags/worldgen/biome/polar_bears_spawn_on_alternate_blocks.json
-data/minecraft/tags/worldgen/biome/more_frequent_drowned_spawns.json
--c net.minecraft.server.level.ServerLevel
