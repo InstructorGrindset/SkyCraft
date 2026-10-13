@@ -63,6 +63,7 @@ jobs:
   smoke:
     needs: fabric
     runs-on: windows-2025
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -97,8 +98,9 @@ jobs:
           chmod +x gradlew
           ./gradlew help --no-configuration-cache -q > /dev/null 2>&1 || ./gradlew help --no-configuration-cache
 
-      # One line per entry: a class name (javap -p), "-c <class>" (with bytecode), or a resource
-      # path inside the Minecraft jar ("data/minecraft/...json") printed as text. "#" comments.
+      # One line per entry: a class name (javap -p), "-c <class>" (with bytecode), a resource path inside
+      # the Minecraft jar ("data/minecraft/...json") printed as text, or "list:<prefix>" for the jar's
+      # files under a path ("list:assets/minecraft/items/" is every item). "#" comments.
       - name: Print the probed API
         run: |
           jars=$(find ~/.gradle fabric/.gradle -name '*.jar' 2>/dev/null | grep -i minecraft | grep -v -i -E 'sources|fabric-api|loader|mapping|intermediary' )
@@ -113,6 +115,7 @@ jobs:
             echo; echo "======== $line"
             case "$line" in
               -c\ *) javap -p -c -cp "$cp" "${line#-c }" 2>&1 ;;
+              list:*) for j in ${cp//:/ }; do unzip -Z1 "$j" 2>/dev/null; done | grep "^${line#list:}" | sort -u ;;
               */*) for j in ${cp//:/ }; do unzip -p "$j" "$line" 2>/dev/null && break; done ;;
               *) javap -p -cp "$cp" "$line" 2>&1 ;;
             esac
