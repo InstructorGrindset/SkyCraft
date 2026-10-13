@@ -448,7 +448,8 @@ namespace skycraft::proto
 	// ---- item ring @0x1B100 (Skyrim -> MC) ----------------------------------------------------
 	// Every item that lands in the Skyrim player's inventory (looted, picked up, bought, crafted).
 	// Minecraft decides from its rules file whether it becomes a Minecraft item; if it does, it
-	// gives the Minecraft items and sends kEvTakeItem back so Skyrim removes the original.
+	// gives the Minecraft items and sends kEvTakeItem back so Skyrim removes the original. Also the
+	// gear a dying actor wore (kSrcWorn), which stays in Skyrim.
 	inline constexpr std::uint32_t kItemRingEntries = 64;     // power of two
 	inline constexpr std::uint64_t kItemRingHeadOff = 0x00;  // u64, written by Skyrim
 	inline constexpr std::uint64_t kItemRingTailOff = 0x40;  // u64, written by MC
@@ -493,12 +494,19 @@ namespace skycraft::proto
 		kSrcContainer = 2,  // a chest, barrel, merchant chest, ...
 		kSrcActor = 3,      // a living actor (gift, pickpocket)
 		kSrcBought = 4,     // bought from a merchant (Skyrim's barter menu was open)
+		kSrcWorn = 5,       // Gear drops: worn by an actor in the actor table the frame it died (container = the actor),
+		                    // one event per piece: both hands' weapons, the shield, armor and clothes, the equipped ammo
+		                    // (count = the quiver). It never came into the player's inventory: Minecraft may drop its own
+		                    // gear for it at the corpse, never gives it to the player and never sends kEvTakeItem. count
+		                    // is negated (-1 for a piece) so a Minecraft jar from before this, which skips counts under 1,
+		                    // can't convert it. Not sent for the player's followers or summoned and raised actors. Added
+		                    // within version 13
 	};
 
 	struct ItemEvent
 	{
 		std::uint32_t formId;  // base form of the item
-		std::int32_t  count;
+		std::int32_t  count;   // negative for kSrcWorn
 		std::uint32_t tags;    // ItemTags
 		std::uint8_t  material;  // ItemMaterial
 		std::uint8_t  source;    // ItemSource

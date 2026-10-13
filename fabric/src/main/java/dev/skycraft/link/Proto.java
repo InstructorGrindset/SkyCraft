@@ -181,6 +181,11 @@ public final class Proto {
 	public static final int SRC_ACTOR = 3;
 	/** Bought from a merchant in Skyrim's barter menu. */
 	public static final int SRC_BOUGHT = 4;
+	/**
+	 * Worn by an actor that just died (Gear drops; container = the actor): never the player's. Skyrim sends the
+	 * count negated, so a jar from before this (it skips counts under 1) can't hand it over. Added within 13.
+	 */
+	public static final int SRC_WORN = 5;
 	/** Skyrim skill (ActorValue) trained by trading with a Minecraft merchant screen. */
 	public static final int SKILL_SPEECH = 17;
 	// Skyrim skills (ActorValue) Minecraft reports use of; weapon skills come from EV_HIT_ACTOR.
