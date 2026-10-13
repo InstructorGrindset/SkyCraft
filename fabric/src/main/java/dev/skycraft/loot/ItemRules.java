@@ -1277,8 +1277,12 @@ public final class ItemRules {
 				spec = spec.substring("minecraft:".length());
 			}
 			String[] p = spec.split(":", -1);
+			if (p.length == 3) {
+				problems.add("line " + n + ": only potion, splash_potion, lingering_potion and tipped_arrow hold effects like '" + token + "', not '" + item + "'");
+				return null;
+			}
 			if (p.length != 2 || p[0].isEmpty()) {
-				problems.add("line " + n + ": '" + token + "' needs enchantment:level, like sharpness:2 (only potions take effects)");
+				problems.add("line " + n + ": '" + token + "' needs enchantment:level, like sharpness:2");
 				return null;
 			}
 			if (!ENCHANTMENTS.contains(p[0])) {
