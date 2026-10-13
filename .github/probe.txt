@@ -94,3 +94,5 @@ assets/minecraft/items/cooked_mutton.json
 assets/minecraft/items/cooked_rabbit.json
 assets/minecraft/items/cooked_cod.json
 assets/minecraft/items/cooked_salmon.json
+# Which parameters the ENTITY loot context takes (the lambdas that build each set).
+-c net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
