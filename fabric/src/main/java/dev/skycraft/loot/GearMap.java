@@ -1,5 +1,6 @@
 package dev.skycraft.loot;
 
+import dev.skycraft.link.Proto;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -13,8 +14,10 @@ import java.util.Set;
  * since Minecraft has no glove slot, as the bought gear rules do); materials without a SkyCraft set take the
  * nearest tier. Hide and leather are Minecraft leather armor, armor of no known material chainmail, wooden
  * weapons wooden ones; bows, crossbows, shields, pickaxes and woodcutter's axes are the Minecraft item;
- * arrows and bolts are arrows. Staffs, clothing and jewelry drop nothing. Pure Java on purpose (no
- * Minecraft classes), so it's unit tested without the game.
+ * arrows and bolts are arrows. Staffs, clothing and jewelry drop nothing. Which piece it is comes from the
+ * kind Skyrim gives it (Proto.KIND_*: its weapon type, the slots it covers); only items without one (from an
+ * older plugin) are judged by the words of their name, and so are pickaxes and woodcutter's axes, which Skyrim
+ * types as war axes. Pure Java on purpose (no Minecraft classes), so it's unit tested without the game.
  */
 public final class GearMap {
 	/** Minecraft 26.3's chance for each piece of a mob's equipment (DropChances.DEFAULT_EQUIPMENT_DROP_CHANCE). */
@@ -77,34 +80,26 @@ public final class GearMap {
 	}
 
 	/**
-	 * The Minecraft gear for a Skyrim item with these tags (ItemTags), material (ItemMaterial) and name, or null
-	 * when it has none (staffs, clothing, jewelry, anything else).
+	 * The Minecraft gear for a Skyrim item with these tags (ItemTags), kind (Proto.KIND_*, 0 when Skyrim didn't say),
+	 * material (ItemMaterial) and name, or null when it has none (staffs, clothing, jewelry, anything else).
 	 */
-	public static Gear of(int tags, int material, String name) {
+	public static Gear of(int tags, int kind, int material, String name) {
 		List<String> words = ItemRules.words(ItemRules.fullName(name != null ? name : ""));
 		String mat = material >= 0 && material < MATERIAL_TIER.size() ? MATERIAL_TIER.get(material) : "";
 		if ((tags & ItemRules.bit("arrow")) != 0) {
 			return new Gear("minecraft:arrow", true);
 		}
 		if ((tags & ItemRules.bit("weapon")) != 0) {
-			return weapon(words, mat);
+			return weapon(kind, words, mat);
 		}
 		if ((tags & ItemRules.bit("armor")) != 0 && (tags & (ItemRules.bit("clothing") | ItemRules.bit("jewelry"))) == 0) {
-			return armor(words, mat);
+			return armor(kind, words, mat);
 		}
 		return null;
 	}
 
-	private static Gear weapon(List<String> words, String mat) {
-		if (words.contains("crossbow")) {
-			return gear("minecraft:crossbow");
-		}
-		if (words.contains("bow")) {
-			return gear("minecraft:bow");
-		}
-		if (any(words, STAFF_WORDS)) {
-			return null;
-		}
+	private static Gear weapon(int kind, List<String> words, String mat) {
+		// Tools first, by name: Skyrim types pickaxes and woodcutter's axes as war axes.
 		if (words.contains("pickaxe")) {
 			return gear("minecraft:iron_pickaxe");
 		}
@@ -114,28 +109,63 @@ public final class GearMap {
 		if (words.contains("fishing") && words.contains("rod")) {
 			return gear("minecraft:fishing_rod");
 		}
-		boolean axe = any(words, AXE_WORDS);
-		if (!axe && !any(words, BLADE_WORDS) && (mat.isEmpty() || mat.equals("leather"))) {
-			// No weapon word and no metal: a staff by another name (the Wabbajack) or something a spell made.
-			return null;
+		boolean axe;
+		switch (kind) {
+			case Proto.KIND_BOW:
+				return gear("minecraft:bow");
+			case Proto.KIND_CROSSBOW:
+				return gear("minecraft:crossbow");
+			case Proto.KIND_STAFF, Proto.KIND_HAND_TO_HAND:
+				return null;
+			case Proto.KIND_SWORD, Proto.KIND_DAGGER, Proto.KIND_GREATSWORD:
+				axe = false;
+				break;
+			case Proto.KIND_WAR_AXE, Proto.KIND_MACE, Proto.KIND_BATTLEAXE:
+				axe = true;
+				break;
+			default:
+				// Skyrim didn't say (an older plugin): the words of the name.
+				if (words.contains("crossbow")) {
+					return gear("minecraft:crossbow");
+				}
+				if (words.contains("bow")) {
+					return gear("minecraft:bow");
+				}
+				if (any(words, STAFF_WORDS)) {
+					return null;
+				}
+				axe = any(words, AXE_WORDS);
+				if (!axe && !any(words, BLADE_WORDS) && (mat.isEmpty() || mat.equals("leather"))) {
+					// No weapon word and no metal: a staff by another name (the Wabbajack) or something a spell made.
+					return null;
+				}
+				// Unique weapons without a weapon word (Chillrend, Dawnbreaker) are swords, Skyrim's commonest.
 		}
 		String tier = mat.isEmpty() || mat.equals("leather") ? NONE_WEAPON : mat;
 		if (tier.equals("wooden")) {
 			return gear(axe ? "minecraft:wooden_axe" : "minecraft:wooden_sword");
 		}
-		// Unique weapons without a weapon word (Chillrend, Dawnbreaker) are swords, Skyrim's commonest.
 		return gear("skycraft:" + tier + (axe ? "_war_axe" : "_sword"));
 	}
 
-	private static Gear armor(List<String> words, String mat) {
-		if (any(words, SHIELD_WORDS)) {
+	private static Gear armor(int kind, List<String> words, String mat) {
+		String piece = switch (kind) {
+			case Proto.KIND_SHIELD -> "shield";
+			case Proto.KIND_HELMET -> "helmet";
+			case Proto.KIND_CUIRASS -> "cuirass";
+			case Proto.KIND_GAUNTLETS -> "greaves";
+			case Proto.KIND_BOOTS -> "boots";
+			// Skyrim didn't say (an older plugin): the words of the name.
+			default -> any(words, SHIELD_WORDS) ? "shield" : any(words, HELMET_WORDS) ? "helmet" : any(words, BOOTS_WORDS) ? "boots"
+				: any(words, GLOVES_WORDS) ? "greaves" : "cuirass";
+		};
+		if (piece.equals("shield")) {
 			return gear("minecraft:shield");
 		}
 		if (mat.equals("wooden")) {
 			return null;
 		}
 		String tier = mat.isEmpty() ? NONE_ARMOR : mat;
-		String piece = any(words, HELMET_WORDS) ? "helmet" : any(words, BOOTS_WORDS) ? "boots" : any(words, GLOVES_WORDS) ? "greaves" : "cuirass";
 		if (tier.equals("leather") || tier.equals("chainmail")) {
 			return gear("minecraft:" + tier + "_" + switch (piece) {
 				case "cuirass" -> "chestplate";

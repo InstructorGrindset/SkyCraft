@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import dev.skycraft.link.Proto;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -18,8 +19,13 @@ class GearMapTest {
 		return t;
 	}
 
+	/** Kind 0: what an older plugin sends, so the words of the name decide. */
 	private static String gear(String tag, String material, String name) {
-		GearMap.Gear g = GearMap.of(tags(tag), ItemRules.MATERIALS.indexOf(material), name);
+		return gear(tag, Proto.KIND_NONE, material, name);
+	}
+
+	private static String gear(String tag, int kind, String material, String name) {
+		GearMap.Gear g = GearMap.of(tags(tag) | (kind << Proto.TAG_KIND_SHIFT), kind, ItemRules.MATERIALS.indexOf(material), name);
 		return g == null ? "nothing" : g.item();
 	}
 
@@ -81,8 +87,8 @@ class GearMapTest {
 		assertEquals("minecraft:iron_axe", gear("weapon", "iron", "Woodcutter's Axe"));
 		assertEquals("minecraft:arrow", gear("arrow", "none", "Iron Arrow"));
 		assertEquals("minecraft:arrow", gear("arrow", "none", "Steel Bolt"));
-		assertTrue(GearMap.of(tags("arrow"), 0, "Ebony Arrow").ammo());
-		assertTrue(!GearMap.of(tags("weapon"), 2, "Iron Sword").ammo());
+		assertTrue(GearMap.of(tags("arrow"), 0, 0, "Ebony Arrow").ammo());
+		assertTrue(!GearMap.of(tags("weapon"), Proto.KIND_SWORD, 2, "Iron Sword").ammo());
 	}
 
 	@Test
@@ -91,9 +97,9 @@ class GearMapTest {
 		assertEquals("nothing", gear("weapon", "none", "Wabbajack"));
 		assertEquals("nothing", gear("clothing", "none", "Fine Clothes"));
 		assertEquals("nothing", gear("jewelry", "none", "Gold Ring"));
-		assertNull(GearMap.of(tags("armor", "clothing"), 0, "Hooded Monk Robes"));
-		assertNull(GearMap.of(tags("food"), 0, "Apple Pie"));
-		assertNull(GearMap.of(0, 0, null));
+		assertNull(GearMap.of(tags("armor", "clothing"), Proto.KIND_CUIRASS, 0, "Hooded Monk Robes"));
+		assertNull(GearMap.of(tags("food"), 0, 0, "Apple Pie"));
+		assertNull(GearMap.of(0, 0, 0, null));
 	}
 
 	@Test
@@ -101,13 +107,50 @@ class GearMapTest {
 		java.util.Set<String> ids = new java.util.HashSet<>(dev.skycraft.gear.GearTiers.gearItemIds());
 		for (String material : ItemRules.MATERIALS) {
 			for (String name : List.of("Sword", "Mace", "Helmet", "Armor", "Gauntlets", "Boots")) {
-				GearMap.Gear g = GearMap.of(tags(name.equals("Sword") || name.equals("Mace") ? "weapon" : "armor"), ItemRules.MATERIALS.indexOf(material),
+				GearMap.Gear g = GearMap.of(tags(name.equals("Sword") || name.equals("Mace") ? "weapon" : "armor"), 0, ItemRules.MATERIALS.indexOf(material),
 					material + " " + name);
 				if (g != null && g.item().startsWith("skycraft:")) {
 					assertTrue(ids.contains(g.item().substring("skycraft:".length())), g.item());
 				}
 			}
 		}
+	}
+
+	@Test
+	void skyrimsKindDecidesBeforeTheName() {
+		// Zephyr is a bow without "bow" in its name.
+		assertEquals("minecraft:bow", gear("weapon", Proto.KIND_BOW, "dwarven", "Zephyr"));
+		assertEquals("skycraft:dwarven_sword", gear("weapon", "dwarven", "Zephyr"));
+		assertEquals("minecraft:crossbow", gear("weapon", Proto.KIND_CROSSBOW, "dwarven", "Dwarven Crossbow"));
+		// Helmet slot, whatever the name says.
+		assertEquals("minecraft:chainmail_helmet", gear("armor", Proto.KIND_HELMET, "none", "Forsworn Headdress"));
+		assertEquals("skycraft:daedric_helmet", gear("armor", Proto.KIND_HELMET, "dragon", "Konahrik"));
+		assertEquals("skycraft:daedric_cuirass", gear("armor", "dragon", "Konahrik"));
+		// Shield slot without "shield" in the name.
+		assertEquals("minecraft:shield", gear("armor", Proto.KIND_SHIELD, "dwarven", "Spellbreaker"));
+		assertEquals("skycraft:dwarven_cuirass", gear("armor", "dwarven", "Spellbreaker"));
+		assertEquals("skycraft:ebony_cuirass", gear("armor", Proto.KIND_CUIRASS, "ebony", "Ebony Mail"));
+		assertEquals("minecraft:leather_chestplate", gear("armor", Proto.KIND_CUIRASS, "hide", "Savior's Hide"));
+		assertEquals("minecraft:chainmail_leggings", gear("armor", Proto.KIND_GAUNTLETS, "none", "Nightingale Gloves"));
+		assertEquals("minecraft:chainmail_boots", gear("armor", Proto.KIND_BOOTS, "none", "Thieves Guild Boots"));
+		// Weapon types: blades are swords, axes and blunt weapons war axes.
+		assertEquals("skycraft:dwarven_war_axe", gear("weapon", Proto.KIND_BATTLEAXE, "dwarven", "Volendrung"));
+		assertEquals("skycraft:dwarven_sword", gear("weapon", "dwarven", "Volendrung"));
+		assertEquals("skycraft:ebony_war_axe", gear("weapon", Proto.KIND_MACE, "ebony", "Mace of Molag Bal"));
+		assertEquals("skycraft:daedric_sword", gear("weapon", Proto.KIND_DAGGER, "daedric", "Mehrunes' Razor"));
+		assertEquals("skycraft:iron_sword", gear("weapon", Proto.KIND_GREATSWORD, "none", "Bloodskal Blade"));
+		assertEquals("skycraft:steel_war_axe", gear("weapon", Proto.KIND_WAR_AXE, "steel", "Steel War Axe"));
+		assertEquals("minecraft:wooden_sword", gear("weapon", Proto.KIND_SWORD, "wood", "Wooden Sword"));
+		// Staffs and fists drop nothing, whatever their name.
+		assertEquals("nothing", gear("weapon", Proto.KIND_STAFF, "none", "Sanguine Rose"));
+		assertEquals("nothing", gear("weapon", Proto.KIND_STAFF, "none", "Wabbajack"));
+		assertEquals("nothing", gear("weapon", Proto.KIND_HAND_TO_HAND, "none", "Unarmed"));
+		// Skyrim types pickaxes and woodcutter's axes as war axes: they're still the tools.
+		assertEquals("minecraft:iron_pickaxe", gear("weapon", Proto.KIND_WAR_AXE, "iron", "Notched Pickaxe"));
+		assertEquals("minecraft:iron_axe", gear("weapon", Proto.KIND_WAR_AXE, "iron", "Woodcutter's Axe"));
+		// Clothing and jewelry with a slot still drop nothing.
+		assertEquals("nothing", gear("clothing", Proto.KIND_HELMET, "none", "Mage Hood"));
+		assertEquals("nothing", gear("jewelry", Proto.KIND_HELMET, "none", "Silver Circlet"));
 	}
 
 	@Test

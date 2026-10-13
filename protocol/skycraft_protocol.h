@@ -479,6 +479,32 @@ namespace skycraft::proto
 		kTagSoulFilled = 1u << 18, // a soul gem that holds a soul as it comes (the filled base forms Skyrim sells and loots)
 	};
 
+	// Bits 24-27 of ItemEvent::tags: what kind of weapon or armor piece the item is, as Skyrim types it (a weapon's
+	// type, the biped slots an armor piece or piece of clothing covers), for every item event. Added within version 13:
+	// an older plugin sends 0 (unknown), and an older Minecraft's rules only test the tag bits they name.
+	inline constexpr std::uint32_t kTagKindShift = 24;
+	inline constexpr std::uint32_t kTagKindMask = 0xFu << kTagKindShift;
+
+	enum ItemKind : std::uint32_t
+	{
+		kKindNone = 0,        // not a weapon or armor, or not a kind below (jewelry, a ring or amulet slot only)
+		kKindSword = 1,       // one-handed sword
+		kKindDagger = 2,
+		kKindWarAxe = 3,      // also pickaxes and woodcutter's axes, which Skyrim types as war axes
+		kKindMace = 4,
+		kKindGreatsword = 5,
+		kKindBattleaxe = 6,   // two-handed axe type: battleaxes and warhammers
+		kKindBow = 7,
+		kKindStaff = 8,
+		kKindCrossbow = 9,
+		kKindHandToHand = 10,
+		kKindHelmet = 11,     // armor or clothing on the head, hair, long hair or circlet slot (and not the body)
+		kKindCuirass = 12,    // the body slot
+		kKindGauntlets = 13,  // hands or forearms
+		kKindBoots = 14,      // feet or calves
+		kKindShield = 15,     // the shield slot
+	};
+
 	// Weapon/armor material from WeapMaterial*/ArmorMaterial* keywords.
 	enum ItemMaterial : std::uint8_t
 	{
@@ -507,7 +533,7 @@ namespace skycraft::proto
 	{
 		std::uint32_t formId;  // base form of the item
 		std::int32_t  count;   // negative for kSrcWorn
-		std::uint32_t tags;    // ItemTags
+		std::uint32_t tags;    // ItemTags, and the ItemKind in bits 24-27 (kTagKindShift)
 		std::uint8_t  material;  // ItemMaterial
 		std::uint8_t  source;    // ItemSource
 		std::uint8_t  chest;    // 1 when the container is a chest, strongbox or coffer (not a barrel, sack, urn, ...)

@@ -71,6 +71,19 @@ class ItemRulesTest {
 		assertEquals("keep", convert(rules, tags("weapon"), 9, ACTOR, "Ebony Sword"));
 	}
 
+	@Test
+	void theItemKindBitsChangeNoRule() {
+		ItemRules rules = defaults();
+		int bow = dev.skycraft.link.Proto.KIND_BOW << dev.skycraft.link.Proto.TAG_KIND_SHIFT;
+		int shield = dev.skycraft.link.Proto.KIND_SHIELD << dev.skycraft.link.Proto.TAG_KIND_SHIFT;
+		assertEquals("skycraft:steel_sword 1", convert(rules, tags("weapon") | bow, material("steel"), BOUGHT, "Steel Sword"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon") | bow, material("steel"), CORPSE, "Steel Sword"));
+		assertEquals("minecraft:bow 1", convert(rules, tags("weapon") | bow, material("steel"), CORPSE, "Hunting Bow"));
+		assertEquals("minecraft:iron_ingot 2", convert(rules, tags("armor") | shield, material("iron"), CORPSE, "Iron Shield"));
+		assertEquals("minecraft:potato 1", convert(rules, tags("food") | shield, 0, CONTAINER, "Potato"));
+		assertEquals("weapon", ItemRules.tagNames(tags("weapon") | bow));
+	}
+
 	private static String salvage(ItemRules rules, String tag, String material, String name) {
 		return rules.match(new ItemRules.Item(tags(tag), material(material), CORPSE, name)).describe();
 	}

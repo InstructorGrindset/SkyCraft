@@ -84,6 +84,9 @@ SRC_CONTAINER = 2
 SRC_WORN = 5
 TAG_ORE_INGOT = 1 << 3
 TAG_WEAPON, TAG_ARMOR, TAG_ARROW = 1 << 7, 1 << 8, 1 << 13
+# ItemKind in tags bits 24-27 (kTagKindShift): what Skyrim types the piece as
+TAG_KIND_SHIFT = 24
+KIND_SWORD, KIND_BOW, KIND_HELMET, KIND_BOOTS = 1, 7, 11, 14
 MAT_IRON, MAT_STEEL, MAT_HIDE = 2, 3, 13
 # Gear drops: SKYCRAFT_GEAR=1 kills the fake bandit at t=6 s, after the script's punch, and sends what it wore as worn
 # ItemEvents (count negated, container = the bandit), as Loot.cpp does. Minecraft credits the kill and rolls each piece
@@ -91,10 +94,10 @@ MAT_IRON, MAT_STEEL, MAT_HIDE = 2, 3, 13
 GEAR = os.environ.get("SKYCRAFT_GEAR", "0") != "0"
 FAKE_BANDIT = 0xFF00ABCD
 FAKE_BANDIT_GEAR = [
-    (0x00012EB7, 1, TAG_WEAPON, MAT_IRON, "Iron Sword"),
-    (0x00012E4D, 1, TAG_ARMOR, MAT_IRON, "Iron Helmet"),
-    (0x00013910, 1, TAG_ARMOR, MAT_HIDE, "Hide Boots"),
-    (0x00013985, 1, TAG_WEAPON, MAT_STEEL, "Hunting Bow"),
+    (0x00012EB7, 1, TAG_WEAPON | KIND_SWORD << TAG_KIND_SHIFT, MAT_IRON, "Iron Sword"),
+    (0x00012E4D, 1, TAG_ARMOR | KIND_HELMET << TAG_KIND_SHIFT, MAT_IRON, "Iron Helmet"),
+    (0x00013910, 1, TAG_ARMOR | KIND_BOOTS << TAG_KIND_SHIFT, MAT_HIDE, "Hide Boots"),
+    (0x00013985, 1, TAG_WEAPON | KIND_BOW << TAG_KIND_SHIFT, MAT_STEEL, "Hunting Bow"),
     (0x0001397D, 12, TAG_ARROW, MAT_IRON, "Iron Arrow"),
 ]
 

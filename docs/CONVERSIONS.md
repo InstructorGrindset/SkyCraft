@@ -225,19 +225,21 @@ Still in Skyrim: gear with no material keyword (Forsworn, Stormcloak and guard a
 
 Not a rule in `skycraft-items.txt`: a Skyrim person or creature you kill (your hit in its last 10 seconds) rolls each piece it wore, the way a Minecraft mob rolls its equipment, and drops the Minecraft version at the corpse (`loot/GearMap`, switch `gear_drops`). The odds are Minecraft 26.3's, set in `skycraft-gear-drops.txt`: 8.5% a piece (`DropChances.DEFAULT_EQUIPMENT_DROP_CHANCE`), plus 1% per level of Looting on your weapon (Looting's `equipment_drops` effect), with the random wear `Mob.dropCustomDeathLoot` gives a dropped piece. Arrows and bolts drop as a skeleton's arrows: 0 to 2, plus 0 to 1 per level of Looting, never more than it had. The Skyrim gear stays on the corpse, to loot and salvage as ever. Your followers, and actors a spell summoned or raised, never drop.
 
-| Skyrim piece (words in the name) | Minecraft gear |
-|---|---|
-| Sword, greatsword, dagger, blade, scimitar, katana; a metal weapon with no weapon word (Chillrend) | `<tier>_sword` |
-| War axe, battleaxe, mace, warhammer, hammer | `<tier>_war_axe` |
-| Helmet, helm, hood, mask, crown, hat | `<tier>_helmet` |
-| Gauntlets, bracers, gloves | `<tier>_greaves` (Minecraft has no glove slot) |
-| Boots, shoes | `<tier>_boots` |
-| Any other armor (Armor, Cuirass, Mail) | `<tier>_cuirass` |
-| Shield | shield |
-| Bow, crossbow | bow, crossbow |
-| Arrows and bolts | arrow |
-| Pickaxe, Woodcutter's Axe | iron_pickaxe, iron_axe |
-| Staffs, spells, clothing, jewelry | nothing |
+Which piece it is comes from Skyrim, as the SKSE plugin reads it: a weapon's type, or the body slots an armor piece covers (the body slot wins, so a robe with a hood is a cuirass). So Zephyr is a bow, Spellbreaker a shield and a Dragon Priest mask a helmet, whatever their names say. Pickaxes and woodcutter's axes go by name, since Skyrim types them as war axes. Items from an older plugin, which doesn't send the kind, go by the words in the name (third column).
+
+| Skyrim piece | Words in the name, without a kind | Minecraft gear |
+|---|---|---|
+| One-handed sword, dagger, greatsword | sword, greatsword, dagger, blade, scimitar, katana; a metal weapon with no weapon word (Chillrend) | `<tier>_sword` |
+| War axe, mace, battleaxe, warhammer | axe, battleaxe, mace, warhammer, hammer | `<tier>_war_axe` |
+| Head, hair or circlet slot | helmet, helm, hood, mask, crown, hat | `<tier>_helmet` |
+| Body slot | anything else worn as armor (Armor, Cuirass, Mail) | `<tier>_cuirass` |
+| Hands or forearms slot | gauntlets, bracers, gloves | `<tier>_greaves` (Minecraft has no glove slot) |
+| Feet or calves slot | boots, shoes | `<tier>_boots` |
+| Shield slot | shield | shield |
+| Bow, crossbow | bow, crossbow | bow, crossbow |
+| Arrows and bolts | | arrow |
+| Pickaxe, Woodcutter's Axe (typed war axe) | pickaxe, woodcutter's axe | iron_pickaxe, iron_axe |
+| Staff, hand to hand; spells, clothing, jewelry | staff; a weapon with neither a weapon word nor a metal (Wabbajack) | nothing |
 
 | Material | Tier |
 |---|---|
