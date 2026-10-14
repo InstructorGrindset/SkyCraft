@@ -42,10 +42,13 @@ CHECKS = [
     ("execute in minecraft:the_nether run forceload add 0 0", None),
     ("execute in minecraft:the_nether positioned 0 80 0 run summon minecraft:piglin ~ ~ ~", "Summoned"),
     ("summon minecraft:zombie 0 100 0", "Summoned"),
-    # SkyCraft's effects are registered and apply (to a mob: the server has no player); the stealth mixin is in.
-    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:skooma 30 1", "Applied"),
-    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:stealth 30 0", "Applied"),
-    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:skooma_withdrawal 30 2", "Applied"),
+    # SkyCraft's effects are registered and apply, to a pig held in the air of a loaded chunk (the server has no
+    # player; monsters don't last in the mirror, and a falling one dies).
+    ("execute in skycraft:tamriel_wilds positioned 96 200 288 run summon minecraft:pig ~ ~ ~ "
+     "{NoAI:1b,NoGravity:1b,Invulnerable:1b,Tags:[\"skycraft_smoke\"]}", "Summoned"),
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma 30 1", "Applied"),
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:stealth 30 0", "Applied"),
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma_withdrawal 30 2", "Applied"),
 ]
 BAD_LOG = ("Mixin apply failed", "InvalidInjectionException", "InvalidMixinException", "MixinApplyError", "Exception in server tick loop",
            "This crash report", "Encountered an unexpected exception", "Caused by:")

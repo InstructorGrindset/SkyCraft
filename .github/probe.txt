@@ -1,7 +1,3 @@
 # Minecraft 26.3 API printed by the Check branch workflow (see .github/workflows/check.yml).
-# Skooma: attributes players and mobs have, effect names and icons, /tick sprint.
--c net.minecraft.world.entity.player.Player createAttributes
--c net.minecraft.world.entity.LivingEntity createLivingAttributes
--c net.minecraft.world.effect.MobEffect getOrCreateDescriptionId
--c net.minecraft.server.commands.TickCommand register
--c net.minecraft.client.gui.screens.inventory.EffectsInInventory
+# Skooma: where the HUD finds an effect's icon.
+-c net.minecraft.client.gui.Hud getMobEffectSprite
