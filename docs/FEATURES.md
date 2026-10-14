@@ -327,10 +327,11 @@ Stealth (`skycraft:stealth`); the effects themselves are always there, the switc
 
 **Stealth.** While a player crouches under Skooma or Stealth, the visibility mobs target by
 (`LivingEntity.getVisibilityPercent`, which already has crouching's 0.8, invisibility and mob heads; `TargetingConditions`
-multiplies a mob's range by it, never under 2 blocks) is scaled by 0.8 x 0.75 per level: 0.6 at I, 0.45 at II, 0.34 at III,
+multiplies a mob's range by it, never under 2 blocks) is scaled by 0.8 x 0.75^level: 0.6 at I, 0.45 at II, 0.34 at III,
 never under 0.2 (`SkoomaRules.stealthScale`, `mixin/LivingEntityStealthMixin`). A zombie that would spot a crouching player
 at 28 blocks spots one on Skooma at 17, on Redwater at 13. Under both, the higher level's stealth counts (their sneaking
-speeds do add up).
+speeds do add up). This is Minecraft's mobs' sight: Skyrim's people and creatures in the mirror notice the player by
+Skyrim's own detection.
 
 **The addiction** (`skooma/SkoomaRules`, pure Java and unit tested; `skooma/SkySkooma` runs it once a second for every
 player, host and guests, in every dimension). Its clock is the world's game time, which keeps running while SkyCraft
