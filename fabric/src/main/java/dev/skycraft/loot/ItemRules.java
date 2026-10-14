@@ -60,6 +60,11 @@ public final class ItemRules {
 		"weakness", "poison", "wither", "health_boost", "absorption", "saturation", "glowing", "levitation", "luck", "unluck", "slow_falling",
 		"conduit_power", "dolphins_grace", "bad_omen", "hero_of_the_village", "darkness", "trial_omen", "raid_omen", "wind_charged", "weaving", "oozing",
 		"infested", "breath_of_the_nautilus");
+	/**
+	 * SkyCraft's own effects (alchemy.SkyEffects), named with their namespace in a rule: {@code skycraft:skooma:0:180} is
+	 * Skooma's high, {@code skycraft:stealth:0-1:60-240} Fortify Sneak.
+	 */
+	public static final List<String> SKYCRAFT_EFFECTS = List.of("skycraft:skooma", "skycraft:stealth", "skycraft:skooma_withdrawal");
 	/** Items that hold a potion (the potion_contents component), so a rule can write {@code minecraft:potion[healing]}. */
 	public static final List<String> POTION_ITEMS = List.of("minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion",
 		"minecraft:tipped_arrow");
@@ -276,10 +281,16 @@ public final class ItemRules {
 		tag food name wine = keep
 		tag food name ale = keep
 		tag food name mead = keep
-		tag food name skooma = keep
 		tag food name milk = keep
 		name sheogorath = keep
 		name exquisite = keep
+
+		# Skooma is SkyCraft's Skooma: a high of speed, higher jumps and quick, quiet sneaking, and an addiction
+		# that comes with it (skycraft-skooma.txt). Redwater Skooma is the stronger cut. Moon sugar's rush is
+		# also a little stamina (saturation).
+		name empty name skooma = minecraft:glass_bottle 1
+		name redwater name skooma = minecraft:potion{skycraft:skooma:1:150 + saturation:1:0 #8e3fb5} 1
+		name skooma = minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1
 
 		# Food
 		tag food name pie = minecraft:pumpkin_pie 1
@@ -509,12 +520,12 @@ public final class ItemRules {
 		# Health potions are red, magicka blue, stamina green. Magicka has no Minecraft meter, so it
 		# becomes Absorption (a ward of golden hearts); stamina is the hunger bar and running.
 		# Stay in Skyrim: the White Phial (it refills), the Lotus and Nightshade Extracts (quest poisons),
-		# Unknown Potion, and drinks without a vendor keyword (Skooma, Potion of Blood).
+		# Unknown Potion, and drinks without a vendor keyword (Potion of Blood). Skooma has its own rules at the top.
 		tag potion name phial = keep
 		name philter name phantom = minecraft:potion{invisibility:0:60} 1
 		tag potion name night name eye = minecraft:potion{night_vision:0:120-480} 1
 		tag potion name detect name life = minecraft:potion{night_vision:0:60-240} 1
-		tag potion name muffle = minecraft:potion{invisibility:0:20-60} 1
+		tag potion name muffle = minecraft:potion{skycraft:stealth:0:30-120 #4d5b66} 1
 		# Restore, Fortify and Regenerate Health, Magicka and Stamina
 		tag potion name well = minecraft:potion{instant_health:0-2:0 + absorption:0-2:30-90 + saturation:1-9:0 #9c4fb0} 1
 		tag potion name healing = minecraft:potion{instant_health:0-2:0 #c62828} 1
@@ -551,9 +562,10 @@ public final class ItemRules {
 		tag potion name heavy name armor = minecraft:potion{resistance:0-2:60-180 + slowness:0:60-180} 1
 		tag potion name skirmisher's = minecraft:potion{resistance:0-1:60-180 + speed:0:60-180} 1
 		tag potion name light name armor = minecraft:potion{resistance:0-1:60-180 + speed:0:60-180} 1
-		# Stealth and thievery: Sneak is a short Invisibility, Lockpicking and Pickpocket are Luck
-		tag potion name light name feet = minecraft:potion{invisibility:0:20-90} 1
-		tag potion name sneak = minecraft:potion{invisibility:0:20-90} 1
+		# Stealth and thievery: Sneak is SkyCraft's Stealth (quicker sneaking, mobs see you later), Lockpicking and
+		# Pickpocket are Luck
+		tag potion name light name feet = minecraft:potion{skycraft:stealth:0-1:60-240 #4d5b66} 1
+		tag potion name sneak = minecraft:potion{skycraft:stealth:0-1:60-240 #4d5b66} 1
 		tag potion name invisibility = minecraft:potion{invisibility:0:30-180} 1
 		tag potion name larceny = minecraft:potion{luck:0-2:60-180} 1
 		tag potion name lockpicking = minecraft:potion{luck:0-2:60-180} 1
@@ -1221,7 +1233,15 @@ public final class ItemRules {
 					if (spec.startsWith("minecraft:")) {
 						spec = spec.substring("minecraft:".length());
 					}
+					// skycraft:skooma:0:180: a SkyCraft effect keeps its namespace in the id.
+					if (spec.startsWith("skycraft:")) {
+						int colon = spec.indexOf(':', "skycraft:".length());
+						spec = colon < 0 ? spec : spec.substring(0, colon).replace(':', '/') + spec.substring(colon);
+					}
 					String[] p = spec.split(":", -1);
+					if (p.length == 3) {
+						p[0] = p[0].replace('/', ':');
+					}
 					if (p.length != 3 || p[0].isEmpty()) {
 						problems.add("line " + n + ": effect '" + token + "' needs effect:amplifier:seconds, like speed:0:60");
 						return null;
@@ -1235,7 +1255,7 @@ public final class ItemRules {
 						problems.add("line " + n + ": seconds '" + p[2] + "' of '" + token + "' isn't 0 to " + MAX_SECONDS + " or a range like 60-180");
 						return null;
 					}
-					if (!EFFECTS.contains(p[0])) {
+					if (!EFFECTS.contains(p[0]) && !SKYCRAFT_EFFECTS.contains(p[0])) {
 						unknownEffects.computeIfAbsent(p[0], k -> new ArrayList<>()).add(n);
 						unknown = true;
 						continue;

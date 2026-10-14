@@ -169,7 +169,7 @@ An existing `config/skycraft-items.txt` keeps its old rules: delete it (or merge
 
 ### Stays in Skyrim on purpose
 
-Gold, keys, books, spell tomes, scrolls, lockpicks, wine, ale, mead, Skooma, milk (Jug of Milk), Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
+Gold, keys, books, spell tomes, scrolls, lockpicks, wine, ale, mead, milk (Jug of Milk), Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
 
 ### Clothing (pending your call)
 
@@ -293,7 +293,7 @@ A range runs from tier 0 to tier 5 in proportion, rounded: levels I to III are I
 | Fortify Block | Absorption I to III, 60 to 180 s | Potion of the Defender (I), Philter of the Defender (II, 132 s), Potion of Fortify Block |
 | Fortify Heavy Armor | Resistance I to III with Slowness I, 60 to 180 s | Potion of the Knight (I), Elixir of the Knight (III, 156 s), Potion of Fortify Heavy Armor |
 | Fortify Light Armor | Resistance I to II with Speed I, 60 to 180 s | Skirmisher's Potion (I), Skirmisher's Elixir (II), Potion of Fortify Light Armor |
-| Fortify Sneak | Invisibility, 20 to 90 s | Potion of Light Feet (34 s), Draught of Light Feet (48 s), Potion of Fortify Sneak |
+| Fortify Sneak | SkyCraft Stealth I to II, 60 to 240 s (quicker sneaking; mobs see a sneaking player later) | Potion of Light Feet (96 s), Draught of Light Feet (132 s), Elixir of Light Feet (II, 204 s), Potion of Fortify Sneak |
 | Invisibility | Invisibility, 30 to 180 s | Potion of Brief Invisibility (30 s), Potion of Extended Invisibility (90 s), Potion of Prolonged Invisibility (120 s), Potion of Invisibility |
 | Invisibility with Restore Health (Escape) | Invisibility 30 to 180 s and Instant Health I to III | Potion of Escape (60 s, I), Prime Elixir of Escape (180 s, III) |
 | Fortify Lockpicking | Luck I to III, 60 to 180 s | Potion of Lockpicking (I), Elixir of Lockpicking (III), Potion of Fortify Lockpicking |
@@ -322,7 +322,7 @@ A range runs from tier 0 to tier 5 in proportion, rounded: levels I to III are I
 | Ghostveil | Invisibility, 60 s | Philter of the Phantom |
 | Night Eye (mods) | Night Vision, 120 to 480 s | Potion of Night Eye (192 s) |
 | Detect Life (mods) | Night Vision, 60 to 240 s | Potion of Detect Life |
-| Muffle (mods) | Invisibility, 20 to 60 s | Potion of Muffle |
+| Muffle (mods) | SkyCraft Stealth I, 30 to 120 s | Potion of Muffle |
 | Damage Health | splash Instant Damage I to III | Weak Poison (I), Poison (I), Potent Poison (II), Deadly Poison (III), Ice Wraith Bane (II), Poison of Damage Health |
 | Lingering Damage Health | splash Poison I to III, 10 to 25 s | Weak Lingering Poison (I, 10 s), Potent Lingering Poison (II, 16 s), Deadly Lingering Poison (III, 22 s), Poison of Lingering Damage Health |
 | Ravage Health | splash Wither I to II, 8 to 20 s | Poison of Ravage Health (I, 10 s) |
@@ -345,7 +345,7 @@ A range runs from tier 0 to tier 5 in proportion, rounded: levels I to III are I
 | Weakness to Poison | splash Poison I 5 to 15 s and Weakness I 15 to 45 s | Poison of Weakness to Poison (7 s, 21 s) |
 | Frostbite Venom | splash Poison I 6 s and Slowness II 8 s | Frostbite Venom, Netch Poison |
 
-Staying in Skyrim: The White Phial (it refills), Lotus Extract and Nightshade Extract (quest poisons), Unknown Potion, and drinks without a vendor keyword (Skooma, Potion of Blood, Falmer Blood Elixir).
+Staying in Skyrim: The White Phial (it refills), Lotus Extract and Nightshade Extract (quest poisons), Unknown Potion, and drinks without a vendor keyword (Potion of Blood, Falmer Blood Elixir). Skooma converts: see below.
 
 Crafted potion names longer than 27 letters arrive cut ("Potion of Fortify Two-hande"); SkyCraft gives back the whole name from `ItemRules.LONG_NAMES` for both the rules and the Minecraft potion's name. The three crafted Lingering Damage poisons share their first 27 letters, so they stay cut and count as Lingering Damage Health.
 
@@ -454,3 +454,19 @@ Counts below are without Looting. Tables were read from Minecraft 26.3.
 | Riekling | 0-1 bone, 0-1 leather | Small and tribal; their spears are the NPC gear drop's |
 
 Creatures that match no rule drop nothing, so people and armed Daedra (bandits, guards, Forsworn, vampires, Dremora) never get creature drops; their gear is a separate feature. Dogs drop nothing either, as in Minecraft.
+
+## Skooma
+
+Skooma and Redwater Skooma become SkyCraft potions named after them, holding SkyCraft's Skooma effect: faster
+running, higher jumps that don't hurt to land, and quick, quiet sneaking that mobs notice later. Skooma is level I for
+180 s, Redwater Skooma level II for 150 s; both give a little saturation, moon sugar's rush of stamina. Drinking it
+can make the player addicted (feature `skooma_addiction`, `skycraft-skooma.txt`; see FEATURES.md). An Empty Skooma
+Bottle is a glass bottle. Rules write SkyCraft's effects with their namespace:
+`minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1`, `skycraft:stealth`.
+
+| Item | Becomes |
+|---|---|
+| Skooma | potion "Skooma": Skooma I, 180 s, Saturation I |
+| Redwater Skooma | potion "Redwater Skooma": Skooma II, 150 s, Saturation II |
+| Empty Skooma Bottle | glass bottle |
+
