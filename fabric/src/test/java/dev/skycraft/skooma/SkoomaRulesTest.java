@@ -194,6 +194,17 @@ class SkoomaRulesTest {
 	}
 
 	@Test
+	void aClockBehindTheLastDoseStartsTheDaysOver() {
+		Habit h = addictedAt(10 * DAY);
+		assertEquals(0, h.withdrawal(DAY, S));
+		Habit moved = h.notAfter(DAY);
+		assertEquals(DAY, moved.lastDose());
+		assertEquals(1, moved.withdrawal(2 * DAY, S));
+		assertEquals(h, h.notAfter(11 * DAY));
+		assertEquals(Habit.CLEAN, Habit.CLEAN.notAfter(0));
+	}
+
+	@Test
 	void stealthScalesWithLevel() {
 		assertEquals(1.0, SkoomaRules.stealthScale(0));
 		assertEquals(0.6, SkoomaRules.stealthScale(1), 1e-9);

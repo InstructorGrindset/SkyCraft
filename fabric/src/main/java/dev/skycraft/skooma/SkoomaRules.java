@@ -169,6 +169,11 @@ public final class SkoomaRules {
 			return new Habit(doses, lastDose, tolerance, addicted, relapses, endured + ticks);
 		}
 
+		/** This habit with its last dose no later than {@code now}: a player brought into a world whose clock is behind. */
+		public Habit notAfter(long now) {
+			return lastDose != NEVER && lastDose > now ? new Habit(doses, now, tolerance, addicted, relapses, endured) : this;
+		}
+
 		/** Cured: the addiction and its relapses are gone; the doses and the tolerance stay. */
 		public Habit cured() {
 			return new Habit(doses, lastDose, tolerance, false, 0, 0);

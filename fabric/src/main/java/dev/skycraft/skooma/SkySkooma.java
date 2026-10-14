@@ -208,6 +208,10 @@ public final class SkySkooma {
 		}
 
 		Habit habit = habit(player);
+		if (habit.lastDose() > now) {
+			habit = habit.notAfter(now); // brought into a world whose clock is behind: the days start over
+			player.setAttached(HABIT, habit);
+		}
 		if (!habit.addicted()) {
 			SYMPTOMS.remove(id);
 			return;

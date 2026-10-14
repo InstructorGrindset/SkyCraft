@@ -38,6 +38,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Worlds | none | Three dimensions beside the mirror world: the Nether, Tamriel Wilds and Home (Steve's seed, ending in the Far Lands), reached through the portal network. See [Worlds](#worlds) | `worlds/` (Worlds, SkyWorlds, HomeChunkGenerator, HomeTerrain, ClassicNoise, FarLands, SteveCamp, HomeCamp, WorldArrivals), `worlds/mixin/` | none | data in the jar | `SkyCraft-worlds` | Built |
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
+| Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -308,6 +309,104 @@ stables horse, unowned when placed); `player.moveto 000D95EA` (Meeko, at his sha
 
 Headless: `SKYCRAFT_COMPANION=1 python tools/fake_skyrim.py` adds a wild wolf five blocks west of the start and
 answers `kEvCompanion` as Skyrim would (tamed and sitting, follow and wait, healing).
+
+## Skooma and addiction
+
+Skooma is Skyrim's drug, and Minecraft gets its high and its hold (switch `skooma_addiction`, numbers in
+`skycraft-skooma.txt`). Item conversion's potion rules turn Skyrim's Skooma into a Minecraft potion of Skooma High
+(`minecraft:potion{skycraft:skooma:0:180 ...}`, amplifier 1 for Redwater Skooma) and Fortify Sneak potions into
+Stealth (`skycraft:stealth`); the effects themselves are always there, the switch only governs the addiction.
+
+**The effects** (`skooma/SkyEffects`; each level adds again, as vanilla's attribute effects do):
+
+| Effect | Id | Per level | |
+|---|---|---|---|
+| Skooma High | `skycraft:skooma` | +20% movement speed (Speed's), +0.1 jump strength (Jump Boost's: about 1.8 blocks high at I, 2.5 at II) with +1 safe fall distance (Jump Boost's, so the higher jump doesn't hurt), +0.15 sneaking speed (Swift Sneak's), stealth | Beneficial, Skooma's purple. Getting it is a dose |
+| Stealth | `skycraft:stealth` | +0.15 sneaking speed, stealth | Beneficial. No addiction |
+| Skooma Withdrawal | `skycraft:skooma_withdrawal` | -10% movement speed, -10% attack speed, -3% jump strength (III still clears a block), food exhaustion at half Hunger's rate | Harmful. Given by the addiction, endless until relieved or cured |
+
+**Stealth.** While a player crouches under Skooma or Stealth, the visibility mobs target by
+(`LivingEntity.getVisibilityPercent`, which already has crouching's 0.8, invisibility and mob heads; `TargetingConditions`
+multiplies a mob's range by it, never under 2 blocks) is scaled by 0.8 x 0.75 per level: 0.6 at I, 0.45 at II, 0.34 at III,
+never under 0.2 (`SkoomaRules.stealthScale`, `mixin/LivingEntityStealthMixin`). A zombie that would spot a crouching player
+at 28 blocks spots one on Skooma at 17, on Redwater at 13. Under both, the higher level's stealth counts (their sneaking
+speeds do add up).
+
+**The addiction** (`skooma/SkoomaRules`, pure Java and unit tested; `skooma/SkySkooma` runs it once a second for every
+player, host and guests, in every dimension). Its clock is the world's game time, which keeps running while SkyCraft
+holds the sun still (`/time` doesn't move it; `/tick sprint` does).
+
+- A dose is any time a player gets Skooma High: a potion, a splash or lingering cloud, a command. Skooma again within a
+  minute of a dose is the same dose (a lingering cloud gives it every second; two bottles in a row are one binge).
+- Tolerance: each dose adds one, and it halves every half day (`tolerance_half_life`).
+- Each dose may hook a player who isn't addicted: `chance` 5%, plus `chance_per_tolerance` 15% for each point of tolerance
+  before the dose, plus `chance_per_strength` 15% for each level above I (Redwater). The first ever dose: 5% (Redwater 20%);
+  one every two days stays near 6%; three a third of a day apart: about one in three to be hooked by the third; another
+  bottle a minute after one: 19%. Hooked: "You have become addicted to Skooma." in chat.
+- The comedown: when a high runs out by itself (not when milk or a command takes it), Slowness and Hunger for 30 seconds
+  (`comedown`), level II after Redwater. "The Skooma wears off."
+- Withdrawal: an addict a day (`withdrawal_after`) without a dose gets Skooma Withdrawal I, a level worse every further day
+  (`withdrawal_step`) up to III, with its first line on the action bar ("You crave Skooma.", "Your hands won't stop
+  shaking.", "Every bone in your body aches for Skooma."), then now and then (about every two minutes) another craving line
+  and a spell of nausea (8 seconds, about every five minutes at I, every hundred seconds at III). Milk (or anything clearing
+  effects, dying too) takes it away; it comes back three minutes later (`symptoms_return`) while the addiction lasts.
+- Relief and relapse: a dose during withdrawal ends it at once ("The Skooma steadies your hands."). Every dose taken while
+  addicted is a relapse: it puts the cure off by half a day (`recovery_per_relapse`), at most four times.
+- Recovery: three days clean (`recovery_after`, plus the relapses') since the last dose cure the addiction ("The craving is
+  gone."), but only once the player has lived through a day of withdrawal while playing (`recovery_endured`). Played
+  straight through, that's simply day 3 (withdrawal I on day 1, II on day 2). Time away while the world runs on (a guest
+  logged off while the host plays) counts as clean time, but the withdrawal has to be sat through on coming back, at the
+  level the days away earned: there's no sleeping it off. Milk masks the symptoms but doesn't stop the days. A cured
+  player keeps their dose count and tolerance; the next dose rolls as any other.
+
+Each player's habit (doses, the last dose's game time, tolerance, addicted, relapses, withdrawal lived through) is a Fabric
+data attachment on the player (`skycraft:skooma`): saved with the player and kept when they die. With the switch off,
+doses aren't counted and any withdrawal the addiction gave is taken away; the habit stays saved for when it's back on.
+
+**`skycraft-skooma.txt`** (ticks: 20 a second, 24000 a Minecraft day):
+
+| Setting | Default | |
+|---|---|---|
+| `chance` | 0.05 | A dose's chance to hook |
+| `chance_per_tolerance` | 0.15 | Added for each point of tolerance |
+| `chance_per_strength` | 0.15 | Added for each level above I |
+| `tolerance_half_life` | 12000 | Tolerance halves in this long |
+| `withdrawal_after` | 24000 | Withdrawal I this long after the last dose |
+| `withdrawal_step` | 24000 | A level worse every this long after |
+| `recovery_after` | 72000 | Clean this long cures |
+| `recovery_per_relapse` | 12000 | Added to it for each relapse (up to four) |
+| `recovery_endured` | 24000 | Withdrawal to live through before the cure |
+| `symptoms_return` | 3600 | Symptoms back this long after milk |
+| `comedown` | 600 | Slowness and Hunger this long when a high wears off |
+
+**Seeing it.** `/skyskooma` (any player, read only) prints your habit: doses, how long since the last, tolerance, the next
+dose's chance, or for an addict the withdrawal level, when the cure is due and how much withdrawal is lived through. The
+log has a `SkyCraft-skooma` line for every dose (level, tolerance, the chance it had and whether it hooked), each
+withdrawal level reached, symptoms cleared by milk and the cure, and the settings at start.
+
+**Try it** (cheats on):
+
+1. `/effect give @s skycraft:skooma 60 0`: faster, a 1.8 block jump with no fall damage from it, quicker crouching. Crouch
+   near a zombie at night (or `/summon minecraft:zombie ~10 ~ ~`): it notices you closer than without. `/skyskooma`: one
+   dose, tolerance 1.00. The log: `SkyCraft-skooma: <you> took Skooma (level 1): dose 1, ...`.
+2. Let it run out: "The Skooma wears off.", Slowness and Hunger for 30 seconds. Drink milk during another high instead: no
+   comedown.
+3. `/effect give @s skycraft:skooma 60 1` (Redwater) a minute apart until "You have become addicted to Skooma." (or set
+   `chance = 1` and restart).
+4. `/tick sprint 1d`: withdrawal I, "You crave Skooma.", slower, hungrier. `/tick sprint 1d` again: II. Drink milk: it goes,
+   and comes back three minutes later. `/effect give @s skycraft:skooma 10 0`: "The Skooma steadies your hands.", withdrawal
+   gone; `/skyskooma` shows one relapse.
+5. `/tick sprint 4d`: on the way, "The craving is gone." (three days clean, plus half a day for the relapse; `/skyskooma`:
+   not addicted). For a quicker run, shorten the times in `skycraft-skooma.txt` (say `withdrawal_after = 600`,
+   `withdrawal_step = 600`, `recovery_after = 2400`, `recovery_per_relapse = 0`, `recovery_endured = 600`,
+   `symptoms_return = 200`) and restart.
+6. Die while addicted: still addicted after respawning (`/skyskooma`). A guest gets all of it too.
+7. `/effect give @s skycraft:stealth 60 1` and crouch: quicker crouching, the same stealth as Redwater, no dose
+   (`/skyskooma` unchanged).
+8. `skooma_addiction = off` in `skycraft-features.txt`, restart: the effects still work, no dose is counted, no withdrawal.
+
+Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
+balance of the numbers.
 
 ## Planned
 
