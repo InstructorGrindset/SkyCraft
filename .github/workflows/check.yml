@@ -98,8 +98,9 @@ jobs:
           chmod +x gradlew
           ./gradlew help --no-configuration-cache -q > /dev/null 2>&1 || ./gradlew help --no-configuration-cache
 
-      # One line per entry: a class name (javap -p), "-c <class>" (with bytecode), a resource path inside
-      # the Minecraft jar ("data/minecraft/...json") printed as text, or "list:<prefix>" for the jar's
+      # One line per entry: a class name (javap -p), "-c <class>" (with bytecode), "-c <class> <name>" (the
+      # bytecode of only the members whose declaration has <name> in it, for big classes), a resource path
+      # inside the Minecraft jar ("data/minecraft/...json") printed as text, or "list:<prefix>" for the jar's
       # files under a path ("list:assets/minecraft/items/" is every item). "#" comments.
       - name: Print the probed API
         run: |
@@ -114,6 +115,8 @@ jobs:
             [ -z "$line" ] && continue
             echo; echo "======== $line"
             case "$line" in
+              -c\ *\ *) set -- ${line#-c }
+                javap -p -c -cp "$cp" "$1" 2>&1 | awk -v m="$2" '/^  [^ ]/ { p = index($0, m) > 0 } p' ;;
               -c\ *) javap -p -c -cp "$cp" "${line#-c }" 2>&1 ;;
               list:*) for j in ${cp//:/ }; do unzip -Z1 "$j" 2>/dev/null; done | grep "^${line#list:}" | sort -u ;;
               */*) for j in ${cp//:/ }; do unzip -p "$j" "$line" 2>/dev/null && break; done ;;

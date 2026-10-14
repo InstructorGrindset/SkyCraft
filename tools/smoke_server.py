@@ -5,8 +5,8 @@ Usage: python tools/smoke_server.py <skycraft jar> [work dir]
 
 What it proves without Skyrim: the mod loads, every mixin whose target class loads at startup or
 while the commands below run applies (a broken mixin crashes the server), the worlds data pack
-loads (Tamriel Wilds, Home, the Nether), and structures are found in a world made like SkyCraft's
-(the mirror preset, seed 0, structures off). The server runs the mod's common half, as the client's
+loads (Tamriel Wilds, Home, the Nether), structures are found in a world made like SkyCraft's
+(the mirror preset, seed 0, structures off), and SkyCraft's mob effects apply. The server runs the mod's common half, as the client's
 integrated server does. Runs on Windows only: SkyLink binds kernel32 when it
 loads. The server's log is printed at the end; the exit code is 1 when a check fails.
 """
@@ -42,6 +42,19 @@ CHECKS = [
     ("execute in minecraft:the_nether run forceload add 0 0", None),
     ("execute in minecraft:the_nether positioned 0 80 0 run summon minecraft:piglin ~ ~ ~", "Summoned"),
     ("summon minecraft:zombie 0 100 0", "Summoned"),
+    # Pigs held still in the force loaded chunks, for LATE_CHECKS (monsters don't last in the mirror, and a falling
+    # one dies).
+    ("execute in skycraft:tamriel_wilds positioned 96 200 288 run summon minecraft:pig ~ ~ ~ "
+     "{NoAI:1b,NoGravity:1b,Invulnerable:1b,Tags:[\"skycraft_smoke\"]}", "Summoned"),
+    ("execute in minecraft:the_nether positioned 0 80 0 run summon minecraft:pig ~ ~ ~ "
+     "{NoAI:1b,NoGravity:1b,Invulnerable:1b,Tags:[\"skycraft_smoke\"]}", "Summoned"),
+]
+# Run once the worlds have ticked a while: an entity is only found once its chunk has loaded.
+LATE_CHECKS = [
+    # SkyCraft's effects are registered and apply (to the pig: the server has no player).
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma 30 1", "Applied"),
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:stealth 30 0", "Applied"),
+    ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma_withdrawal 30 2", "Applied"),
 ]
 BAD_LOG = ("Mixin apply failed", "InvalidInjectionException", "InvalidMixinException", "MixinApplyError", "Exception in server tick loop",
            "This crash report", "Encountered an unexpected exception", "Caused by:")
@@ -84,6 +97,15 @@ def recv_exact(sock, n):
             raise ConnectionError("rcon closed")
         out += chunk
     return out
+
+
+def run_checks(sock, checks, first_id, failures):
+    for n, (command, expect) in enumerate(checks, start=first_id):
+        _, answer = rcon_packet(sock, n, 2, command)
+        ok = expect is None or expect.lower() in answer.lower()
+        print(f"{'ok  ' if ok else 'FAIL'} /{command}\n     -> {answer.strip()}")
+        if not ok:
+            failures.append(f"/{command} answered: {answer.strip()}")
 
 
 def main():
@@ -137,13 +159,9 @@ def main():
                 rid, _ = rcon_packet(sock, 1, 3, RCON_PASSWORD)
                 if rid == -1:
                     raise RuntimeError("rcon login refused")
-                for n, (command, expect) in enumerate(CHECKS, start=2):
-                    _, answer = rcon_packet(sock, n, 2, command)
-                    ok = expect is None or expect.lower() in answer.lower()
-                    print(f"{'ok  ' if ok else 'FAIL'} /{command}\n     -> {answer.strip()}")
-                    if not ok:
-                        failures.append(f"/{command} answered: {answer.strip()}")
+                run_checks(sock, CHECKS, 2, failures)
                 time.sleep(20)  # let the worlds tick with the summoned mobs
+                run_checks(sock, LATE_CHECKS, 2 + len(CHECKS), failures)
                 rcon_packet(sock, 99, 2, "save-all flush")
                 try:
                     rcon_packet(sock, 100, 2, "stop")

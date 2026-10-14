@@ -27,7 +27,8 @@ public final class Features {
 		PORTALS("portals", "lit Nether portals bound in pairs with a filled soul gem take you between Skyrim places; a Daedra heart or a tonal key opens one onto the Nether or Tamriel Wilds, an Elder Scroll at the Time-Wound onto Home, and Seamstone anywhere you've been (skycraft-portals.txt in the world)"),
 		COMPANIONS("companions", "bones tame a Skyrim dog or wolf and horse food a horse, as in Minecraft; right click a tamed one with an empty hand to make it sit or follow (sneak for a horse), feed it to heal it"),
 		NATURAL_SPAWNS("natural_spawns", "animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror; off: no natural spawning anywhere, as before"),
-		GEAR_DROPS("gear_drops", "Skyrim people and creatures you kill sometimes drop the Minecraft version of a weapon or armor piece they wore, like a Minecraft zombie (skycraft-gear-drops.txt)");
+		GEAR_DROPS("gear_drops", "Skyrim people and creatures you kill sometimes drop the Minecraft version of a weapon or armor piece they wore, like a Minecraft zombie (skycraft-gear-drops.txt)"),
+		SKOOMA_ADDICTION("skooma_addiction", "Skooma can make a player addicted: withdrawal without it, cured after days clean; a comedown when a high wears off (skycraft-skooma.txt)");
 
 		public final String key;
 		public final String about;
