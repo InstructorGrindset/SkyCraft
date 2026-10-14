@@ -1,17 +1,14 @@
 # Minecraft 26.3 API printed by the Check branch workflow (see .github/workflows/check.yml).
-# Skooma: game time, stealth overrides, effect icons, how effects run out.
--c net.minecraft.world.level.Level Time
--c net.minecraft.server.level.ServerLevel Time
--c net.minecraft.world.level.LevelAccessor Time
--c net.minecraft.world.level.LevelReader Time
--c net.minecraft.world.level.storage.LevelData Time
--c net.minecraft.server.MinecraftServer Tick
--c net.minecraft.world.entity.player.Player Visibility
--c net.minecraft.server.level.ServerPlayer Visibility
--c net.minecraft.server.level.ServerPlayer sendOverlayMessage
--c net.minecraft.world.entity.LivingEntity removeAllEffects
--c net.minecraft.world.entity.LivingEntity tickEffects
-assets/minecraft/atlases/gui.json
-list:net/minecraft/client/gui/screens/inventory/Effect
-list:net/minecraft/client/resources/
--c net.minecraft.client.gui.Gui Effect
+net.minecraft.world.level.NaturalSpawner
+net.minecraft.server.level.ServerChunkCache
+net.minecraft.world.level.storage.loot.parameters.LootContextParams
+net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
+net.minecraft.world.level.storage.loot.LootParams$Builder
+net.minecraft.world.item.enchantment.EnchantmentHelper
+net.minecraft.world.item.enchantment.Enchantments
+net.minecraft.world.entity.Mob
+net.minecraft.world.level.gamerules.GameRules
+data/minecraft/tags/worldgen/biome/has_structure/village_plains.json
+data/minecraft/tags/worldgen/biome/has_structure/village_taiga.json
+data/minecraft/tags/worldgen/biome/has_structure/village_snowy.json
+data/minecraft/loot_table/entities/spider.json

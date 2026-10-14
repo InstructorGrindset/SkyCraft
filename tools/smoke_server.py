@@ -42,6 +42,10 @@ CHECKS = [
     ("execute in minecraft:the_nether run forceload add 0 0", None),
     ("execute in minecraft:the_nether positioned 0 80 0 run summon minecraft:piglin ~ ~ ~", "Summoned"),
     ("summon minecraft:zombie 0 100 0", "Summoned"),
+    # SkyCraft's effects are registered and apply (to a mob: the server has no player); the stealth mixin is in.
+    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:skooma 30 1", "Applied"),
+    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:stealth 30 0", "Applied"),
+    ("effect give @e[type=minecraft:zombie,limit=1] skycraft:skooma_withdrawal 30 2", "Applied"),
 ]
 BAD_LOG = ("Mixin apply failed", "InvalidInjectionException", "InvalidMixinException", "MixinApplyError", "Exception in server tick loop",
            "This crash report", "Encountered an unexpected exception", "Caused by:")

@@ -1,5 +1,8 @@
 {
   "entity.skycraft.skyrim_actor": "Skyrim NPC",
+  "effect.skycraft.skooma": "Skooma High",
+  "effect.skycraft.stealth": "Stealth",
+  "effect.skycraft.skooma_withdrawal": "Skooma Withdrawal",
   "item.skycraft.filled_soul_gem": "Filled Soul Gem",
   "item.skycraft.attuned_soul_gem": "Attuned Soul Gem",
   "item.skycraft.tonal_key": "Tonal Key",

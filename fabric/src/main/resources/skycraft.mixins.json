@@ -13,6 +13,7 @@
     "FallingBlockMixin",
     "FlowingFluidMixin",
     "ItemMixin",
+    "LivingEntityStealthMixin",
     "MinecraftServerFlightMixin",
     "NetherPortalBlockMixin",
     "PlayerEdgeMixin",
