@@ -1,23 +1,28 @@
 # Minecraft 26.3 API printed by the Check branch workflow (see .github/workflows/check.yml).
 # Skooma: effects, attributes, stealth, addiction.
 net.minecraft.world.effect.MobEffect
-net.minecraft.world.effect.MobEffect$AttributeTemplate
 -c net.minecraft.world.effect.MobEffect$AttributeTemplate
 net.minecraft.world.effect.MobEffectInstance
+-c net.minecraft.world.effect.MobEffectInstance update
+-c net.minecraft.world.effect.MobEffectInstance onEffect
 net.minecraft.world.effect.MobEffectCategory
 -c net.minecraft.world.effect.HungerMobEffect
 net.minecraft.world.entity.ai.attributes.Attributes
 net.minecraft.world.entity.ai.attributes.AttributeModifier$Operation
 net.minecraft.core.Registry
-net.minecraft.world.entity.Entity
-net.minecraft.world.entity.player.Player
-net.minecraft.server.level.ServerPlayer
 net.minecraft.commands.CommandSourceStack
 net.minecraft.commands.Commands
-net.minecraft.world.level.Level
 list:assets/minecraft/textures/mob_effect/
 list:assets/minecraft/atlases/
-list:assets/minecraft/textures/gui/sprites/hud/
--c net.minecraft.world.entity.ai.targeting.TargetingConditions
--c net.minecraft.world.effect.MobEffects
--c net.minecraft.world.entity.LivingEntity
+-c net.minecraft.client.gui.Gui getMobEffectSprite
+-c net.minecraft.world.entity.LivingEntity getVisibilityPercent
+-c net.minecraft.world.entity.LivingEntity addEffect
+-c net.minecraft.world.entity.LivingEntity onEffect
+-c net.minecraft.world.entity.LivingEntity getJump
+-c net.minecraft.world.entity.LivingEntity Effect(
+-c net.minecraft.world.entity.Entity isDiscrete
+-c net.minecraft.world.entity.Entity isCrouching
+-c net.minecraft.world.entity.player.Player causeFoodExhaustion
+-c net.minecraft.world.level.Level getGameTime
+-c net.minecraft.world.entity.ai.targeting.TargetingConditions test
+-c net.minecraft.world.effect.MobEffects static
