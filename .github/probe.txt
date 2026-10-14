@@ -1,14 +1,23 @@
 # Minecraft 26.3 API printed by the Check branch workflow (see .github/workflows/check.yml).
-net.minecraft.world.level.NaturalSpawner
-net.minecraft.server.level.ServerChunkCache
-net.minecraft.world.level.storage.loot.parameters.LootContextParams
-net.minecraft.world.level.storage.loot.parameters.LootContextParamSets
-net.minecraft.world.level.storage.loot.LootParams$Builder
-net.minecraft.world.item.enchantment.EnchantmentHelper
-net.minecraft.world.item.enchantment.Enchantments
-net.minecraft.world.entity.Mob
-net.minecraft.world.level.gamerules.GameRules
-data/minecraft/tags/worldgen/biome/has_structure/village_plains.json
-data/minecraft/tags/worldgen/biome/has_structure/village_taiga.json
-data/minecraft/tags/worldgen/biome/has_structure/village_snowy.json
-data/minecraft/loot_table/entities/spider.json
+# Skooma: effects, attributes, stealth, addiction.
+net.minecraft.world.effect.MobEffect
+net.minecraft.world.effect.MobEffect$AttributeTemplate
+-c net.minecraft.world.effect.MobEffect$AttributeTemplate
+net.minecraft.world.effect.MobEffectInstance
+net.minecraft.world.effect.MobEffectCategory
+-c net.minecraft.world.effect.HungerMobEffect
+net.minecraft.world.entity.ai.attributes.Attributes
+net.minecraft.world.entity.ai.attributes.AttributeModifier$Operation
+net.minecraft.core.Registry
+net.minecraft.world.entity.Entity
+net.minecraft.world.entity.player.Player
+net.minecraft.server.level.ServerPlayer
+net.minecraft.commands.CommandSourceStack
+net.minecraft.commands.Commands
+net.minecraft.world.level.Level
+list:assets/minecraft/textures/mob_effect/
+list:assets/minecraft/atlases/
+list:assets/minecraft/textures/gui/sprites/hud/
+-c net.minecraft.world.entity.ai.targeting.TargetingConditions
+-c net.minecraft.world.effect.MobEffects
+-c net.minecraft.world.entity.LivingEntity
