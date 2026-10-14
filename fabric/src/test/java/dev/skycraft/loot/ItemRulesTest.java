@@ -200,7 +200,9 @@ class ItemRulesTest {
 
 	@Test
 	void everySkycraftItemInTheDefaultsExists() {
-		java.util.regex.Matcher m = java.util.regex.Pattern.compile("skycraft:([a-z0-9_]+)").matcher(ItemRules.DEFAULT_TEXT);
+		// Items only: a potion's effect list may name a SkyCraft effect (skycraft:skooma), which isn't an item.
+		String items = ItemRules.DEFAULT_TEXT.replaceAll("\\{[^}]*}", "");
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("skycraft:([a-z0-9_]+)").matcher(items);
 		int found = 0;
 		while (m.find()) {
 			found++;
@@ -622,7 +624,8 @@ class ItemRulesTest {
 		assertPotion(rules, "minecraft:potion{absorption:1:132} 1", "Philter of the Defender");
 		assertPotion(rules, "minecraft:potion{resistance:2:156+slowness:0:156} 1", "Elixir of the Knight");
 		assertPotion(rules, "minecraft:potion{resistance:0:84+speed:0:84} 1", "Potion of Fortify Light Armor");
-		assertPotion(rules, "minecraft:potion{invisibility:0:48} 1", "Draught of Light Feet");
+		assertPotion(rules, "minecraft:potion{skycraft:stealth:0:132} 1", "Draught of Light Feet");
+		assertPotion(rules, "minecraft:potion{skycraft:stealth:1:204} 1", "Elixir of Light Feet");
 		assertPotion(rules, "minecraft:potion{invisibility:0:30} 1", "Potion of Brief Invisibility");
 		assertPotion(rules, "minecraft:potion{invisibility:0:120} 1", "Potion of Prolonged Invisibility");
 		assertPotion(rules, "minecraft:potion{invisibility:0:180+instant_health:2:0} 1", "Prime Elixir of Escape");
@@ -718,7 +721,6 @@ class ItemRulesTest {
 		assertEquals("keep", potion(rules, "Unknown Potion"));
 		assertEquals("keep", poison(rules, "Lotus Extract"));
 		assertEquals("keep", poison(rules, "Nightshade Extract"));
-		assertEquals("keep", convert(rules, 0, 0, WORLD, "Skooma"));
 		assertEquals("keep", convert(rules, 0, 0, WORLD, "Potion of Blood"));
 	}
 
@@ -775,5 +777,30 @@ class ItemRulesTest {
 			assertEquals(1, problems.size(), bad + " " + problems);
 		}
 		assertEquals(43, ItemRules.ENCHANTMENTS.size());
+	}
+
+	@Test
+	void skoomaIsSkyCraftsSkoomaAndItsBottleStaysABottle() {
+		ItemRules rules = defaults();
+		assertEquals("minecraft:potion{skycraft:skooma:0:180+saturation:0:0} 1", convert(rules, 0, 0, WORLD, "Skooma"));
+		assertEquals("minecraft:potion{skycraft:skooma:1:150+saturation:1:0} 1", convert(rules, 0, 0, CORPSE, "Redwater Skooma"));
+		assertEquals("minecraft:glass_bottle 1", convert(rules, tags("clutter"), 0, CONTAINER, "Empty Skooma Bottle"));
+		ItemRules.Result skooma = rules.match(new ItemRules.Item(0, 0, WORLD, "Skooma"));
+		assertEquals("skycraft:skooma", skooma.effects().get(0).id());
+		assertEquals("Skooma", skooma.name());
+	}
+
+	@Test
+	void skyCraftEffectsKeepTheirNamespace() {
+		List<String> problems = new ArrayList<>();
+		ItemRules rules = ItemRules.parse("""
+			tag potion name a = minecraft:potion{skycraft:stealth:0-1:60-240} 1
+			tag potion name b = minecraft:potion{skycraft:nope:0:60} 1
+			tag potion name c = minecraft:potion{minecraft:speed:0:60 + skycraft:skooma:0:30} 1
+			""", problems);
+		assertEquals(2, rules.size(), problems.toString());
+		assertEquals(List.of("line 2: unknown effect 'skycraft:nope', rule skipped"), problems);
+		assertEquals("skycraft:stealth", rules.match(new ItemRules.Item(tags("potion"), 0, WORLD, "Potion a")).effects().get(0).id());
+		assertEquals("minecraft:potion{speed:0:60+skycraft:skooma:0:30} 1", rules.match(new ItemRules.Item(tags("potion"), 0, WORLD, "Potion c")).describe());
 	}
 }

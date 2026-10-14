@@ -116,8 +116,10 @@ public final class SkyBridge {
 		}
 		List<MobEffectInstance> effects = new ArrayList<>();
 		for (ItemRules.Effect e : out.effects()) {
-			// ItemRules only lets 26.3 effect ids through, and match() already picked the values for the name's tier.
-			Holder<MobEffect> effect = BuiltInRegistries.MOB_EFFECT.get(Identifier.withDefaultNamespace(e.id())).orElse(null);
+			// ItemRules only lets 26.3 and SkyCraft effect ids through, and match() already picked the values for the name's tier.
+			// Vanilla effects are written without a namespace, SkyCraft's with theirs (skycraft:skooma).
+			Identifier effectId = e.id().indexOf(':') >= 0 ? Identifier.parse(e.id()) : Identifier.withDefaultNamespace(e.id());
+			Holder<MobEffect> effect = BuiltInRegistries.MOB_EFFECT.get(effectId).orElse(null);
 			if (effect == null) {
 				SkyCraft.LOG.warn("SkyCraft-loot: unknown effect '{}' in {}, {} stays in Skyrim", e.id(), FILE, skyrimName);
 				return null;
