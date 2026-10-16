@@ -217,6 +217,15 @@ For development:
 | `protocol/` | The shared-memory protocol between them |
 | `tools/` | Packaging, test stand-ins (`fake_skyrim.py`, `fake_guest.py`) and diagnostics |
 
+## Credits
+
+SkyCraft is by chasmlol. Contributors:
+
+- **Higor Machado** ([waTools-br](https://github.com/waTools-br)): playtesting, and the loot fixes from
+  [waTools-br/SkyCraft](https://github.com/waTools-br/SkyCraft/tree/dev-higor): loot and gear drop state
+  that was never cleared (memory kept growing), drops lifted out of blocks and onto Skyrim's ground,
+  and coin and odds-and-ends drops for bandits, guards, mages and other people.
+
 ## License
 
 [MIT](LICENSE)

@@ -5,6 +5,7 @@
   "name": "SkyCraft",
   "description": "Play Skyrim with Minecraft physics, inventory and viewmodels.",
   "authors": ["chasmlol"],
+  "contributors": ["Higor Machado (waTools-br)"],
   "contact": {
     "sources": "https://github.com/chasmlol/SkyCraft"
   },
