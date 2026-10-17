@@ -101,8 +101,11 @@ public final class SkyReport {
 		thread.start();
 	}
 
-	/** Writes {@code skycraft-report-<date-time>.zip} in Minecraft's game folder from this machine's files. */
-	public static Result write(int crashReports) {
+	/**
+	 * Writes {@code skycraft-report-<date-time>.zip} in Minecraft's game folder from this machine's files. One at a time:
+	 * two asked for in the same second share a name.
+	 */
+	public static synchronized Result write(int crashReports) {
 		LocalDateTime now = LocalDateTime.now();
 		Path game = FabricLoader.getInstance().getGameDir().toAbsolutePath().normalize();
 		Path zip = game.resolve(ReportPlan.fileName(now));
