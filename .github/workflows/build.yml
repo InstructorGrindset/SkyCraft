@@ -157,10 +157,31 @@ jobs:
     if: always() && needs.fabric.result == 'success' && (needs.skse.result == 'success' || needs.skse.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
+      # The history and tags, for the release notes (in a folder of its own, beside the downloads).
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          path: history
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
+
+      # The commits since the previous release tag, grouped by area, and who to thank
+      # (tools/release_notes.py). If that fails, the notes are the first line alone and the release
+      # goes out all the same.
+      - name: Write the release notes
+        run: |
+          notes="$RUNNER_TEMP/release-notes.md"
+          echo "Test build from the dev branch, commit $GITHUB_SHA." > "$notes"
+          if (cd history && python3 tools/release_notes.py --head "$GITHUB_SHA") > "$RUNNER_TEMP/changes.md"; then
+            { echo; cat "$RUNNER_TEMP/changes.md"; } >> "$notes"
+          else
+            echo "::warning title=Release notes::tools/release_notes.py failed; the release has the first line only"
+          fi
+          cat "$notes"
 
       - name: Publish the test release
         uses: softprops/action-gh-release@v2
@@ -169,5 +190,5 @@ jobs:
           name: SkyCraft ${{ needs.fabric.outputs.version }} (build ${{ github.run_number }})
           prerelease: true
           target_commitish: ${{ github.sha }}
-          body: Test build from the dev branch, commit ${{ github.sha }}.
+          body_path: ${{ runner.temp }}/release-notes.md
           files: out/*
