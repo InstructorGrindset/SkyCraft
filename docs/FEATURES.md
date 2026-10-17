@@ -44,6 +44,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Settings screen | none | **SkyCraft settings**, beside **Skyrim destruction** in the top left of the pause menu (O), lists every switch of `skycraft-features.txt` under a header for its part of the game, each an On/Off button with its description as the tooltip, in vanilla's scrolling option list with Done at the bottom. A click saves the switch's line (comments and other lines kept) and counts at once; `minecraft_view` and `natural_spawns` are read once, so they say "(restart)" and take effect after Minecraft restarts. In a friend's world the switches show greyed out with a note: the host's file decides | `config/Features` (`set`, `rewrite`, `needsRestart`), `config/FeatureAreas`, client `FeaturesScreen` | none (`McState.features` carries a switched Skyrim bit the next frame) | `skycraft-features.txt` | `SkyCraft` | Written |
 | Conversion messages | `conversion_messages` | The action bar says what each item you loot in Skyrim became: "Steel Sword → Iron Sword", "Iron Ore ×3 → Raw Iron ×3", "Ruby → Gold Nugget ×3 + Diamond", or "Gold ×25 → stays in Skyrim" when the rules keep it ("(quest item)" for one). Pickups within a second of the first share its line, "Steel Sword → Iron Sword, +3 more", so taking everything from a chest is one line; a conversion takes the line from an item that stayed. Names are Minecraft's own (a renamed potion's name) | `loot/ConversionNotes` (the lines and their batching), `loot/SkyBridge` (`note`, `showNotes`) | none | none | `SkyCraft-loot` (each conversion, as before) | Written |
 | Bug reports | none | `/skycraft report` (any player, or the server console) packs what a tester should send into `skycraft-report-<date-time>.zip` in Minecraft's game folder: `logs/latest.log`, the three newest crash reports, every `config/skycraft-*.txt` and the Skyrim plugin's `SkyCraft.log` (Documents found the way SKSE finds it, Steam's or GOG's `SKSE` folder), with a `README.txt` of what's in it and what wasn't found, and nothing else. Chat gives the zip's path (click to copy it). A guest's own client writes theirs, of their own games. See [Bug reports](#bug-reports) | `report/` (ReportPlan, SkyReport), the `report_ask` packet's receiver in client `SkyCraftClient` | none (its log is read) | none | `SkyCraft-report` | Written |
+| Guide book | `guide_book` | The first time a player (host or guest) is in a world whose Skyrim is linked, a written book "SkyCraft" goes in their inventory (at their feet if it's full): a short page each on crouching as Skyrim's sneak, looting into Minecraft items, G and right click, merchants with an empty hand, portals bound with soul gems, the SkyCraft settings button and `/skycraft report`. It comes once: a data attachment on the player (`skycraft:guide_book`, kept on death) remembers it. With the switch off nothing is given or remembered | `guide/` (GuideBook, GuidePages) | none | none | `SkyCraft-guide` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -450,6 +451,26 @@ still works as before (restart Minecraft after).
 3. Click **Minecraft view**: "Minecraft view: Off (after restart)". `/skyview` still goes to the Nether until Minecraft
    restarts; after the restart the button reads "Minecraft view: Off (restart)" and other dimensions act like the mirror.
 4. Join a friend's world (`/join`): the buttons are greyed out, and the note says their settings decide.
+
+## Conversion messages and the guide book
+
+**Conversion messages** (switch `conversion_messages`). Each Skyrim pickup item conversion handles gets a line on the
+action bar (`loot/ConversionNotes`, unit tested; `loot/SkyBridge` sends it once a tick when it changed): what it was,
+with its count, an arrow and what it became, by Minecraft's own names (a converted potion carries its Skyrim name), or
+"stays in Skyrim" when the rules keep it or name an item Minecraft doesn't have, "(quest item)" for a quest item. A line
+takes every pickup in the second after its first one and counts them ("Steel Sword → Iron Sword, +3 more"); a pickup
+that converted takes the line from one that stayed. Gear a dying actor wore (Gear drops) never shows. To try it: loot a
+weapon or an ore; take everything from a dungeon chest (one line with "+N more"); pick up coins ("Gold ×25 → stays in
+Skyrim"). Switched off, conversions happen as before without a line.
+
+**Guide book** (switch `guide_book`). Once a second the server looks for players who have never had the book while
+Skyrim is linked (`SkyLink.active`), so it comes after the join's starter kit, and gives it: the written book
+"SkyCraft" by SkyCraft (`guide/GuidePages`, eight pages, each checked to fit a book page), made as Steve's journal is
+(`HomeCamp.journal`). The `skycraft:guide_book` attachment (`guide/GuideBook.GIVEN`, saved with the player, kept on death)
+says it was given, so dying, losing it or rejoining never brings a second one. To try it: start a new SkyCraft world (or
+the dev client with another `SKYCRAFT_USERNAME`) with Skyrim running: the book is in the inventory within a second, and
+`latest.log` says `SkyCraft-guide: gave the SkyCraft guide book to <name>`. Die, or leave and come back: no second book.
+With the switch off nobody gets it, and switching it on gives it to whoever hasn't had it.
 
 ## Bug reports
 

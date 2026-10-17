@@ -20,3 +20,6 @@ net.minecraft.client.gui.components.StringWidget
 -c net.minecraft.network.chat.Style withClickEvent
 net.minecraft.network.chat.ClickEvent$CopyToClipboard
 net.minecraft.network.chat.ClickEvent$OpenFile
+# Guide book (guide/GuideBook), made as worlds/HomeCamp.journal makes Steve's journal.
+net.minecraft.world.item.component.WrittenBookContent
+net.minecraft.server.network.Filterable
