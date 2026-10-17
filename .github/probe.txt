@@ -15,3 +15,8 @@ net.minecraft.client.gui.components.OptionsList
 net.minecraft.client.gui.components.StringWidget
 # Conversion messages (loot/SkyBridge): the Minecraft name of what a Skyrim item became.
 -c net.minecraft.world.item.ItemStack getHoverName
+# /skycraft report (report/SkyReport): the console check, and the chat path's click to copy.
+-c net.minecraft.commands.CommandSourceStack getEntity
+-c net.minecraft.network.chat.Style withClickEvent
+net.minecraft.network.chat.ClickEvent$CopyToClipboard
+net.minecraft.network.chat.ClickEvent$OpenFile

@@ -75,6 +75,10 @@ public final class SkyCraftClient implements ClientModInitializer {
 				dev.skycraft.link.SkyLink.pushEvent(dev.skycraft.link.Proto.EV_PLAYER_DIED, payload.attackerFormId(), 0, 0, 0, 0, 0);
 			}
 		});
+		// /skycraft report: the files are on this player's machine, so this client writes the zip and says where.
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.skycraft.report.SkyReport.Ask.TYPE, (payload, context) ->
+			dev.skycraft.report.SkyReport.writeInBackground(payload.crashReports(), result -> net.minecraft.client.Minecraft.getInstance().execute(() ->
+				net.minecraft.client.Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(dev.skycraft.report.SkyReport.message(result)))));
 		// Skyrim draws the real NPC; its Minecraft stand-in is only a hitbox.
 		EntityRendererRegistry.register(SkyCombat.SKYRIM_ACTOR, NoopRenderer::new);
 		// Players (client-side movement AND the integrated server's re-check of it) use the smooth

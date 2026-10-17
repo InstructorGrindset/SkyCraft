@@ -43,6 +43,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
 | Settings screen | none | **SkyCraft settings**, beside **Skyrim destruction** in the top left of the pause menu (O), lists every switch of `skycraft-features.txt` under a header for its part of the game, each an On/Off button with its description as the tooltip, in vanilla's scrolling option list with Done at the bottom. A click saves the switch's line (comments and other lines kept) and counts at once; `minecraft_view` and `natural_spawns` are read once, so they say "(restart)" and take effect after Minecraft restarts. In a friend's world the switches show greyed out with a note: the host's file decides | `config/Features` (`set`, `rewrite`, `needsRestart`), `config/FeatureAreas`, client `FeaturesScreen` | none (`McState.features` carries a switched Skyrim bit the next frame) | `skycraft-features.txt` | `SkyCraft` | Written |
 | Conversion messages | `conversion_messages` | The action bar says what each item you loot in Skyrim became: "Steel Sword → Iron Sword", "Iron Ore ×3 → Raw Iron ×3", "Ruby → Gold Nugget ×3 + Diamond", or "Gold ×25 → stays in Skyrim" when the rules keep it ("(quest item)" for one). Pickups within a second of the first share its line, "Steel Sword → Iron Sword, +3 more", so taking everything from a chest is one line; a conversion takes the line from an item that stayed. Names are Minecraft's own (a renamed potion's name) | `loot/ConversionNotes` (the lines and their batching), `loot/SkyBridge` (`note`, `showNotes`) | none | none | `SkyCraft-loot` (each conversion, as before) | Written |
+| Bug reports | none | `/skycraft report` (any player, or the server console) packs what a tester should send into `skycraft-report-<date-time>.zip` in Minecraft's game folder: `logs/latest.log`, the three newest crash reports, every `config/skycraft-*.txt` and the Skyrim plugin's `SkyCraft.log` (Documents found the way SKSE finds it, Steam's or GOG's `SKSE` folder), with a `README.txt` of what's in it and what wasn't found, and nothing else. Chat gives the zip's path (click to copy it). A guest's own client writes theirs, of their own games. See [Bug reports](#bug-reports) | `report/` (ReportPlan, SkyReport), the `report_ask` packet's receiver in client `SkyCraftClient` | none (its log is read) | none | `SkyCraft-report` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -449,6 +450,32 @@ still works as before (restart Minecraft after).
 3. Click **Minecraft view**: "Minecraft view: Off (after restart)". `/skyview` still goes to the Nether until Minecraft
    restarts; after the restart the button reads "Minecraft view: Off (restart)" and other dimensions act like the mirror.
 4. Join a friend's world (`/join`): the buttons are greyed out, and the note says their settings decide.
+
+## Bug reports
+
+Type **`/skycraft report`** in chat. "Writing a SkyCraft report..." and a moment later "SkyCraft report saved:
+C:\...\.minecraft\skycraft-report-2026-10-17_15-04-05.zip (click to copy). Send it with your bug report." The zip
+(`report/ReportPlan`, unit tested) holds only:
+
+| In the zip | From |
+|---|---|
+| `minecraft/logs/latest.log` | Minecraft's game folder (Prism's `instances/SkyCraft/.minecraft`) |
+| `minecraft/crash-reports/*.txt` | The three newest crash reports there, if any |
+| `minecraft/config/skycraft-*.txt` | Every SkyCraft config file (not `.old` copies, not `skycraft.properties`, which holds a friend's link) |
+| `skyrim/SkyCraft.log` | The plugin's log, where `skse/src/main.cpp` `SetupLog` writes it: SKSE's `log_directory`, `Documents/My Games/Skyrim Special Edition/SKSE` (`Skyrim Special Edition GOG` for the GOG game). Documents is asked of Windows (`SHGetKnownFolderPath`, as SKSE does, so a moved or OneDrive Documents is found), then `%USERPROFILE%\Documents` and the like; the newest log found wins |
+| `README.txt` | What's in the zip, when it was written, and notes: anything not found (no Skyrim log: where it should be) or unreadable |
+
+Nothing else goes in: no worlds, no options, no other mods' files, never a link to somewhere else. It's written as
+`.part` and renamed when done. The player who asks gets a report of their own machine: the server asks their client to
+write it (`SkyReport.Ask`), so a guest in a friend's world packs their own logs, in their own game folder. From the
+server console the server writes one of its own folders. `latest.log` gets a `SkyCraft-report` line with what went in.
+
+**Try it:**
+
+1. `/skycraft report`; click the path in chat and paste it into Explorer's address bar: the zip, with the files above.
+2. In the dev client (`gradlew runClient` in `fabric`) on a PC without Skyrim's log: chat says Skyrim's log wasn't
+   found, and `README.txt` in the zip says where it should be.
+3. As a guest in a friend's world: the zip is in your own `.minecraft`, with your logs; the host's folder gets none.
 
 ## Planned
 

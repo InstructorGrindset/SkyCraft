@@ -159,7 +159,9 @@ click counts, so holding right click to draw a bow or block stays Minecraft's. S
 ## Known limitations
 
 - If something goes wrong, `Documents\My Games\Skyrim Special Edition\SKSE\SkyCraft.log` says what.
-  For bug reports, set `bDiagnostics = 1` in `SkyCraft.ini` for detailed logs.
+  For bug reports, type **`/skycraft report`** in chat: it packs Minecraft's log and crash reports, SkyCraft's
+  config files and that `SkyCraft.log` into one zip in Minecraft's folder and tells you where. Set
+  `bDiagnostics = 1` in `SkyCraft.ini` for detailed logs.
 - **Stuck on "SkyCraft: starting Minecraft..."?** After a minute SkyCraft says which of these it is:
   - Prism Launcher is still busy. Alt-Tab to it: it may be downloading, or need you to sign in,
     or show an error.
