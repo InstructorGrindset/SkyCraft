@@ -44,10 +44,29 @@ public final class SkyBridge {
 	}
 
 	private static final SkyLink.SkyState SKY = new SkyLink.SkyState();
+	/** Each player's action bar line of what their pickups became (conversion_messages). */
+	private static final java.util.Map<java.util.UUID, ConversionNotes> NOTES = new java.util.HashMap<>();
 
-	/** Converts every queued Skyrim item for the host player. */
+	/** Converts every queued Skyrim item for the host player, then says on the action bar what they became. */
 	public static void tick(ServerPlayer host) {
 		SkyLink.drainItems(item -> convert(host, item));
+		showNotes(host);
+	}
+
+	/** A pickup's line for the player's action bar (conversion_messages): collected now, shown at the end of the tick. */
+	private static void note(ServerPlayer player, String line, boolean converted) {
+		if (Features.on(Features.Feature.CONVERSION_MESSAGES)) {
+			NOTES.computeIfAbsent(player.getUUID(), id -> new ConversionNotes()).add(line, converted, player.level().getServer().getTickCount());
+		}
+	}
+
+	/** The player's conversion line, when this tick's pickups changed it. Pickups within a second share one line. */
+	private static void showNotes(ServerPlayer player) {
+		ConversionNotes notes = NOTES.get(player.getUUID());
+		String line = notes != null ? notes.poll() : null;
+		if (line != null) {
+			player.sendOverlayMessage(Component.literal(line));
+		}
 	}
 
 	/**
@@ -156,11 +175,13 @@ public final class SkyBridge {
 		}
 		if (it.quest()) {
 			SkyCraft.LOG.info("SkyCraft-loot: {} is a quest item, stays in Skyrim", it.name());
+			note(player, ConversionNotes.kept(it.name(), it.count(), true), false);
 			return;
 		}
 		ItemRules.Result result = rules().match(new ItemRules.Item(it.tags(), it.material(), it.source(), it.name()));
 		if (result.keep()) {
 			SkyCraft.LOG.info("SkyCraft-loot: {} x {} stays in Skyrim [{}]", it.count(), it.name(), ItemRules.tagNames(it.tags()));
+			note(player, ConversionNotes.kept(it.name(), it.count(), false), false);
 			return;
 		}
 		// The rule's item, then any it gives along with it ("+" in the rule).
@@ -172,20 +193,28 @@ public final class SkyBridge {
 		for (ItemRules.Result out : wanted) {
 			Output o = resolve(out, it.name());
 			if (o == null) {
+				note(player, ConversionNotes.kept(it.name(), it.count(), false), false);
 				return;
 			}
 			outputs.add(o);
 			count = Math.min(count, convertible(it.count(), out.perItem(), o.max()));
 		}
+		List<ConversionNotes.Output> gave = new ArrayList<>();
 		for (Output o : outputs) {
+			String name = null;
 			for (int left = count * o.rule().perItem(); left > 0; ) {
 				int n = Math.min(left, o.max());
 				ItemStack stack = stack(o.item(), n, o.potion(), o.effects(), o.rule().color(), o.rule().name());
 				enchant(stack, o.rule().enchantments(), player, it.name());
+				if (name == null) {
+					name = stack.getHoverName().getString(); // before give, which may empty the stack into the inventory
+				}
 				give(player, stack);
 				left -= n;
 			}
+			gave.add(new ConversionNotes.Output(name != null ? name : o.rule().label(), count * o.rule().perItem()));
 		}
+		note(player, ConversionNotes.converted(it.name(), count, gave), true);
 		SkyLink.pushEvent(Proto.EV_TAKE_ITEM, it.formId(), count, 0.0F, 0.0F, 0.0F, 0);
 		int taken = count;
 		String became = outputs.stream().map(o -> taken * o.rule().perItem() + " " + o.rule().label()).collect(Collectors.joining(" + "));

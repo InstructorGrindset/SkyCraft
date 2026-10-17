@@ -50,6 +50,8 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   scenes hand control to Skyrim until they finish.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
+- **Looting:** food, potions, ores and salvaged gear you loot in Skyrim become Minecraft items, and the
+  action bar says what each became ("Steel Sword → Iron Sword", or "→ stays in Skyrim").
 - **Settings:** **SkyCraft settings** in the top left of the pause menu (O) switches each of SkyCraft's
   features on or off, most of them at once; it's saved in `config/skycraft-features.txt`.
 
