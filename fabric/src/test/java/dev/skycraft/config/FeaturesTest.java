@@ -11,14 +11,37 @@ import org.junit.jupiter.api.Test;
 
 class FeaturesTest {
 	@Test
-	void defaultsTurnEverythingOn() {
+	void defaultsTurnEverythingOnButTheOptionalOnes() {
 		List<String> problems = new ArrayList<>();
 		Map<Features.Feature, Boolean> on = Features.parse(Features.DEFAULT_TEXT, problems);
 		assertTrue(problems.isEmpty(), problems.toString());
 		assertEquals(Features.Feature.values().length, on.size());
-		on.values().forEach(v -> assertTrue(v));
 		for (Features.Feature f : Features.Feature.values()) {
-			assertTrue(Features.DEFAULT_TEXT.contains(f.key + " = on"), f.key);
+			assertEquals(f.defaultOn, on.get(f), f.key);
+			assertTrue(Features.DEFAULT_TEXT.contains(f.key + (f.defaultOn ? " = on" : " = off")), f.key);
+		}
+		assertFalse(Features.Feature.NIGHT_MONSTERS.defaultOn);
+		assertTrue(Features.Feature.MERCHANTS.defaultOn);
+	}
+
+	@Test
+	void aMissingLineIsTheFeaturesDefault() {
+		Map<Features.Feature, Boolean> on = Features.parse("merchants = off\n", new ArrayList<>());
+		assertFalse(on.get(Features.Feature.NIGHT_MONSTERS));
+		assertTrue(on.get(Features.Feature.KILL_DROPS));
+	}
+
+	@Test
+	void everySkyrimBitIsOneBitOfItsOwn() {
+		int seen = 0;
+		for (Features.Feature f : Features.Feature.values()) {
+			if (f.skyrimBit == 0) {
+				continue;
+			}
+			assertEquals(1, Integer.bitCount(f.skyrimBit), f.key);
+			assertTrue((f.skyrimBit & dev.skycraft.link.Proto.FEATURES_VALID) == 0, f.key + " uses the valid bit");
+			assertTrue((seen & f.skyrimBit) == 0, f.key + " shares a bit");
+			seen |= f.skyrimBit;
 		}
 	}
 

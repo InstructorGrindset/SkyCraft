@@ -24,6 +24,7 @@ namespace skycraft
 
 		// Everything below is only touched on the main thread (PlayerCharacter::Update).
 		proto::McState mc{};
+		std::atomic<std::uint32_t> mcFeatures{ 0 };  // mc.features, for other threads (Game::FeatureOn)
 		bool           mcWasAlive = false;
 		// Starts somewhere new each Skyrim run, so a Minecraft still acknowledging the last run's
 		// teleport can't be taken for having arrived at this run's.
@@ -687,6 +688,7 @@ namespace skycraft
 
 			const bool mcAlive = link.McAlive();
 			const bool haveMc = mcAlive && link.ReadMcState(mc);
+			mcFeatures.store(haveMc ? mc.features : 0, std::memory_order_relaxed);
 			// A different Minecraft process (restarted while we were paused) counts as a reconnect too.
 			static std::uint32_t lastMcPid = 0;
 			const auto           mcPid = link.McPid();
@@ -1487,6 +1489,12 @@ namespace skycraft
 			Collision::Get().Start();
 			Combat::Install();
 			logger::info("game hooks installed");
+		}
+
+		bool FeatureOn(std::uint32_t a_bit)
+		{
+			const auto features = mcFeatures.load(std::memory_order_relaxed);
+			return (features & proto::kFeaturesValid) != 0 && (features & a_bit) != 0;
 		}
 
 		bool SkyrimMenuOpen()

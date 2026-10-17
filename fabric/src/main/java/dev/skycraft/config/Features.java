@@ -28,14 +28,77 @@ public final class Features {
 		COMPANIONS("companions", "bones tame a Skyrim dog or wolf and horse food a horse, as in Minecraft; right click a tamed one with an empty hand to make it sit or follow (sneak for a horse), feed it to heal it"),
 		NATURAL_SPAWNS("natural_spawns", "animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror; off: no natural spawning anywhere, as before"),
 		GEAR_DROPS("gear_drops", "Skyrim people and creatures you kill sometimes drop the Minecraft version of a weapon or armor piece they wore, like a Minecraft zombie (skycraft-gear-drops.txt)"),
-		SKOOMA_ADDICTION("skooma_addiction", "Skooma can make a player addicted: withdrawal without it, cured after days clean; a comedown when a high wears off (skycraft-skooma.txt)");
+		SKOOMA_ADDICTION("skooma_addiction", "Skooma can make a player addicted: withdrawal without it, cured after days clean; a comedown when a high wears off (skycraft-skooma.txt)"),
+
+		// Combat and stealth
+		WALLS_HIDE_YOU("walls_hide_you", "Skyrim NPCs can't see you through Minecraft blocks"),
+		SNEAK_ATTACKS("sneak_attacks", "a crouched hit on a Skyrim NPC that hasn't noticed you is a Skyrim sneak attack"),
+		POWER_ATTACKS("power_attacks", "a fully charged Minecraft hit on a Skyrim NPC is a Skyrim power attack: it staggers"),
+		LIGHT_STEALTH("light_stealth", "how lit you are in Minecraft (torches, dark tunnels) is how lit Skyrim's detection thinks you are"),
+
+		// Skills and progression
+		SNEAK_SKILL("sneak_skill", "your Skyrim Sneak level makes Minecraft mobs notice you later"),
+		ARCHERY_SKILL("archery_skill", "your Skyrim Archery level makes Minecraft bows hit harder"),
+		SMITHING_SKILL("smithing_skill", "your Skyrim Smithing level makes anvil repairs cheaper"),
+		ENCHANTING_SKILL("enchanting_skill", "your Skyrim Enchanting level raises the enchanting table's offers; soul gems can stand in for lapis"),
+		DRAGON_SOULS("dragon_souls", "every dragon you kill gives Minecraft XP levels"),
+		ALCHEMY_BREWING("alchemy_brewing", "your Skyrim Alchemy level makes brewed potions last longer, and Skyrim ingredients brew"),
+
+		// Economy and food
+		SELL_TO_MERCHANTS("sell_to_merchants", "Skyrim merchants buy Minecraft goods: gems, ingots and more"),
+		SKYRIM_FOOD_HUNGER("skyrim_food_hunger", "eating Skyrim food fills Minecraft's hunger"),
+		SKOOMA_BREWING("skooma_brewing", "moon sugar brews into Skooma in a brewing stand"),
+
+		// World
+		WEATHER_SYNC("weather_sync", "Skyrim's rain and snow are Minecraft's and the other way round; snow settles on your blocks"),
+		SKYRIM_FARMING("skyrim_farming", "Minecraft crops grow on Skyrim's farmland, and Skyrim's crops can be harvested"),
+		WILDS_VILLAGERS("wilds_villagers", "villages in Tamriel Wilds have Skyrim-style villagers with Skyrim trades"),
+		SHRINE_BLESSINGS("shrine_blessings", "a Skyrim shrine's blessing also gives a Minecraft effect"),
+
+		// Towns
+		NPC_DOORS_LADDERS("npc_doors_ladders", "Skyrim NPCs open Minecraft doors and climb Minecraft ladders"),
+		TOWN_CRIME("town_crime", "breaking blocks or taking from chests in a Skyrim town is a crime: a bounty, and the guards come"),
+		GUARD_COMMENTS("guard_comments", "guards remark on your building near them"),
+
+		// Building
+		HEARTHFIRE_BLOCKS("hearthfire_blocks", "a Hearthfire house plot can be built with Minecraft blocks"),
+		DWEMER_REDSTONE("dwemer_redstone", "Skyrim levers and pressure plates power redstone, and redstone opens Dwemer doors"),
+
+		// Creatures
+		MOBS_FIGHT_NPCS("mobs_fight_npcs", "Minecraft's monsters and Skyrim's NPCs fight each other"),
+		WOLVES_FIGHT_SKYRIM("wolves_fight_skyrim", "your tamed Minecraft wolves fight Skyrim enemies"),
+		NIGHT_MONSTERS("night_monsters", "at night, Skyrim creatures come out of the dark in the Skyrim world", false, 0),
+		HORSES_CARRY_OVER("horses_carry_over", "a tamed Minecraft horse is your Skyrim horse, and the other way round"),
+		CREATURES_AND_LIGHT("creatures_and_light", "skeevers and Falmer keep away from torches, and Skyrim's undead burn in sunlight"),
+
+		// Multiplayer
+		GUEST_PARITY("guest_parity", "friends in your world get Skyrim drops, skill training and item conversion as you do"),
+		SHARED_WORLD_EVENTS("shared_world_events", "dragon attacks and big explosions in your Skyrim are felt by everyone in the world"),
+
+		// Players and testers
+		CONVERSION_MESSAGES("conversion_messages", "a message says what each Skyrim item became"),
+		GUIDE_BOOK("guide_book", "a new player gets a SkyCraft guide book"),
+
+		// Tooling
+		PAIRED_BACKUPS("paired_backups", "loading a save backs up the Skyrim save and the Minecraft world together"),
+		FAR_BLOCK_DETAIL("far_block_detail", "far Minecraft blocks are drawn with less detail, for a higher frame rate", false, 0);
 
 		public final String key;
 		public final String about;
+		/** On unless skycraft-features.txt says otherwise. */
+		public final boolean defaultOn;
+		/** Its Proto.FEATURE_* bit when Skyrim runs part of it itself (McState.features), else 0. */
+		public final int skyrimBit;
 
 		Feature(String key, String about) {
+			this(key, about, true, 0);
+		}
+
+		Feature(String key, String about, boolean defaultOn, int skyrimBit) {
 			this.key = key;
 			this.about = about;
+			this.defaultOn = defaultOn;
+			this.skyrimBit = skyrimBit;
 		}
 	}
 
@@ -53,7 +116,18 @@ public final class Features {
 		if (map == null) {
 			map = load();
 		}
-		return map.getOrDefault(feature, true);
+		return map.getOrDefault(feature, feature.defaultOn);
+	}
+
+	/** McState.features: Proto.FEATURES_VALID and the Skyrim bits of every switched on feature. */
+	public static int skyrimBits() {
+		int bits = dev.skycraft.link.Proto.FEATURES_VALID;
+		for (Feature f : Feature.values()) {
+			if (f.skyrimBit != 0 && on(f)) {
+				bits |= f.skyrimBit;
+			}
+		}
+		return bits;
 	}
 
 	private static synchronized Map<Feature, Boolean> load() {
@@ -77,7 +151,7 @@ public final class Features {
 	public static Map<Feature, Boolean> parse(String text, List<String> problems) {
 		Map<Feature, Boolean> out = new EnumMap<>(Feature.class);
 		for (Feature f : Feature.values()) {
-			out.put(f, true);
+			out.put(f, f.defaultOn);
 		}
 		int n = 0;
 		for (String raw : text.split("\\R")) {
@@ -120,7 +194,7 @@ public final class Features {
 		StringBuilder sb = new StringBuilder();
 		sb.append("# SkyCraft fork features. Set a line to off to switch that feature off, then restart Minecraft.\n");
 		for (Feature f : Feature.values()) {
-			sb.append("\n# ").append(f.about).append('\n').append(f.key).append(" = on\n");
+			sb.append("\n# ").append(f.about).append('\n').append(f.key).append(f.defaultOn ? " = on\n" : " = off\n");
 		}
 		return sb.toString();
 	}

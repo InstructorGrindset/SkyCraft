@@ -9,7 +9,8 @@ edited, get the new ones by themselves (the old file is kept beside it as `.txt.
 is left alone (`config/Config.read`, the old defaults in `ItemRules.OLD_DEFAULTS` and `LootRules.OLD_DEFAULTS`).
 
 Status: **Tested** means played and confirmed in game, **Built** means it compiles and passes unit
-tests but hasn't been played yet.
+tests but hasn't been played yet, **Written** means the code is done and its pure logic passes unit tests,
+but it hasn't been compiled against Minecraft 26.3 or built for Skyrim yet.
 
 ## Feature map
 

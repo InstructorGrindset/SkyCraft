@@ -103,8 +103,22 @@ namespace skycraft::proto
 		char          town[32];  // the city/town/settlement the player is in (or their location's name), UTF-8, NUL-terminated
 		std::uint32_t place;     // PlaceFlags
 		std::uint32_t carried;   // CarriedFlags. Was the reserved field (always 0), so an older plugin reads as "carries nothing"
+
+		// Added within version 13, zeros from an older plugin. Set aside for the features that fill them in:
+		// skills and progression
+		std::uint8_t reservedSkills[24];  // 0x68
+		// weather
+		std::uint8_t reservedWeather[8];  // 0x80
+		// stealth and detection
+		std::uint8_t reservedStealth[8];  // 0x88
+		// towns: crime and guards
+		std::uint8_t reservedTown[8];  // 0x90
+		// creatures
+		std::uint8_t reservedCreatures[8];  // 0x98
+		// multiplayer
+		std::uint8_t reservedParty[8];  // 0xA0
 	};
-	static_assert(sizeof(SkyState) == 0x68);
+	static_assert(sizeof(SkyState) == 0xA8);
 	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
 	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
 
@@ -197,8 +211,27 @@ namespace skycraft::proto
 		std::uint32_t spaceWorld;
 		std::int32_t  spaceX, spaceZ;
 		std::uint32_t spacePad;
+
+		// Added within version 13, zeros from an older Minecraft.
+		std::uint32_t features;  // 0xD8: FeatureBits, the skycraft-features.txt switches Skyrim's side needs
+		// Set aside for the features that fill them in:
+		// stealth and detection
+		std::uint8_t reservedStealth[8];  // 0xDC
+		// weather
+		std::uint8_t reservedWeather[8];  // 0xE4
+		// building
+		std::uint8_t reservedBuild[8];  // 0xEC
+		std::uint8_t reserved[12];      // 0xF4
 	};
-	static_assert(sizeof(McState) == 0xD8);
+	static_assert(sizeof(McState) == 0x100);
+	static_assert(offsetof(McState, features) == 0xD8);  // Proto.MS_FEATURES
+
+	// McState::features. Minecraft sets kFeaturesValid with the bits of every switched on feature whose Skyrim
+	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
+	enum FeatureBits : std::uint32_t
+	{
+		kFeaturesValid = 1u << 31,
+	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
 	static_assert(sizeof(McState) <= 0x100);
 

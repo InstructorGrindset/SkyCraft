@@ -355,6 +355,9 @@ public final class Proto {
 	public static final long MS_SPACE_WORLD = 0xC8;
 	public static final long MS_SPACE_X = 0xCC;
 	public static final long MS_SPACE_Z = 0xD0;
+	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
+	public static final long MS_FEATURES = 0xD8;
+	public static final int FEATURES_VALID = 1 << 31;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;

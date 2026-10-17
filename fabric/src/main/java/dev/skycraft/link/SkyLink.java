@@ -445,6 +445,7 @@ public final class SkyLink {
 		s.set(JAVA_INT, b + MS_SPACE_WORLD, spaceWorld);
 		s.set(JAVA_INT, b + MS_SPACE_X, mirror ? WorldSpaces.originX(space) : 0);
 		s.set(JAVA_INT, b + MS_SPACE_Z, mirror ? WorldSpaces.originZ(space) : 0);
+		s.set(JAVA_INT, b + MS_FEATURES, dev.skycraft.config.Features.skyrimBits());
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

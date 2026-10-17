@@ -55,6 +55,9 @@ namespace skycraft
 	{
 		void Install();
 		void OnGameLoaded();
+		// Whether Minecraft has this skycraft-features.txt switch on (proto::FeatureBits, from McState::features;
+		// off with an older Minecraft, or before it's connected). Any thread.
+		bool FeatureOn(std::uint32_t a_bit);
 		// A Skyrim menu that takes the mouse or pauses the game is open (checked live: while it
 		// pauses the game, the per-frame update that normally tracks it doesn't run).
 		bool SkyrimMenuOpen();
