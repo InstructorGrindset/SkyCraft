@@ -388,7 +388,7 @@ public final class SkyClient {
 			if (player.onGround()) {
 				flags |= Proto.MC_ON_GROUND;
 			}
-			if (player.isShiftKeyDown()) {
+			if (player.isCrouching()) { // (not shift held to fly down, swim or leave a seat)
 				flags |= Proto.MC_SNEAKING;
 			}
 			if (player.isSprinting()) {

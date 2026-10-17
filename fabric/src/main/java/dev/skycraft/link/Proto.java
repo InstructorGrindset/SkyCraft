@@ -400,6 +400,21 @@ public final class Proto {
 	public static final int IN_RELEASE_ALL = 6;
 	/** Minecraft view only: a, b = raw mouse motion since the last one; Minecraft turns its player itself. */
 	public static final int IN_LOOK = 9;
+	/**
+	 * A Skyrim arrow or bolt reached a solid Minecraft block and Skyrim ended it there: a, b, c = where (MC coords x 1024,
+	 * the Skyrim world's terms), code = which way it flew ({@link #arrowFlight}). Minecraft sticks an arrow of its own there.
+	 */
+	public static final int IN_ARROW_BLOCKED = 10;
+
+	/**
+	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn
+	 * from +z toward +x), pitch in the low byte (0 straight down, 255 straight up).
+	 */
+	public static double[] arrowFlight(int code) {
+		double yaw = (code >>> 8 & 0xFF) * (Math.PI * 2.0 / 256.0);
+		double pitch = ((code & 0xFF) / 255.0 - 0.5) * Math.PI;
+		return new double[] { Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch) };
+	}
 
 	// Collision ring (relative to OFF_COLLISION_RING)
 	public static final long CR_HEAD = 0x00;

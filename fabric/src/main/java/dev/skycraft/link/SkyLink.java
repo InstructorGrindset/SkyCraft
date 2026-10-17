@@ -497,6 +497,12 @@ public final class SkyLink {
 	 * Seqlock read of the actor table into {@code out}, replacing what it held. Returns false (leaving
 	 * {@code out} empty) on a torn read. Names are reused from the previous read where unchanged.
 	 */
+	/** The Skyrim world (worldspace or interior cell) Skyrim's player is in, 0 with no link. Positions Skyrim sends are in its terms. */
+	public static int skyrimWorld() {
+		MemorySegment s = shm;
+		return s == null ? 0 : (int) INT.getAcquire(s, OFF_SKY_STATE + SS_WORLD_ID);
+	}
+
 	public static boolean readActors(java.util.List<Actor> out) {
 		MemorySegment s = shm;
 		if (s == null) {

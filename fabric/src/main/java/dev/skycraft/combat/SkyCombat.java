@@ -24,6 +24,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -247,6 +252,23 @@ public final class SkyCombat {
 			// Power attacks shove harder, like a sprint hit does in Minecraft.
 			player.knockback(0.5, attacker.getX() - player.getX(), attacker.getZ() - player.getZ(), source, damage);
 		}
+	}
+
+	/**
+	 * A Skyrim arrow or bolt reached a Minecraft block, where Skyrim ended it (Proto.IN_ARROW_BLOCKED): a Minecraft arrow
+	 * flies the last stretch into the block and sticks there, with Minecraft's thud, and can be picked up as Skyrim's
+	 * arrows can from a wall. {@code at} is where it reached the block, in the mirror's terms. Runs on the server thread.
+	 */
+	public static void stickSkyrimArrow(ServerPlayer player, Vec3 at, Vec3 toward) {
+		if (!dev.skycraft.SkyDimension.inMirror(player) || at.distanceToSqr(player.position()) > 128.0 * 128.0) {
+			return;
+		}
+		ServerLevel level = player.level();
+		Vec3 from = at.subtract(toward.scale(0.3));
+		Arrow arrow = new Arrow(level, from.x, from.y, from.z, new ItemStack(Items.ARROW), null);
+		arrow.pickup = AbstractArrow.Pickup.ALLOWED;
+		arrow.shoot(toward.x, toward.y, toward.z, 1.0F, 0.0F);
+		level.addFreshEntity(arrow);
 	}
 
 	/**

@@ -37,6 +37,7 @@ namespace
 			skycraft::Overlay::Install();
 			skycraft::WorldRender::Install();
 			skycraft::PathAvoid::Install();
+			skycraft::Arrows::Install();
 			skycraft::Dig::Install();
 			skycraft::Loot::Install();
 			skycraft::CrashLog::Install();

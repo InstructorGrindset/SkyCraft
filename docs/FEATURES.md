@@ -470,6 +470,13 @@ else (so it can't hand worn gear to the player, which its rules without a `from`
 | `ItemSource` `kSrcWorn` (5) in `ItemEvent.source`, with `ItemEvent.count` negated | Skyrim to Minecraft | Gear drops: one event per piece an actor in the actor table wore (weapons, shield, armor and clothes, ammo with the quiver's count) the frame it's first seen dead, container = the actor. Never given to the player, never answered with `kEvTakeItem` |
 | `ItemEvent.tags` bits 24 to 27: `ItemKind` (`kTagKindShift` 24, `kTagKindMask` 0xF000000; 0 unknown, 1 sword, 2 dagger, 3 war axe, 4 mace, 5 greatsword, 6 battleaxe or warhammer, 7 bow, 8 staff, 9 crossbow, 10 hand to hand, 11 helmet, 12 cuirass, 13 gauntlets, 14 boots, 15 shield) | Skyrim to Minecraft | Every item event: the weapon's type, or the biped slots armor and clothing cover (body first, then head, hair or circlet, hands or forearms, feet or calves; the shield slot before all). Gear drops picks the piece by it; item conversion's rules don't read it yet. An older plugin sends 0, and an older Minecraft's rules only test the tag bits they name |
 
+Arrows at blocks added this within 13, without a version bump (an older Minecraft ignores the input type; with an older
+plugin Skyrim's arrows go through blocks as before):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
 ## Testing a build
 
 1. Back up the Skyrim saves folder.

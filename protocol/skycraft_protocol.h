@@ -252,6 +252,10 @@ namespace skycraft::proto
 		kInOpenMenu = 8,     // open Minecraft's pause/options menu
 		kInLook = 9,         // Minecraft view only (kMcOtherDimension): a, b = raw mouse motion since the last one (x right,
 		                     // y down); Minecraft turns its player itself. Added within version 13
+		kInArrowBlocked = 10,  // a Skyrim arrow or bolt reached a solid Minecraft block, and Skyrim ended it there: a, b, c =
+		                       // where it reached the block (MC coords x 1024), code = which way it flew: yaw in the high
+		                       // byte (256ths of a turn from +z toward +x), pitch in the low byte (0 straight down, 255
+		                       // straight up). Minecraft sticks an arrow of its own there. Added within version 13
 	};
 
 	enum HurtKind : std::uint16_t

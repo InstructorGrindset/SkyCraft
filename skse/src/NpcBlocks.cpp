@@ -131,6 +131,12 @@ namespace skycraft
 			return (it->second[bit >> 6] >> (bit & 63)) & 1;
 		}
 
+		bool Any()
+		{
+			std::shared_lock lock(solidsLock);
+			return !solids.empty();
+		}
+
 		// How far (blocks, up to a_max) along direction (tx, tz) from (cx, cz) until the wall on the
 		// side of normal (-nx, -nz) ends, so the NPC can turn the corner there.
 		double WallEnd(double cx, double cz, double tx, double tz, double nx, double nz, int y0, int y1, double a_max)

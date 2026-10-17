@@ -3,11 +3,13 @@ package dev.skycraft.client;
 import dev.skycraft.combat.SkyCombat;
 import dev.skycraft.link.Proto;
 import dev.skycraft.link.SkyLink;
+import dev.skycraft.link.SkySpace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.world.phys.Vec3;
 import org.lwjgl.sdl.SDLKeyboard;
 
 /**
@@ -70,6 +72,7 @@ public final class InputBridge {
 			}
 			case Proto.IN_RELEASE_ALL -> releaseAll();
 			case Proto.IN_HURT -> hurt(minecraft, code, a / 100.0F, b, c);
+			case Proto.IN_ARROW_BLOCKED -> arrowBlocked(minecraft, code, a / 1024.0, b / 1024.0, c / 1024.0);
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();
@@ -99,6 +102,25 @@ public final class InputBridge {
 			ServerPlayer player = server.getPlayerList().getPlayer(uuid);
 			if (player != null) {
 				SkyCombat.hurtPlayer(player, kind, skyrimDamage, attacker, flags);
+			}
+		});
+	}
+
+	/** A Skyrim arrow stopped at a Minecraft block: one of Minecraft's sticks in the block there (the integrated server's). */
+	private static void arrowBlocked(Minecraft minecraft, int code, double x, double y, double z) {
+		var server = minecraft.getSingleplayerServer();
+		if (minecraft.player == null || server == null || MinecraftView.away()) {
+			return; // (a guest: Skyrim's arrow ends at the block all the same)
+		}
+		int world = SkyLink.skyrimWorld();
+		Vec3 at = new Vec3(x + SkySpace.originX(world), y, z + SkySpace.originZ(world));
+		double[] flight = Proto.arrowFlight(code);
+		Vec3 toward = new Vec3(flight[0], flight[1], flight[2]);
+		var uuid = minecraft.player.getUUID();
+		server.execute(() -> {
+			ServerPlayer player = server.getPlayerList().getPlayer(uuid);
+			if (player != null) {
+				SkyCombat.stickSkyrimArrow(player, at, toward);
 			}
 		});
 	}

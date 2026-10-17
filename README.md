@@ -20,7 +20,7 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
 
 - **Movement:** Minecraft movement on Skyrim's terrain and buildings. That covers walking,
   sprinting, jumping, crouching, swimming and falling, and Skyrim's collision is fed into
-  Minecraft's own collision.
+  Minecraft's own collision. Crouching stops you at edges, Skyrim's as well as blocks'.
 - **Blocks:** place and break blocks anywhere in Skyrim. They're drawn inside Skyrim's frame
   with its sun, shadows, fog and weather. Minecraft lights (torches, lava, glowstone and so on)
   light up Skyrim.
@@ -36,7 +36,8 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   water.
 - **Combat:** hit Skyrim NPCs with any Minecraft weapon, including bows, tridents and TNT.
   Damage is scaled to NPC level, and NPCs fight back.
-  - NPCs collide with blocks and path around them.
+  - NPCs collide with blocks and path around them, and their arrows and bolts stop at blocks
+    (a Minecraft arrow sticks where one hits, and you can pick it up).
   - Lava and fire hurt NPCs, and NPCs press pressure plates.
 - **Skyrim progression:**
   - Your Skyrim skills level up from Minecraft play. Swords, maces and tools train

@@ -156,6 +156,8 @@ namespace skycraft
 		void OnSolids(const std::uint8_t* a_data, std::uint32_t a_bytes);
 		void Clear();
 		bool SolidAt(std::int32_t a_x, std::int32_t a_y, std::int32_t a_z);
+		// Whether Minecraft has sent any solid blocks (none in another dimension, or before it's in a world).
+		bool Any();
 		// For the blocks' contact shadows (any thread): sets a_bit in a_out[x + w*(y + h*z)] for
 		// each solid block of the box at a_origin (Minecraft block coords) of a_size blocks. The
 		// generation changes whenever any section's blocks do.
@@ -163,6 +165,14 @@ namespace skycraft
 		std::uint32_t Generation();
 		// Main thread, every frame: NPCs overlapping solid Minecraft blocks are pushed back out.
 		void PushActorsOut(RE::PlayerCharacter* a_player, float a_delta);
+	}
+
+	namespace Arrows
+	{
+		// Hooks Skyrim's arrows and bolts so they stop at Minecraft's solid blocks.
+		void Install();
+		// Main thread, every frame: tells Minecraft where arrows stopped (it sticks its own there).
+		void PerFrame();
 	}
 
 	namespace WorldRender
