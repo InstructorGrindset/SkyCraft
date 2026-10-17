@@ -50,6 +50,8 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   scenes hand control to Skyrim until they finish.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
+- **Settings:** **SkyCraft settings** in the top left of the pause menu (O) switches each of SkyCraft's
+  features on or off, most of them at once; it's saved in `config/skycraft-features.txt`.
 
 ## Requirements
 
@@ -149,7 +151,8 @@ Every other key is Minecraft's: **E** inventory, **F5** camera, **T** chat, **/*
 and trades with merchants (empty hand). When Minecraft has no use for a click (empty hand, a sword
 or pickaxe, nothing to place), it activates what Skyrim's crosshair is on, like **G**. Only a fresh
 click counts, so holding right click to draw a bow or block stays Minecraft's. Switch it off with
-`click_to_activate = off` in `config/skycraft-features.txt`.
+**Click to activate** in **SkyCraft settings** (pause menu), or `click_to_activate = off` in
+`config/skycraft-features.txt`.
 
 ## Known limitations
 
