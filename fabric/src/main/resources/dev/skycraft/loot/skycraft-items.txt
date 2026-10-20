@@ -9,25 +9,27 @@
 #   conditions = skycraft:ebony_sword{fire_aspect:2 + looting:1 "Name"} N
 #                                     (gear that keeps a Skyrim enchantment, levels 1 to 10, and
 #                                     maybe its name; an enchanted_book stores them)
-# Conditions (all must hold): tag <t>, name <word>, material <m>, from <where>
+#   conditions = minecraft:leather_chestplate{#3b5dc9 "Name"} N
+#                                     (leather armor dyed a color, for clothing)
+# Conditions (all must hold): tag <t>, name <word>, material <m>, from <where>, kind <k>
 #   tags: food foodraw hide oreingot potion poison ingredient weapon armor clothing jewelry
 #         gold key arrow gem clutter book soulgem filled (a soul gem that comes with a soul)
 #   materials: wood iron steel imperial orcish dwarven elven glass ebony daedric dragon
 #              silver hide draugr falmer
-#   from: world corpse container actor bought (Skyrim's shop) looted (corpse or container)
+#   from: world corpse container actor bought (Skyrim's shop) looted (corpse or container); several
+#         from conditions mean any of them (from looted from bought)
+#   kinds (the piece Skyrim says it is): sword dagger war_axe mace greatsword battleaxe bow staff
+#         crossbow hand_to_hand helmet cuirass gauntlets boots shield
 # Skyrim sends names cut to 27 letters. SkyCraft gives back the whole name of the long Skyrim
 # potion names it knows (Potion of Fortify Two-handed, Potion of Prolonged Invisibility, ...),
 # so a name word can be the whole word; the cut word ("hande") matches too.
 # Restart Skyrim after editing.
 
-# Stays in Skyrim: coins for merchants, keys, drinks, milk, two rare treasures (Sheogorath-Shaped
-# Amber, the Exquisite Sapphire). Lockpicks and soul gems you fill yourself stay too, since no rule
-# takes them. Books and scrolls have their own rules below.
+# Stays in Skyrim: coins for merchants, keys, milk, two rare treasures (Sheogorath-Shaped Amber,
+# the Exquisite Sapphire). Lockpicks and soul gems you fill yourself stay too, since no rule takes
+# them. Books and scrolls, and drinks, have their own rules below.
 tag gold = keep
 tag key = keep
-tag food name wine = keep
-tag food name ale = keep
-tag food name mead = keep
 tag food name milk = keep
 name sheogorath = keep
 name exquisite = keep
@@ -103,6 +105,37 @@ tag book = keep
 name empty name skooma = minecraft:glass_bottle 1
 name redwater name skooma = minecraft:potion{skycraft:skooma:1:150 + saturation:1:0 #8e3fb5} 1
 name skooma = minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1
+
+# Drinks: wine, ale, mead, brandy and the Dunmer spirits are potions named after them, a little
+# Saturation (Skyrim's drinks restore stamina) and a few seconds of Nausea for the drink. Milk
+# stays: a Minecraft bucket of milk would be iron for a jug.
+name black name briar name reserve = minecraft:potion{saturation:2:0 + nausea:0:12 #5a2d0c} 1
+name cyrodilic name brandy = minecraft:potion{saturation:2:0 + nausea:0:10 #a0522d} 1
+name colovian name brandy = minecraft:potion{saturation:2:0 + hero_of_the_village:0:30 + nausea:0:8 #b5651d} 1
+name argonian name bloodwine = minecraft:potion{water_breathing:0:50 + regeneration:0:20 + saturation:1:0 + nausea:0:8 #5a0f1e} 1
+tag food name sadri's name sujamma = minecraft:potion{saturation:2:0 + nausea:0:12 #c9a66b} 1
+tag food name sujamma = minecraft:potion{saturation:1:0 + nausea:0:12 #c9b27c} 1
+tag food name shein = minecraft:potion{saturation:1:0 + nausea:0:8 #b5485a} 1
+tag food name matze = minecraft:potion{saturation:1:0 + nausea:0:8 #e6dfc8} 1
+tag food name flin = minecraft:potion{saturation:1:0 + nausea:0:10 #c99a4a} 1
+name balmora name blue = minecraft:potion{saturation:2:0 + nausea:0:10 #3a6fd8} 1
+name sleeping name tree name sap = minecraft:potion{health_boost:1:45 + slowness:0:45 + nausea:0:20 #8a6a2e} 1
+name velvet name lechance = minecraft:potion{saturation:2:0 + nausea:0:4 #6b1f3a} 1
+name white name gold name tower = minecraft:potion{saturation:2:0 + nausea:0:4 #e8d27a} 1
+name cliff name racer = minecraft:potion{saturation:2:0 + nausea:0:4 #6e8fb0} 1
+tag food name alto name wine = minecraft:potion{saturation:1:0 + nausea:0:10 #7b2a3a} 1
+tag food name spiced name wine = minecraft:potion{saturation:2:0 + nausea:0:10 #8b3a2a} 1
+tag food name firebrand name wine = minecraft:potion{saturation:1:0 + resistance:0:45 + nausea:0:8 #a8321e} 1
+tag food name surilie name wine = minecraft:potion{saturation:1:0 + nausea:0:8 #7b2a4a} 1
+tag food name emberbrand name wine = minecraft:potion{saturation:4:0 + nausea:0:20 #c2451f} 1
+tag food name wine = minecraft:potion{saturation:1:0 + nausea:0:8 #7b2a3a} 1
+tag food name argonian name ale = minecraft:potion{saturation:1:0 + nausea:0:8 #7a6a2a} 1
+tag food name ale = minecraft:potion{saturation:1:0 + nausea:0:8 #c8892a} 1
+tag food name black name briar name mead = minecraft:potion{saturation:1:0 + nausea:0:8 #b07a2a} 1
+tag food name honningbrew name mead = minecraft:potion{saturation:1:0 + nausea:0:8 #e0b040} 1
+tag food name dragon's name breath name mead = minecraft:potion{saturation:1:0 + nausea:0:10 #c96a28} 1
+tag food name ashfire name mead = minecraft:potion{saturation:3:0 + nausea:0:12 #b8572a} 1
+tag food name mead = minecraft:potion{saturation:1:0 + nausea:0:8 #d9a441} 1
 
 # Food (stews and soups are Minecraft's soups, a cheese wheel a cake, a poisoned apple a poisonous potato)
 tag food name apple name cabbage name stew = minecraft:beetroot_soup 1
@@ -539,6 +572,7 @@ tag armor name vigil name armor from looted from bought = skycraft:steel_cuirass
 tag armor name vigil name helmet from looted from bought = skycraft:steel_helmet 1
 tag armor name vigil name boots from looted from bought = skycraft:steel_boots 1
 tag armor name vigil name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag clothing name vampire name leather name hood from looted from bought = minecraft:leather_helmet{#3a1a24} 1
 
 # Leather armor bought in a Skyrim shop becomes Minecraft leather armor
 tag armor material hide name helmet from bought = minecraft:leather_helmet 1
@@ -930,6 +964,12 @@ tag armor name golden name saint name armor from bought = skycraft:ebony_cuirass
 tag armor name golden name saint name helmet from bought = skycraft:ebony_helmet 1
 tag armor name golden name saint name boots from bought = skycraft:ebony_boots 1
 tag armor name golden name saint name gauntlets from bought = skycraft:ebony_greaves 1
+tag armor material dragon name armor from bought = skycraft:daedric_cuirass 1
+tag armor material dragon name cuirass from bought = skycraft:daedric_cuirass 1
+tag armor material dragon name mail from bought = skycraft:daedric_cuirass 1
+tag armor material dragon name helmet from bought = skycraft:daedric_helmet 1
+tag armor material dragon name gauntlets from bought = skycraft:daedric_greaves 1
+tag armor material dragon name boots from bought = skycraft:daedric_boots 1
 tag armor name shield from bought = minecraft:shield 1
 tag weapon material iron name sword from bought = skycraft:iron_sword 1
 tag weapon material iron name greatsword from bought = skycraft:iron_sword 1
@@ -1074,41 +1114,211 @@ tag armor material falmer from looted = minecraft:turtle_scute 2
 tag armor material silver from looted = minecraft:iron_nugget 8
 tag armor material hide from looted = minecraft:leather 2
 
-# Clothing (pending your call)
-# Remove the '#' in front of these lines to turn Skyrim clothes into Minecraft leather armor by
-# slot: hoods and hats are helmets, boots and shoes boots, gloves leggings (Minecraft has no glove
-# slot), and robes, clothes, dresses and tunics chestplates. A child's dress or tunic from
-# Hearthfire carries no clothing tag, so it has a rule of its own.
-#tag clothing name hood = minecraft:leather_helmet 1
-#tag clothing name hat = minecraft:leather_helmet 1
-#tag clothing name cap = minecraft:leather_helmet 1
-#tag clothing name cowl = minecraft:leather_helmet 1
-#tag clothing name boots = minecraft:leather_boots 1
-#tag clothing name shoes = minecraft:leather_boots 1
-#tag clothing name sandals = minecraft:leather_boots 1
-#tag clothing name footwraps = minecraft:leather_boots 1
-#tag clothing name gloves = minecraft:leather_leggings 1
-#tag clothing name gauntlets = minecraft:leather_leggings 1
-#tag clothing name armguards = minecraft:leather_leggings 1
-#tag clothing name cuffs = minecraft:leather_leggings 1
-#tag clothing name wraps = minecraft:leather_leggings 1
-#tag clothing = minecraft:leather_chestplate 1
-#name girl's name dress = minecraft:leather_chestplate 1
-#name boy's name tunic = minecraft:leather_chestplate 1
+# Clothing, looted or bought, is Minecraft leather armor dyed like it, by body slot: hoods, hats
+# and circlets helmets, robes, clothes and tunics chestplates, gloves and bracers leggings (Minecraft
+# has no glove slot), boots and shoes boots. Mage robes keep their magic as Mending (they
+# regenerate magicka or ease a school's spells). Clothing you make, enchant or pick up stays, and
+# so does enchanted clothing no rule names, rather than lose its enchantment. Hearthfire's
+# children's clothes carry no clothing tag, so they have rules of their own. A Wedding Wreath is
+# its flowers; nothing in Minecraft fits the Moth Priest's blindfold.
+tag clothing name novice name robes name alteration from looted from bought = minecraft:leather_chestplate{mending:1 #3f8f6f} 1
+tag clothing name novice name robes name conjuration from looted from bought = minecraft:leather_chestplate{mending:1 #4b3f7a} 1
+tag clothing name novice name robes name destruction from looted from bought = minecraft:leather_chestplate{mending:1 #a8321e} 1
+tag clothing name novice name robes name illusion from looted from bought = minecraft:leather_chestplate{mending:1 #9b59b6} 1
+tag clothing name novice name robes name restoration from looted from bought = minecraft:leather_chestplate{mending:1 #d4a72c} 1
+tag clothing name apprentice name robes name alterat from looted from bought = minecraft:leather_chestplate{mending:1 #3f8f6f} 1
+tag clothing name apprentice name robes name conjura from looted from bought = minecraft:leather_chestplate{mending:1 #4b3f7a} 1
+tag clothing name apprentice name robes name destruc from looted from bought = minecraft:leather_chestplate{mending:1 #a8321e} 1
+tag clothing name apprentice name robes name illusio from looted from bought = minecraft:leather_chestplate{mending:1 #9b59b6} 1
+tag clothing name apprentice name robes name restora from looted from bought = minecraft:leather_chestplate{mending:1 #d4a72c} 1
+tag clothing name adept name robes name alteration from looted from bought = minecraft:leather_chestplate{mending:1 #3f8f6f} 1
+tag clothing name adept name robes name conjuration from looted from bought = minecraft:leather_chestplate{mending:1 #4b3f7a} 1
+tag clothing name adept name robes name destruction from looted from bought = minecraft:leather_chestplate{mending:1 #a8321e} 1
+tag clothing name adept name robes name illusion from looted from bought = minecraft:leather_chestplate{mending:1 #9b59b6} 1
+tag clothing name adept name robes name restoration from looted from bought = minecraft:leather_chestplate{mending:1 #d4a72c} 1
+tag clothing name expert name robes name alteration from looted from bought = minecraft:leather_chestplate{mending:1 #3f8f6f} 1
+tag clothing name expert name robes name conjuration from looted from bought = minecraft:leather_chestplate{mending:1 #4b3f7a} 1
+tag clothing name expert name robes name destruction from looted from bought = minecraft:leather_chestplate{mending:1 #a8321e} 1
+tag clothing name expert name robes name illusion from looted from bought = minecraft:leather_chestplate{mending:1 #9b59b6} 1
+tag clothing name expert name robes name restoration from looted from bought = minecraft:leather_chestplate{mending:1 #d4a72c} 1
+tag clothing name master name robes name alteration from looted from bought = minecraft:leather_chestplate{mending:1 #3f8f6f} 1
+tag clothing name master name robes name conjuration from looted from bought = minecraft:leather_chestplate{mending:1 #4b3f7a} 1
+tag clothing name master name robes name destruction from looted from bought = minecraft:leather_chestplate{mending:1 #a8321e} 1
+tag clothing name master name robes name illusion from looted from bought = minecraft:leather_chestplate{mending:1 #9b59b6} 1
+tag clothing name master name robes name restoration from looted from bought = minecraft:leather_chestplate{mending:1 #d4a72c} 1
+tag clothing name novice name robes from looted from bought = minecraft:leather_chestplate{mending:1 #7f9fb8} 1
+tag clothing name apprentice name robes from looted from bought = minecraft:leather_chestplate{mending:1 #5a7f5a} 1
+tag clothing name adept name robes from looted from bought = minecraft:leather_chestplate{mending:1 #4a5f9a} 1
+tag clothing name expert name robes from looted from bought = minecraft:leather_chestplate{mending:1 #7a2a2a} 1
+tag clothing name novice name hood from looted from bought = minecraft:leather_helmet{#7f9fb8} 1
+tag clothing name apprentice name hood from looted from bought = minecraft:leather_helmet{#5a7f5a} 1
+tag clothing name adept name hood from looted from bought = minecraft:leather_helmet{#4a5f9a} 1
+tag clothing name black name mage name hood from looted from bought = minecraft:leather_helmet{#1f1f2a} 1
+tag clothing name mage name hood from looted from bought = minecraft:leather_helmet{#3b5dc9} 1
+tag clothing name black name mage name robes from looted from bought = minecraft:leather_chestplate{#1f1f2a} 1
+tag clothing name blue name mage name robes from looted from bought = minecraft:leather_chestplate{#2f4fa8} 1
+tag clothing name mage name robes from looted from bought = minecraft:leather_chestplate{#3b5dc9} 1
+tag clothing name college name robes from looted from bought = minecraft:leather_chestplate{#3b5dc9} 1
+tag clothing name archmage's name robes from looted from bought = minecraft:leather_chestplate{mending:1 #4a2a6a "Archmage's Robes"} 1
+tag clothing name thalmor name robes from looted from bought = minecraft:leather_chestplate{#242424} 1
+tag clothing name thalmor name boots from looted from bought = minecraft:leather_boots{#242424} 1
+tag clothing name thalmor name gloves from looted from bought = minecraft:leather_leggings{#242424} 1
+tag clothing name necromancer name robes from looted from bought = minecraft:leather_chestplate{#3a1f24} 1
+tag clothing name black name robes from looted from bought = minecraft:leather_chestplate{#1c1c1c} 1
+tag clothing name blue name robes from looted from bought = minecraft:leather_chestplate{#2f4f9f} 1
+tag clothing name monk name robes from looted from bought = minecraft:leather_chestplate{#8b6b4a} 1
+tag clothing name greybeard's name hood from looted from bought = minecraft:leather_helmet{#9a9080} 1
+tag clothing name greybeard's name boots from looted from bought = minecraft:leather_boots{#9a9080} 1
+tag clothing name greybeard's from looted from bought = minecraft:leather_chestplate{#9a9080} 1
+tag clothing name vaermina name robes from looted from bought = minecraft:leather_chestplate{#5a3d7a} 1
+tag clothing name mythic name dawn name robes from looted from bought = minecraft:leather_chestplate{#9c1f1f} 1
+tag clothing name mythic name dawn name boots from looted from bought = minecraft:leather_boots{#9c1f1f} 1
+tag clothing name mythic name dawn name gloves from looted from bought = minecraft:leather_leggings{#9c1f1f} 1
+tag clothing name psiijic name hood from looted from bought = minecraft:leather_helmet{#5d7fb8} 1
+tag clothing name psiijic name boots from looted from bought = minecraft:leather_boots{#5d7fb8} 1
+tag clothing name psiijic name gloves from looted from bought = minecraft:leather_leggings{#5d7fb8} 1
+tag clothing name psiijic from looted from bought = minecraft:leather_chestplate{#5d7fb8} 1
+tag clothing name shrouded name robes from looted from bought = minecraft:leather_chestplate{#2a1414} 1
+tag clothing name shrouded name hood from looted from bought = minecraft:leather_helmet{#2a1414} 1
+tag clothing name shrouded name shoes from looted from bought = minecraft:leather_boots{#2a1414} 1
+tag clothing name shrouded name hand name wraps from looted from bought = minecraft:leather_leggings{#2a1414} 1
+tag clothing name executioner's name robes from looted from bought = minecraft:leather_chestplate{#1a1a1a} 1
+tag clothing name executioner's name hood from looted from bought = minecraft:leather_helmet{#1a1a1a} 1
+tag clothing name emperor's name robes from looted from bought = minecraft:leather_chestplate{#5b2a86 "Emperor's Robes"} 1
+tag clothing name cicero's name clothes from looted from bought = minecraft:leather_chestplate{#8b2a6b} 1
+tag clothing name cicero's name hat from looted from bought = minecraft:leather_helmet{#8b2a6b} 1
+tag clothing name cicero's name boots from looted from bought = minecraft:leather_boots{#8b2a6b} 1
+tag clothing name cicero's name gloves from looted from bought = minecraft:leather_leggings{#8b2a6b} 1
+tag clothing name jester's name clothes from looted from bought = minecraft:leather_chestplate{#a03a8a} 1
+tag clothing name jester's name hat from looted from bought = minecraft:leather_helmet{#a03a8a} 1
+tag clothing name jester's name boots from looted from bought = minecraft:leather_boots{#a03a8a} 1
+tag clothing name jester's name gloves from looted from bought = minecraft:leather_leggings{#a03a8a} 1
+tag clothing name ulfric's name bracers from looted from bought = minecraft:leather_leggings{#34495e} 1
+tag clothing name ulfric's name boots from looted from bought = minecraft:leather_boots{#34495e} 1
+tag clothing name ulfric's from looted from bought = minecraft:leather_chestplate{#34495e} 1
+tag clothing name jarl's name clothes from looted from bought = minecraft:leather_chestplate{#6b3f2a} 1
+tag clothing name fine name clothes from looted from bought = minecraft:leather_chestplate{#7a3b2e} 1
+tag clothing name noble name clothes from looted from bought = minecraft:leather_chestplate{#6b2e4a} 1
+tag clothing name fine name raiment from looted from bought = minecraft:leather_chestplate{#7a3b2e} 1
+tag clothing name fine name hat from looted from bought = minecraft:leather_helmet{#7a3b2e} 1
+tag clothing name fine name boots from looted from bought = minecraft:leather_boots{#7a3b2e} 1
+tag clothing name party name clothes from looted from bought = minecraft:leather_chestplate{#8a5a2a} 1
+tag clothing name party name boots from looted from bought = minecraft:leather_boots{#8a5a2a} 1
+tag clothing name embellished name robes from looted from bought = minecraft:leather_chestplate{#6a2a2a} 1
+tag clothing name embroidered name garment from looted from bought = minecraft:leather_chestplate{#7a5230} 1
+tag clothing name wedding name sandals from looted from bought = minecraft:leather_boots{#e8e0d0} 1
+tag clothing name wedding name wreath from looted from bought = minecraft:cornflower 1 + minecraft:oxeye_daisy 2
+tag clothing name mourner's name clothes from looted from bought = minecraft:leather_chestplate{#262626} 1
+tag clothing name mourner's name hat from looted from bought = minecraft:leather_helmet{#262626} 1
+tag clothing name arcane name blacksmith's name apron from looted from bought = minecraft:leather_chestplate{#3a4a6a} 1
+tag clothing name blacksmith's name apron from looted from bought = minecraft:leather_chestplate{#5b4632} 1
+tag clothing name chef's name tunic from looted from bought = minecraft:leather_chestplate{#e8e2d0} 1
+tag clothing name chef's name hat from looted from bought = minecraft:leather_helmet{#e8e2d0} 1
+tag clothing name miner's name clothes from looted from bought = minecraft:leather_chestplate{#6b5a44} 1
+tag clothing name tavern name clothes from looted from bought = minecraft:leather_chestplate{#7a6a50} 1
+tag clothing name farm name clothes from looted from bought = minecraft:leather_chestplate{#8b7355} 1
+tag clothing name belted name tunic from looted from bought = minecraft:leather_chestplate{#7a6248} 1
+tag clothing name fur name trimmed name cloak from looted from bought = minecraft:leather_chestplate{#6b5038} 1
+tag clothing name roughspun name tunic from looted from bought = minecraft:leather_chestplate{#8a7a5a} 1
+tag clothing name prisoner's name rags from looted from bought = minecraft:leather_chestplate{#8a8070} 1
+tag clothing name prisoner's name cuffs from looted from bought = minecraft:leather_leggings{#8a8070} 1
+tag clothing name ragged name robes from looted from bought = minecraft:leather_chestplate{#6e6450} 1
+tag clothing name ragged name trousers from looted from bought = minecraft:leather_leggings{#6e6450} 1
+tag clothing name ragged name cap from looted from bought = minecraft:leather_helmet{#6e6450} 1
+tag clothing name ragged name boots from looted from bought = minecraft:leather_boots{#6e6450} 1
+tag clothing name redguard name boots from looted from bought = minecraft:leather_boots{#c8b48a} 1
+tag clothing name redguard name hood from looted from bought = minecraft:leather_helmet{#c8b48a} 1
+tag clothing name alik'r name hood from looted from bought = minecraft:leather_helmet{#c8b48a} 1
+tag clothing name child's name clothes from looted from bought = minecraft:leather_chestplate{#8b7a5a} 1
+tag clothing name vampire name hood from looted from bought = minecraft:leather_helmet{#3a1a24} 1
+tag clothing name vampire name gloves from looted from bought = minecraft:leather_leggings{#3a1a24} 1
+tag clothing name serana name hood from looted from bought = minecraft:leather_helmet{#3a1a24} 1
+tag clothing name moth name priest name robes from looted from bought = minecraft:leather_chestplate{#b0a890} 1
+tag clothing name telvanni name robes from looted from bought = minecraft:leather_chestplate{#4a3a6a} 1
+tag clothing name temple name priest name robes from looted from bought = minecraft:leather_chestplate{#c8b070} 1
+tag clothing name temple name priest name hood from looted from bought = minecraft:leather_helmet{#c8b070} 1
+tag clothing name temple name priest name boots from looted from bought = minecraft:leather_boots{#c8b070} 1
+tag clothing name cultist name robes from looted from bought = minecraft:leather_chestplate{#4a3a2a} 1
+tag clothing name cultist name boots from looted from bought = minecraft:leather_boots{#4a3a2a} 1
+tag clothing name cultist name gloves from looted from bought = minecraft:leather_leggings{#4a3a2a} 1
+tag clothing name miraak's name robes from looted from bought = minecraft:leather_chestplate{mending:1 #3d3324 "Miraak's Robes"} 1
+tag clothing name dunmer name outfit from looted from bought = minecraft:leather_chestplate{#6a5040} 1
+tag clothing name general name carius' name armor from looted from bought = minecraft:leather_chestplate{#8a1f1f} 1
+tag clothing name fishing name hat from looted from bought = minecraft:leather_helmet{#5a6a4a} 1
+tag clothing name fishing name clothes from looted from bought = minecraft:leather_chestplate{#5a6a4a} 1
+tag clothing name fishing name boots from looted from bought = minecraft:leather_boots{#5a6a4a} 1
+tag clothing name captain name clothes from looted from bought = minecraft:leather_chestplate{#2a3a5a} 1
+tag clothing name captain name boots from looted from bought = minecraft:leather_boots{#2a3a5a} 1
+tag clothing name cyrus' name clothes from looted from bought = minecraft:leather_chestplate{#6a4a3a} 1
+tag clothing name cyrus' name boots from looted from bought = minecraft:leather_boots{#6a4a3a} 1
+tag clothing name gogh's name loin name cloth from looted from bought = minecraft:leather_leggings{#6b5038} 1
+tag clothing name extravagant name robes from looted from bought = minecraft:leather_chestplate{#7a2a5a} 1
+tag clothing name common name robes from looted from bought = minecraft:leather_chestplate{#8b7d6b} 1
+tag clothing name kenro's name robes from looted from bought = minecraft:leather_chestplate{#6a3a2a} 1
+tag clothing name courier's name clothes from looted from bought = minecraft:leather_chestplate{#6b4f2f} 1
+tag clothing name courier's name boots from looted from bought = minecraft:leather_boots{#6b4f2f} 1
+tag clothing name robe name lich from looted from bought = minecraft:leather_chestplate{mending:1 #2a2a3a "Robe of the Lich"} 1
+tag clothing name taron name dreth's name robes from looted from bought = minecraft:leather_chestplate{#5a4a3a} 1
+name boy's name blue name tunic from looted from bought = minecraft:leather_chestplate{#2f4f9f} 1
+name girl's name blue name dress from looted from bought = minecraft:leather_chestplate{#2f4f9f} 1
+name boy's name green name tunic from looted from bought = minecraft:leather_chestplate{#4a7a3a} 1
+name girl's name green name dress from looted from bought = minecraft:leather_chestplate{#4a7a3a} 1
+name boy's name grey name tunic from looted from bought = minecraft:leather_chestplate{#7a7a7a} 1
+name girl's name grey name dress from looted from bought = minecraft:leather_chestplate{#7a7a7a} 1
+name boy's name red name tunic from looted from bought = minecraft:leather_chestplate{#9c2a2a} 1
+name girl's name red name dress from looted from bought = minecraft:leather_chestplate{#9c2a2a} 1
+name boy's name yellow name tunic from looted from bought = minecraft:leather_chestplate{#d4b83a} 1
+name girl's name yellow name dress from looted from bought = minecraft:leather_chestplate{#d4b83a} 1
+tag clothing name nocturnal's name hat from looted from bought = minecraft:leather_helmet{#1f1f1f "Nocturnal's Hat"} 1
+tag clothing name grey name robes from looted from bought = minecraft:leather_chestplate{#7a7a7a} 1
+tag clothing name cyrus' name outfit from looted from bought = minecraft:leather_chestplate{#6a4a3a} 1
+tag clothing name of = keep
+tag clothing name blindfold = keep
+tag clothing name footwraps from looted from bought = minecraft:leather_boots{#8a7a5a} 1
+tag clothing name clothes from looted from bought = minecraft:leather_chestplate{#7a6a55} 1
+tag clothing name boots from looted from bought = minecraft:leather_boots{#5b4632} 1
+tag clothing name shoes from looted from bought = minecraft:leather_boots{#5b4632} 1
+tag clothing name gloves from looted from bought = minecraft:leather_leggings{#5b4632} 1
+tag clothing name hat from looted from bought = minecraft:leather_helmet{#6b5038} 1
+tag clothing name hood from looted from bought = minecraft:leather_helmet{#5a4a3a} 1
+tag clothing name cowl from looted from bought = minecraft:leather_helmet{#3a3a3a} 1
+tag clothing kind helmet from looted from bought = minecraft:leather_helmet 1
+tag clothing kind cuirass from looted from bought = minecraft:leather_chestplate 1
+tag clothing kind gauntlets from looted from bought = minecraft:leather_leggings 1
+tag clothing kind boots from looted from bought = minecraft:leather_boots 1
 
-# Jewelry (pending your call)
-# Remove the '#' in front of these lines to turn rings, necklaces, amulets and circlets into
-# nuggets of their metal, plus the gem when the name has one (gold nuggets for any jeweled piece).
-#tag jewelry name diamond = minecraft:gold_nugget 3 + minecraft:diamond 1
-#tag jewelry name emerald = minecraft:gold_nugget 3 + minecraft:emerald 1
-#tag jewelry name sapphire = minecraft:gold_nugget 3 + minecraft:lapis_lazuli 2
-#tag jewelry name ruby = minecraft:gold_nugget 3 + minecraft:redstone 2
-#tag jewelry name garnet = minecraft:gold_nugget 3 + minecraft:redstone 1
-#tag jewelry name amethyst = minecraft:gold_nugget 3 + minecraft:amethyst_shard 1
-#tag jewelry name gold = minecraft:gold_nugget 4
-#tag jewelry name silver = minecraft:iron_nugget 4
-#tag jewelry name copper = minecraft:copper_nugget 4
-#tag jewelry = minecraft:iron_nugget 3
+# Jewelry, looted or bought: a plain ring or necklace melts into its metal (gold into gold
+# nuggets, silver into iron nuggets) and gives its gem (rubies and garnets are redstone, sapphires
+# lapis). A circlet is worn on the head, so it's a leather helmet dyed its metal's color, and its
+# gem. Enchanted and unique jewelry (Amulets of the Divines, the Daedric rings, Savos Aren's Amulet,
+# ...) and jewelry you make or enchant stay in Skyrim.
+tag jewelry name of = keep
+tag jewelry name gold name diamond name ring from looted from bought = minecraft:gold_nugget 3 + minecraft:diamond 1
+tag jewelry name gold name emerald name ring from looted from bought = minecraft:gold_nugget 3 + minecraft:emerald 1
+tag jewelry name gold name sapphire name ring from looted from bought = minecraft:gold_nugget 3 + minecraft:lapis_lazuli 2
+tag jewelry name silver name amethyst name ring from looted from bought = minecraft:iron_nugget 3 + minecraft:amethyst_shard 1
+tag jewelry name silver name garnet name ring from looted from bought = minecraft:iron_nugget 3 + minecraft:redstone 1
+tag jewelry name silver name ruby name ring from looted from bought = minecraft:iron_nugget 3 + minecraft:redstone 2
+tag jewelry name gold name diamond name necklace from looted from bought = minecraft:gold_nugget 4 + minecraft:diamond 1
+tag jewelry name gold name ruby name necklace from looted from bought = minecraft:gold_nugget 4 + minecraft:redstone 2
+tag jewelry name gold name jeweled name necklace from looted from bought = minecraft:gold_nugget 4 + minecraft:emerald 1 + minecraft:redstone 1
+tag jewelry name silver name emerald name necklace from looted from bought = minecraft:iron_nugget 4 + minecraft:emerald 1
+tag jewelry name silver name sapphire name necklace from looted from bought = minecraft:iron_nugget 4 + minecraft:lapis_lazuli 2
+tag jewelry name silver name jeweled name necklace from looted from bought = minecraft:iron_nugget 4 + minecraft:redstone 2 + minecraft:amethyst_shard 1
+tag jewelry name gold name ring from looted from bought = minecraft:gold_nugget 3
+tag jewelry name silver name ring from looted from bought = minecraft:iron_nugget 3
+tag jewelry name gold name necklace from looted from bought = minecraft:gold_nugget 4
+tag jewelry name silver name necklace from looted from bought = minecraft:iron_nugget 4
+tag jewelry name copper name moonstone name circlet from looted from bought = minecraft:leather_helmet{#b87333} 1 + minecraft:quartz 1
+tag jewelry name copper name onyx name circlet from looted from bought = minecraft:leather_helmet{#b87333} 1 + minecraft:flint 1
+tag jewelry name copper name ruby name circlet from looted from bought = minecraft:leather_helmet{#b87333} 1 + minecraft:redstone 2
+tag jewelry name copper name sapphire name circlet from looted from bought = minecraft:leather_helmet{#b87333} 1 + minecraft:lapis_lazuli 2
+tag jewelry name gold name emerald name circlet from looted from bought = minecraft:leather_helmet{#d4af37} 1 + minecraft:emerald 1
+tag jewelry name gold name ruby name circlet from looted from bought = minecraft:leather_helmet{#d4af37} 1 + minecraft:redstone 2
+tag jewelry name jade name emerald name circlet from looted from bought = minecraft:leather_helmet{#00a86b} 1 + minecraft:emerald 1
+tag jewelry name jade name sapphire name circlet from looted from bought = minecraft:leather_helmet{#00a86b} 1 + minecraft:lapis_lazuli 2
+tag jewelry name silver name moonstone name circlet from looted from bought = minecraft:leather_helmet{#c0c0c8} 1 + minecraft:quartz 1
+tag jewelry name silver name sapphire name circlet from looted from bought = minecraft:leather_helmet{#c0c0c8} 1 + minecraft:lapis_lazuli 2
 
 # Everything above had its chance. Gear, clothing, jewelry, potions, food and ingredients no rule
 # above took stay in Skyrim, so the household rules below only ever see misc items and lights.
@@ -1148,6 +1358,8 @@ name wooden name plate = minecraft:bowl 1
 name ladle = minecraft:bowl 1
 name silver name bowl = minecraft:iron_nugget 3
 name silver name plate = minecraft:iron_nugget 3
+name steel name horse name armor = minecraft:iron_horse_armor 1
+name elven name horse name armor = minecraft:golden_horse_armor 1
 name torch = minecraft:torch 4
 name lantern = minecraft:lantern 1
 name glazed name candles = minecraft:candle 2

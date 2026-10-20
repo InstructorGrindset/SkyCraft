@@ -9,3 +9,5 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+net.minecraft.world.item.component.DyedItemColor
+-c net.minecraft.core.component.DataComponents DYED_COLOR

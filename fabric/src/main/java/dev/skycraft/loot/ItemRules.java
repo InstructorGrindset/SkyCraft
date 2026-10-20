@@ -26,15 +26,18 @@ import java.util.stream.Collectors;
  * tag potion name healing = minecraft:potion[healing] 1
  * tag potion name vigor = minecraft:potion{speed:0-1:120-300 + saturation:0-4:0 #3a9a3a} 1
  * tag jewelry name diamond = minecraft:gold_nugget 3 + minecraft:diamond 1
+ * tag clothing kind boots from looted from bought = minecraft:leather_boots{#5b4632} 1
  * </pre>
  * Every condition on the left must hold. {@code name} is a whole word of the Skyrim name (ignoring
  * case; {@code half-eaten} needs both words), {@code tag} one of {@link #TAGS}, {@code material}
- * one of {@link #MATERIALS}, {@code from} one of {@link #SOURCES}. The number on the right is
+ * one of {@link #MATERIALS}, {@code from} one of {@link #SOURCES} (several {@code from} mean any of
+ * them), {@code kind} one of {@link #KINDS}. The number on the right is
  * Minecraft items per Skyrim item; {@code +} joins several items. A bracket after one of the
  * {@link #POTION_ITEMS} names the vanilla potion it holds, one of {@link #POTIONS}; braces list
  * effects of its own instead ({@link Effect}), with an optional {@code #rrggbb} color and
  * {@code "name"}. Effect ranges scale with the Skyrim name's tier ({@link #TIERS}). Braces after any other item list
- * enchantments ({@link #ENCHANTMENTS}, {@code id:level}) and an optional name instead: Skyrim gear that keeps its enchantment.
+ * enchantments ({@link #ENCHANTMENTS}, {@code id:level}) and an optional name instead: Skyrim gear that keeps its enchantment;
+ * on one of the {@link #DYEABLE} items they may also hold a {@code #rrggbb} dye: Skyrim clothing.
  * Skyrim sends names cut to 27 bytes; {@link #fullName} gives back the known long ones.
  * Pure Java on purpose, so it's unit tested without Minecraft.
  */
@@ -45,6 +48,14 @@ public final class ItemRules {
 	/** Material names, by value (see ItemMaterial in the protocol header). */
 	public static final List<String> MATERIALS = List.of("none", "wood", "iron", "steel", "imperial", "orcish", "dwarven", "elven", "glass", "ebony", "daedric",
 		"dragon", "silver", "hide", "draugr", "falmer");
+	/**
+	 * Kind names, by value (see ItemKind in the protocol header, Proto.KIND_*): the piece Skyrim says a weapon, armor
+	 * piece or piece of clothing is, in bits 24-27 of an item's tags. An older plugin sends none (0).
+	 */
+	public static final List<String> KINDS = List.of("none", "sword", "dagger", "war_axe", "mace", "greatsword", "battleaxe", "bow", "staff",
+		"crossbow", "hand_to_hand", "helmet", "cuirass", "gauntlets", "boots", "shield");
+	/** Where an item's kind sits in its tags (Proto.TAG_KIND_SHIFT). */
+	static final int KIND_SHIFT = 24;
 	/**
 	 * Source names, by value (see ItemSource); "looted" means corpse or container, "bought" is Skyrim's shop. Gear
 	 * a dying actor wore (5, Proto.SRC_WORN) never reaches the rules: SkyBridge sends it to GearDrops.
@@ -80,6 +91,9 @@ public final class ItemRules {
 		"impaling", "infinity", "knockback", "looting", "loyalty", "luck_of_the_sea", "lunge", "lure", "mending", "multishot", "piercing", "power",
 		"projectile_protection", "protection", "punch", "quick_charge", "respiration", "riptide", "sharpness", "silk_touch", "smite", "soul_speed",
 		"sweeping_edge", "swift_sneak", "thorns", "unbreaking", "vanishing_curse", "wind_burst");
+	/** Items a rule may dye ({@code minecraft:leather_chestplate{#3b5dc9}}): Minecraft's dyeable leather. */
+	public static final List<String> DYEABLE = List.of("minecraft:leather_helmet", "minecraft:leather_chestplate", "minecraft:leather_leggings",
+		"minecraft:leather_boots", "minecraft:leather_horse_armor", "minecraft:wolf_armor");
 	/** The highest enchantment level a rule may give (vanilla's own top is V). */
 	public static final int MAX_ENCHANT_LEVEL = 10;
 	/**
@@ -148,7 +162,7 @@ public final class ItemRules {
 
 	/**
 	 * {@code item} null means keep it in Skyrim; {@code potion} is the vanilla potion the item holds, or null;
-	 * {@code effects} its own effects; {@code color} 0xRRGGBB or -1; {@code name} the Minecraft name, or null for
+	 * {@code effects} its own effects; {@code color} 0xRRGGBB or -1 (a potion's color, or leather's dye); {@code name} the Minecraft name, or null for
 	 * Minecraft's own; {@code also} more items given with it; {@code enchantments} what a non-potion item comes
 	 * enchanted with.
 	 */
@@ -222,9 +236,13 @@ public final class ItemRules {
 	/** Cut name to whole name, for the {@link #LONG_NAMES} no other long name shares a cut with. */
 	private static final Map<String, String> RESTORE = restoreTable();
 
-	record Rule(int tagMask, int material, int sourceMask, List<String> nameWords, Result result) {
+	/** {@code kind} is one of {@link #KINDS} by value, or -1 for any. */
+	record Rule(int tagMask, int material, int sourceMask, int kind, List<String> nameWords, Result result) {
 		boolean matches(Item it, List<String> words) {
 			if ((it.tags() & this.tagMask) != this.tagMask) {
+				return false;
+			}
+			if (this.kind >= 0 && (it.tags() >>> KIND_SHIFT & 0xF) != this.kind) {
 				return false;
 			}
 			if (this.material >= 0 && it.material() != this.material) {
@@ -254,7 +272,8 @@ public final class ItemRules {
 		"sha256:b5df8342f71997d853834f4d9d20e54bdc3d6f14338f015f71c839ca15cb889b",
 		"sha256:27ea3184c36639d40d80657d84f79dc84d90f2ff551a3ffe87dc1b076f4fb985",
 		"sha256:4670a25c478cf36f1e51fa323a4a741fb5ff985ba8218fe7d74dc8465f14e5e1",
-		"sha256:7d6f9dc73478bc63d73771b1117c841393a17266fbabee4a4725bc2a7d3c6331");
+		"sha256:7d6f9dc73478bc63d73771b1117c841393a17266fbabee4a4725bc2a7d3c6331",
+		"sha256:932298a3eece9216b1957ab4c3e9f987348ea7c75bbc027d3b6465e4bc27a754");
 
 	/** Where the default rules live in the jar, beside this class: {@link #DEFAULT_TEXT}. */
 	static final String DEFAULT_RESOURCE = "skycraft-items.txt";
@@ -392,7 +411,7 @@ public final class ItemRules {
 				problems.add("line " + n + ": conditions come in pairs, like 'tag food'");
 				continue;
 			}
-			int tagMask = 0, material = -1, sourceMask = 0;
+			int tagMask = 0, material = -1, sourceMask = 0, kind = -1;
 			List<String> names = new ArrayList<>();
 			String bad = null;
 			for (int i = 0; i < left.length && bad == null; i += 2) {
@@ -419,6 +438,12 @@ public final class ItemRules {
 							sourceMask |= 1 << SOURCES.indexOf(value);
 						} else {
 							bad = "unknown source '" + value + "'";
+						}
+					}
+					case "kind" -> {
+						kind = KINDS.indexOf(value);
+						if (kind < 0) {
+							bad = "unknown kind '" + value + "'";
 						}
 					}
 					case "name" -> {
@@ -457,7 +482,7 @@ public final class ItemRules {
 				result = new Result(first.item(), first.perItem(), first.potion(), first.effects(), first.color(), first.name(),
 					List.copyOf(outputs.subList(1, outputs.size())), first.enchantments());
 			}
-			out.add(new Rule(tagMask, material, sourceMask, List.copyOf(names), result));
+			out.add(new Rule(tagMask, material, sourceMask, kind, List.copyOf(names), result));
 		}
 		unknownPotions.forEach((id, lines) -> problems.add("line " + lines.get(0) + ": unknown potion '" + id + "', rule skipped" + alsoLines(lines)));
 		unknownEffects.forEach((id, lines) -> problems.add("line " + lines.get(0) + ": unknown effect '" + id + "', rule skipped" + alsoLines(lines)));
@@ -628,11 +653,28 @@ public final class ItemRules {
 		return new Result(right[0], per, potion, effects, color, name, List.of());
 	}
 
-	/** A non-potion item with braces: {@code item{enchantment:level + ... "name"} N}. Null (and a problem) when it's bad. */
+	/**
+	 * A non-potion item with braces: {@code item{enchantment:level + ... #rrggbb "name"} N}, the dye only on
+	 * {@link #DYEABLE} items. Null (and a problem) when it's bad.
+	 */
 	private static Result parseEnchanted(String item, int per, String body, int n, List<String> problems) {
 		List<Enchant> enchants = new ArrayList<>();
 		String name = null;
+		int color = -1;
 		for (String token : effectTokens(body)) {
+			if (token.startsWith("#")) {
+				String id = item.toLowerCase(Locale.ROOT);
+				if (!DYEABLE.contains(id.indexOf(':') < 0 ? "minecraft:" + id : id)) {
+					problems.add("line " + n + ": only leather armor, leather horse armor and wolf armor take a dye like '" + token + "', not '" + item + "'");
+					return null;
+				}
+				if (!COLOR.matcher(token).matches()) {
+					problems.add("line " + n + ": color '" + token + "' isn't #rrggbb");
+					return null;
+				}
+				color = Integer.parseInt(token.substring(1), 16);
+				continue;
+			}
 			if (token.startsWith("\"")) {
 				if (token.length() < 2 || !token.endsWith("\"")) {
 					problems.add("line " + n + ": no closing '\"' after the name");
@@ -674,11 +716,11 @@ public final class ItemRules {
 			}
 			enchants.add(new Enchant(p[0], level));
 		}
-		if (enchants.isEmpty() && name == null) {
+		if (enchants.isEmpty() && name == null && color < 0) {
 			problems.add("line " + n + ": '{}' names no enchantment");
 			return null;
 		}
-		return new Result(item, per, null, List.of(), -1, name, List.of(), List.copyOf(enchants));
+		return new Result(item, per, null, List.of(), color, name, List.of(), List.copyOf(enchants));
 	}
 
 	/** Where the brace opened at {@code open} closes, skipping quoted text; -1 when it doesn't. */

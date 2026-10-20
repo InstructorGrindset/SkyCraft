@@ -171,36 +171,109 @@ First match wins, so every rule has to be reachable: `ItemRulesTest.everyDefault
 
 ### Stays in Skyrim on purpose
 
-Gold, keys, books, spell tomes other than Flames and Healing, scrolls no rule names, lockpicks, wine, ale, mead, milk (Jug of Milk), Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
+Gold, keys, books, spell tomes other than Flames and Healing, scrolls no rule names, lockpicks, milk (Jug of Milk), enchanted and unique jewelry, the Moth Priest's blindfold, staffs, Azura's Star and the Black Star, Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
 
-### Clothing (pending your call)
+## Clothing, jewelry and the other open questions
 
-In the defaults but commented out (each line starts with `#`), so nothing changes until you remove the `#`.
+These were left open before (commented-out rules, drinks kept in Skyrim). The decisions:
 
-| Clothing | Becomes |
+### Clothing: dyed leather armor by slot
+
+Skyrim's clothes are worn on the same body slots as armor, and Minecraft's only cloth-like armor is leather, which takes any dye. So a robe, an outfit or a hood you loot or buy becomes the leather piece for its slot, dyed the color of the clothing: robes, clothes, tunics and dresses a chestplate, hoods, hats and caps a helmet, gloves, bracers and cuffs leggings (Minecraft has no glove slot, the same choice the gear makes for gauntlets), boots and shoes boots. The 160-odd pieces the reviewed proposals named have a rule each, with their colors (black for Thalmor and Dark Brotherhood robes, red for the Mythic Dawn, the school's color for mage robes, a gold-yellow for Restoration, and so on); any other clothing goes by the slot the SKSE plugin reports for it (a new `kind` condition: `tag clothing kind boots ...`) as plain leather.
+
+- The proposals added extra items to clothing (lapis for mage robes, gold nuggets for fine clothes, a second helmet for hooded robes). They're gone: one piece of clothing is one piece of armor, as the gear drops have it (the body slot wins for a hooded robe).
+- Mage robes keep their magic: Novice, Apprentice, Adept and Expert Robes regenerate magicka, the school robes ease a school's spells, and both are Mending on the chestplate, the enchantment the armor table gives magicka and the magic schools. Archmage's Robes, Miraak's Robes and the Robe of the Lich keep their names too; the Emperor's Robes and Nocturnal's Hat their names.
+- Only looted or bought clothing converts (`from looted from bought`). Clothing you enchant at an enchanting table comes back into your inventory as if picked up, under its plain name, and would otherwise turn into leather and lose the enchantment; for the same reason any clothing with "of" in its name that no rule names stays in Skyrim (`tag clothing name of = keep`).
+- Stays in Skyrim: the Moth Priest's blindfold (nothing in Minecraft fits it), enchanted clothing no rule names, and clothing an older SKSE plugin sends without its slot. A Wedding Wreath is its flowers (a cornflower and two oxeye daisies).
+
+<!-- gen:clothing -->
+| Clothing (each dyed its own color) | Becomes |
 |---|---|
-| Hoods, hats, caps, cowls (Adept Hood, Chef's Hat, Cowl) | leather_helmet |
-| Boots, shoes, sandals, footwraps (Fine Boots, Barkeeper's Shoes) | leather_boots |
-| Gloves, gauntlets, armguards, cuffs, wraps (Cicero's Gloves, Fine Armguards) | leather_leggings (no glove slot) |
-| Everything else: robes, clothes, tunics, dresses, garb (Hooded Monk Robes, Fine Clothes, Belted Tunic) | leather_chestplate |
-| Girl's Yellow Dress and the other Hearthfire children's clothes (no clothing tag) | leather_chestplate |
+| Novice Robes of Alteration, Novice Robes of Conjuration, Novice Robes of Destruction, Novice Robes of Illusion, Novice Robes of Restoration, Apprentice Robes of Alteration, Apprentice Robes of Conjuration, Apprentice Robes of Destruction, Apprentice Robes of Illusion, Apprentice Robes of Restoration, Adept Robes of Alteration, Adept Robes of Conjuration, Adept Robes of Destruction, Adept Robes of Illusion, Adept Robes of Restoration, Expert Robes of Alteration, Expert Robes of Conjuration, Expert Robes of Destruction, Expert Robes of Illusion, Expert Robes of Restoration, Master Robes of Alteration, Master Robes of Conjuration, Master Robes of Destruction, Master Robes of Illusion, Master Robes of Restoration, Novice Robes, Apprentice Robes, Adept Robes, Expert Robes | leather_chestplate (Mending) |
+| Novice Hood, Apprentice Hood, Adept Hood, Black Mage Hood, Mage Hood, Greybeard's Hood, Psiijic Hood, Shrouded Hood, Executioner's Hood, Cicero's Hat, Jester's Hat, Fine Hat, Mourner's Hat, Chef's Hat, Ragged Cap, Redguard Hood, Alik'r Hood, Vampire Hood, Serana Hood, Temple Priest Hood, Lucky Fishing Hat, Fishing Hat, Hat, Hood, Cowl | leather_helmet |
+| Black Mage Robes, Blue Mage Robes, Mage Robes, College Robes, Hooded Thalmor Robes, Thalmor Robes, Hooded Necromancer Robes, Necromancer Robes, Hooded Black Robes, Black Robes, Blue Robes, Hooded Monk Robes, Monk Robes, Greybeard's Robes, Vaermina Robes, Mythic Dawn Robes, Psiijic Robes, Shrouded Robes, Executioner's Robes, Cicero's Clothes, Jester's Clothes, Ulfric's Clothes, Jarl's Clothes, Fine Clothes, Noble Clothes, Fine Raiment, Party Clothes, Embellished Robes, Embroidered Garment, Mourner's Clothes, Arcane Blacksmith's Apron, Blacksmith's Apron, Chef's Tunic, Miner's Clothes, Tavern Clothes, Farm Clothes, Belted Tunic, Fur-Trimmed Cloak, Roughspun Tunic, Prisoner's Rags, Ragged Robes, Child's Clothes, Moth Priest Robes, Telvanni Robes, Temple Priest Robes, Cultist Robes, Dunmer Outfit, General Carius' Armor, Fishing Clothes, Captain Clothes, Cyrus' Clothes, Extravagant Robes, Common Robes, Kenro's Robes, Courier's Clothes, Taron Dreth's Robes, Boy's Blue Tunic, Girl's Blue Dress, Boy's Green Tunic, Girl's Green Dress, Boy's Grey Tunic, Girl's Grey Dress, Boy's Red Tunic, Girl's Red Dress, Boy's Yellow Tunic, Girl's Yellow Dress, Grey Robes, Cyrus' Outfit, Clothes | leather_chestplate |
+| Archmage's Robes | leather_chestplate (Mending) "Archmage's Robes" |
+| Thalmor Boots, Greybeard's Boots, Mythic Dawn Boots, Psiijic Boots, Shrouded Shoes, Cicero's Boots, Jester's Boots, Ulfric's Boots, Fine Boots, Party Boots, Wedding Sandals, Ragged Boots, Cuffed Boots, Redguard Boots, Temple Priest Boots, Cultist Boots, Fishing Boots, Captain Boots, Cyrus' Boots, Courier's Boots, Footwraps, Boots, Shoes | leather_boots |
+| Thalmor Gloves, Mythic Dawn Gloves, Psiijic Gloves, Shrouded Hand Wraps, Cicero's Gloves, Jester's Gloves, Ulfric's Bracers, Prisoner's Cuffs, Ragged Trousers, Vampire Gloves, Cultist Gloves, Gogh's Loin Cloth, Gloves | leather_leggings |
+| Emperor's Robes | leather_chestplate "Emperor's Robes" |
+| Wedding Wreath | cornflower + 2 oxeye_daisy |
+| Miraak's Robes | leather_chestplate (Mending) "Miraak's Robes" |
+| Robe of the Lich | leather_chestplate (Mending) "Robe of the Lich" |
+| Nocturnal's Hat | leather_helmet "Nocturnal's Hat" |
+| Moth Priest Blindfold | stays in Skyrim |
+| Vampire Leather Hood | leather_helmet |
+| Any other clothing, by the slot Skyrim reports | the leather piece for it, undyed |
+<!-- /gen:clothing -->
 
-### Jewelry (pending your call)
+### Jewelry: plain pieces melt down, enchanted and unique ones stay
 
-Also commented out. A gem in the name gives the gem plus gold nuggets; otherwise the metal.
+A plain ring or necklace is a little worked metal and maybe a gem, which is what it becomes: gold into gold nuggets (3 for a ring, 4 for a necklace), silver into iron nuggets (Minecraft has no silver; SkyCraft melts silver to iron everywhere), plus its gem at about half a loose gem (a diamond or emerald whole, 2 redstone for a ruby, 1 for a garnet, 2 lapis for a sapphire, an amethyst shard). Circlets are worn on the head, so they're clothing: a leather helmet dyed their metal's color (copper, gold, silver, jade) and their gem. Enchanted jewelry stays in Skyrim, because its enchantment is its worth and Minecraft has no ring slot to put it in; so does unique jewelry (the Amulets of the Divines, the Daedric rings, Savos Aren's Amulet, the Gauldur Amulet, ...) and Nordic jewelry, whose metal isn't certain. As with clothing, only looted or bought jewelry converts, so a ring you forge or enchant stays, and anything with "of" in its name stays.
 
-| Jewelry | Becomes |
+<!-- gen:jewelry -->
+| Item | Becomes |
 |---|---|
-| Diamond (Gold Diamond Ring) | 3 gold_nugget + diamond |
-| Emerald (Silver Emerald Necklace) | 3 gold_nugget + emerald |
-| Sapphire (Silver Sapphire Necklace) | 3 gold_nugget + 2 lapis_lazuli |
-| Ruby (Gold Ruby Necklace) | 3 gold_nugget + 2 redstone |
-| Garnet (Silver Garnet Ring) | 3 gold_nugget + redstone |
-| Amethyst (Silver Amethyst Ring) | 3 gold_nugget + amethyst_shard |
-| Gold (Gold Necklace) | 4 gold_nugget |
-| Silver (Silver Ring) | 4 iron_nugget |
-| Copper (Copper and Onyx Circlet) | 4 copper_nugget |
-| Anything else (Saarthal Amulet, Amulet of Mara) | 3 iron_nugget |
+| Gold Diamond Ring | 3 gold_nugget + diamond |
+| Gold Emerald Ring | 3 gold_nugget + emerald |
+| Gold Sapphire Ring | 3 gold_nugget + 2 lapis_lazuli |
+| Silver Amethyst Ring | 3 iron_nugget + amethyst_shard |
+| Silver Garnet Ring | 3 iron_nugget + redstone |
+| Silver Ruby Ring | 3 iron_nugget + 2 redstone |
+| Gold Diamond Necklace | 4 gold_nugget + diamond |
+| Gold Ruby Necklace | 4 gold_nugget + 2 redstone |
+| Gold Jeweled Necklace | 4 gold_nugget + emerald + redstone |
+| Silver Emerald Necklace | 4 iron_nugget + emerald |
+| Silver Sapphire Necklace | 4 iron_nugget + 2 lapis_lazuli |
+| Silver Jeweled Necklace | 4 iron_nugget + 2 redstone + amethyst_shard |
+| Gold Ring | 3 gold_nugget |
+| Silver Ring | 3 iron_nugget |
+| Gold Necklace | 4 gold_nugget |
+| Silver Necklace | 4 iron_nugget |
+| Copper and Moonstone Circlet | leather_helmet (dyed #b87333) + quartz |
+| Copper and Onyx Circlet | leather_helmet (dyed #b87333) + flint |
+| Copper and Ruby Circlet | leather_helmet (dyed #b87333) + 2 redstone |
+| Copper and Sapphire Circlet | leather_helmet (dyed #b87333) + 2 lapis_lazuli |
+| Gold and Emerald Circlet | leather_helmet (dyed #d4af37) + emerald |
+| Gold and Ruby Circlet | leather_helmet (dyed #d4af37) + 2 redstone |
+| Jade and Emerald Circlet | leather_helmet (dyed #00a86b) + emerald |
+| Jade and Sapphire Circlet | leather_helmet (dyed #00a86b) + 2 lapis_lazuli |
+| Silver and Moonstone Circlet | leather_helmet (dyed #c0c0c8) + quartz |
+| Silver and Sapphire Circlet | leather_helmet (dyed #c0c0c8) + 2 lapis_lazuli |
+<!-- /gen:jewelry -->
+
+### Drinks
+
+Wine, ale, mead, brandy and the Dunmer spirits become potions named after them, in the drink's color: a little Saturation (Skyrim's drinks restore stamina, and stamina is the hunger bar here) and a few seconds of Nausea, the drink going to your head. A few keep a side effect of their own (Colovian Brandy's Hero of the Village, Argonian Bloodwine's Water Breathing, Firebrand Wine's Resistance). Milk stays: Minecraft's milk comes in a bucket, which would be three iron for a jug. Skooma keeps its own rules.
+
+<!-- gen:drinks -->
+| Item | Becomes |
+|---|---|
+| Black-Briar Reserve, Sadri's Sujamma, Sujamma, Ashfire Mead | potion: Saturation, Nausea I 12 s |
+| Cyrodilic Brandy, Flin, Balmora Blue, Alto Wine, Spiced Wine, Dragon's Breath Mead | potion: Saturation, Nausea I 10 s |
+| Colovian Brandy | potion: Saturation, Hero of the Village I 30 s, Nausea I 8 s |
+| Argonian Bloodwine | potion: Water Breathing I 50 s, Regeneration I 20 s, Saturation, Nausea I 8 s |
+| Shein, Matze, Surilie Brothers Wine, Wine, Argonian Ale, Ale, Black-Briar Mead, Honningbrew Mead, Nord Mead | potion: Saturation, Nausea I 8 s |
+| Sleeping Tree Sap | potion: Health Boost II 45 s, Slowness I 45 s, Nausea I 20 s |
+| Velvet LeChance, White-Gold Tower, Cliff Racer | potion: Saturation, Nausea I 4 s |
+| Firebrand Wine | potion: Saturation, Resistance I 45 s, Nausea I 8 s |
+| Emberbrand Wine | potion: Saturation, Nausea I 20 s |
+| Any other mead | potion: Saturation, Nausea I 8 s |
+<!-- /gen:drinks -->
+
+### Netherite: none
+
+No Skyrim material becomes netherite. SkyCraft's own tiers already reach it: ebony is about netherite and daedric just above it (fireproof, netherite mining level), and dragon gear is the daedric tier everywhere else in the mod (gear drops, enchanted gear). Netherite stays Minecraft's own reward for going into the Nether, and salvage never gives netherite scrap. So the proposals that made Dragonplate and Dragonscale netherite or diamond became: bought dragon armor is the SkyCraft daedric piece, looted dragon armor salvages as before (2 ebony ingots and 4 bone), and the Konahrik mask is a daedric helmet.
+
+| Item | Becomes |
+|---|---|
+| Dragonplate or Dragonscale Armor, Dragonplate Insulated Cuirass, Dragonbone Mail, bought | daedric_cuirass |
+| Dragonplate or Dragonscale Helmet (and Insulated), bought | daedric_helmet |
+| Dragonplate or Dragonscale Gauntlets (and Insulated), bought | daedric_greaves |
+| Dragonplate or Dragonscale Boots (and Insulated), bought | daedric_boots |
+| Any dragon armor, looted | 2 ebony_ingot + 4 bone (as before) |
+
+### Horse armor
+
+The Elven and Steel Horse Armor (Creation Club) go into your inventory when a saddle change takes them off your horse. Minecraft has horse armor of its own, so they become it: Steel Horse Armor iron_horse_armor, Elven Horse Armor golden_horse_armor (the elven set is gilded). The trade-off: putting armor back on a Skyrim horse costs 500 gold again instead of 50.
 
 ## More conversions: the reviewed proposals
 
@@ -544,7 +617,7 @@ Weapons and armor looted from a corpse or a container salvage into their materia
 | Silver | 4 iron_nugget | 8 iron_nugget | Silver melts to iron, like Skyrim's other silver |
 | Hide, leather, studded, fur | (none) | 2 leather | As before |
 
-Still in Skyrim: gear with no material keyword (Forsworn, Stormcloak and guard armor, Nordic, Stalhrim, Blades, staffs), the Hearthfire Wooden Sword, clothing and jewelry (pending your call above).
+Gear of no material keyword has rules of its own by name ([More conversions](#more-conversions-the-reviewed-proposals)); staffs stay in Skyrim.
 
 ## Gear drops
 
