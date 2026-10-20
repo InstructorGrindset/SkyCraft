@@ -4,7 +4,12 @@
 #include "Loot.h"
 #include "WorldState.h"
 #include "Spawn.h"
+#include "Stealth.h"
 #include "Travel.h"
+
+#include <cctype>
+#include <format>
+#include <string_view>
 
 namespace skycraft
 {
@@ -330,6 +335,106 @@ namespace skycraft
 			return root;
 		}
 
+		// ---- sneak attacks (sneak_attacks) -----------------------------------------------------------------------
+		// Skyrim's Mod Sneak Attack Mult perk entry point (BGSEntryPoint::HandleEntryPoint, which CommonLib wraps) takes the
+		// weapon and the target after the perk owner. Which comes first is read once from the game's own entry point table
+		// (its parameters' names), so each goes where Backstab's, Deadly Aim's and Assassin's Blade's conditions look for it;
+		// if the names don't tell, perks are left out and the base multiplier stands.
+		enum class PerkArgs
+		{
+			kUnknown,
+			kWeaponTarget,
+			kTargetWeapon,
+		};
+
+		bool NameHas(const char* a_name, std::string_view a_word)
+		{
+			if (!a_name) {
+				return false;
+			}
+			const std::string_view name(a_name);
+			for (std::size_t at = 0; at + a_word.size() <= name.size(); ++at) {
+				std::size_t i = 0;
+				while (i < a_word.size() && std::tolower(static_cast<unsigned char>(name[at + i])) == a_word[i]) {
+					++i;
+				}
+				if (i == a_word.size()) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		PerkArgs SneakPerkArgs()
+		{
+			static const PerkArgs order = [] {
+				const auto* entry = RE::BGSEntryPoint::GetEntryPoint(RE::BGSEntryPoint::ENTRY_POINT::kModSneakAttackMult);
+				int         weapon = -1, target = -1;
+				std::string names;
+				if (entry && entry->parameters.data) {
+					for (std::uint32_t i = 0; i < entry->parameters.count && i < 8; ++i) {
+						const char* name = entry->parameters.data[i].name;
+						names += std::format("{}{}", i ? ", " : "", name ? name : "?");
+						if (weapon < 0 && NameHas(name, "weapon")) {
+							weapon = static_cast<int>(i);
+						} else if (target < 0 && NameHas(name, "target")) {
+							target = static_cast<int>(i);
+						}
+					}
+				}
+				const PerkArgs result = weapon < 0 || target < 0 ? PerkArgs::kUnknown : weapon < target ? PerkArgs::kWeaponTarget : PerkArgs::kTargetWeapon;
+				if (result == PerkArgs::kUnknown) {
+					logger::warn("sneak attacks: can't tell Skyrim's Mod Sneak Attack Mult parameters apart ({}); perks left out of the multiplier", names);
+				} else {
+					logger::info("sneak attacks: Skyrim's {} entry point takes {}", entry && entry->name ? entry->name : "Mod Sneak Attack Mult", names);
+				}
+				return result;
+			}();
+			return order;
+		}
+
+		// A Minecraft hit by a crouching player (kHitCrouching) on an actor that hasn't detected them is a Skyrim sneak
+		// attack: returns Skyrim's multiplier for it, 1 when it isn't one. "Hasn't detected" is Skyrim's own answer,
+		// Actor::RequestDetectionLevel (the detection its stealth eye shows; over 0 is detected). It already takes in combat
+		// (an actor fighting the player and seeing them has them detected), and like Skyrim it lets an actor that lost the
+		// player in a fight be sneak attacked. The multiplier is vanilla's base for the weapon the hit lands as (Stealth.h)
+		// times the player's perks; a projectile lands as a bow for the perks, so Deadly Aim counts and Backstab doesn't.
+		float SneakAttackMult(RE::PlayerCharacter* a_player, RE::Actor* a_actor, RE::TESObjectWEAP* a_weapon, const proto::McEvent& a_ev)
+		{
+			if ((a_ev.flags & proto::kHitCrouching) == 0 || !Game::FeatureOn(proto::kFeatSneakAttacks)) {
+				return 1.0f;
+			}
+			const auto detection = a_actor->RequestDetectionLevel(a_player);
+			if (detection > 0) {
+				static int logged = 0;
+				if (logged < 10 || DiagnosticsEnabled()) {
+					++logged;
+					logger::info("no sneak attack on {} ({:08X}): it has detected the player (detection level {})", a_actor->GetDisplayFullName(),
+						a_actor->GetFormID(), detection);
+				}
+				return 1.0f;
+			}
+			const bool unarmed = a_ev.weapon == proto::kWeaponUnarmed;
+			const bool ranged = (a_ev.flags & proto::kHitProjectile) != 0 || (a_weapon && a_weapon->IsBow());
+			const bool oneHanded = a_weapon && !unarmed &&
+			                       (a_weapon->IsOneHandedSword() || a_weapon->IsOneHandedDagger() || a_weapon->IsOneHandedAxe() || a_weapon->IsOneHandedMace());
+			float      mult = Stealth::SneakAttackBase(ranged, oneHanded);
+			auto*      perkWeapon = ranged ? StandInWeapon(proto::kWeaponArrow) : unarmed ? nullptr : a_weapon;
+			if (perkWeapon) {
+				switch (SneakPerkArgs()) {
+				case PerkArgs::kWeaponTarget:
+					RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINT::kModSneakAttackMult, a_player, perkWeapon, a_actor, &mult);
+					break;
+				case PerkArgs::kTargetWeapon:
+					RE::BGSEntryPoint::HandleEntryPoint(RE::BGSEntryPoint::ENTRY_POINT::kModSneakAttackMult, a_player, a_actor, perkWeapon, &mult);
+					break;
+				default:
+					break;
+				}
+			}
+			return Stealth::ClampSneakMult(mult);
+		}
+
 		// A Minecraft hit on an actor's stand-in: real damage, scaled so Minecraft gear stays
 		// meaningful against higher-level enemies, delivered the way a Skyrim weapon would.
 		void ApplyHit(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev)
@@ -339,14 +444,23 @@ namespace skycraft
 				return;
 			}
 			const float scale = 5.0f + 0.25f * static_cast<float>(actor->GetLevel());
-			const float damage = a_ev.a * scale;
 			const bool  crit = (a_ev.flags & proto::kHitCritical) != 0;
 			const bool  projectile = (a_ev.flags & proto::kHitProjectile) != 0;
+			auto*       weapon = StandInWeapon(a_ev.weapon);
+			// Decided before the hit lands: the hit itself gives the player away.
+			const float sneak = SneakAttackMult(a_player, actor, weapon, a_ev);
+			const float damage = a_ev.a * scale * sneak;
 			// Sprint hits, knockback enchantments and crits stagger; ordinary swings don't
 			// (Minecraft's attack rate would otherwise stun-lock everything).
 			const float push = a_ev.d;
-			const float stagger = (push > 0.45f || crit) ? std::clamp(crit ? 0.35f : (push - 0.4f) * 1.2f, 0.25f, 1.0f) : 0.0f;
-			auto*       weapon = StandInWeapon(a_ev.weapon);
+			float       stagger = (push > 0.45f || crit) ? std::clamp(crit ? 0.35f : (push - 0.4f) * 1.2f, 0.25f, 1.0f) : 0.0f;
+			// Power attacks: with power_attacks, the hits Minecraft says are (fully charged, and a sprint or critical hit),
+			// with the stagger of the weapon they land as; without it, sprint hits and knockback, as before.
+			const bool powerSwitch = Game::FeatureOn(proto::kFeatPowerAttacks);
+			const bool power = powerSwitch ? (a_ev.flags & proto::kHitPowerAttack) != 0 && !projectile : push > 0.45f;
+			if (powerSwitch && power && weapon) {
+				stagger = std::max(stagger, std::clamp(weapon->GetStagger(), 0.0f, 1.0f));
+			}
 			auto*       node = HitNode(actor);
 			RE::NiPoint3 hitPos = node ? node->world.translate : actor->GetPosition() + RE::NiPoint3{ 0.0f, 0.0f, actor->GetHeight() * 0.6f };
 			RE::NiPoint3 dir = hitPos - a_player->GetPosition();
@@ -365,6 +479,8 @@ namespace skycraft
 				hit->physicalDamage = damage;
 				hit->resistedPhysicalDamage = 0.0f;
 				hit->resistedTypedDamage = 0.0f;
+				// Skyrim's own sneak attack handling stays off: a sneak attack's multiplier is in the damage already, and
+				// its message and Sneak experience are given below.
 				hit->sneakAttackBonus = 1.0f;
 				hit->bonusHealthDamageMult = 1.0f;
 				hit->stagger = stagger;
@@ -377,8 +493,8 @@ namespace skycraft
 				if (crit) {
 					hit->flags.set(RE::HitData::Flag::kCritical);
 				}
-				if (push > 0.45f) {
-					hit->flags.set(RE::HitData::Flag::kPowerAttack);
+				if (power) {
+					hit->flags.set(RE::HitData::Flag::kPowerAttack);  // Skyrim's own power attack rules (stagger, hit reactions, the hit event)
 				}
 				processHit(actor, *hit);
 			} else if (damage > 0.0f) {
@@ -400,11 +516,17 @@ namespace skycraft
 			if (damage > 0.0f) {
 				TrainSkill(a_player, HitSkill(a_ev), a_ev.a);
 			}
+			// A sneak attack says so the way Skyrim does, and trains Sneak as Skyrim's do.
+			if (sneak > 1.0f && damage > 0.0f) {
+				RE::SendHUDMessage::ShowHUDMessage(std::format("Sneak attack for {:.1f}x damage!", sneak).c_str());
+				TrainSkill(a_player, RE::ActorValue::kSneak, Stealth::SneakAttackSkillUses(projectile));
+			}
 			if (!actor->IsDead() && !actor->IsPlayerTeammate() && !actor->IsInCombat()) {
 				actor->StartCombat(a_player);
 			}
-			logger::info("hit {} ({:08X}, level {}) for {:.1f} Minecraft -> {:.0f} Skyrim damage{}{}{}", actor->GetDisplayFullName(), a_ev.formId,
-				actor->GetLevel(), a_ev.a, damage, crit ? ", critical" : "", projectile ? ", projectile" : "", stagger > 0.0f ? ", stagger" : "");
+			logger::info("hit {} ({:08X}, level {}) for {:.1f} Minecraft -> {:.0f} Skyrim damage{}{}{}{}{}", actor->GetDisplayFullName(), a_ev.formId,
+				actor->GetLevel(), a_ev.a, damage, crit ? ", critical" : "", projectile ? ", projectile" : "", stagger > 0.0f ? ", stagger" : "",
+				power ? ", power attack" : "", sneak > 1.0f ? std::format(", sneak attack {:.1f}x", sneak) : std::string());
 		}
 
 		void KillPlayer(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev)

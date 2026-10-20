@@ -1,4 +1,6 @@
+#include "BlockWalk.h"
 #include "Game.h"
+#include "Stealth.h"
 
 // Skyrim's NPCs don't walk through Minecraft's blocks: Minecraft sends which blocks of each section
 // have a collision shape (proto::kRenSolids), and every frame any NPC overlapping one is pushed
@@ -36,6 +38,17 @@ namespace skycraft
 		std::unordered_map<RE::FormID, Detour> detours;
 
 		bool ColumnBlocked(int a_x, int a_z, int a_y0, int a_y1);
+
+		// Whether the block is solid; solidsLock held (shared) by the caller.
+		bool SolidLocked(std::int32_t a_x, std::int32_t a_y, std::int32_t a_z)
+		{
+			const auto it = solids.find(SectionKey(FloorDiv16(a_x), FloorDiv16(a_y), FloorDiv16(a_z)));
+			if (it == solids.end()) {
+				return false;
+			}
+			const int bit = (a_x & 15) + 16 * (a_z & 15) + 256 * (a_y & 15);
+			return (it->second[bit >> 6] >> (bit & 63)) & 1;
+		}
 	}
 
 	namespace NpcBlocks
@@ -123,12 +136,28 @@ namespace skycraft
 		bool SolidAt(std::int32_t a_x, std::int32_t a_y, std::int32_t a_z)
 		{
 			std::shared_lock lock(solidsLock);
-			const auto       it = solids.find(SectionKey(FloorDiv16(a_x), FloorDiv16(a_y), FloorDiv16(a_z)));
-			if (it == solids.end()) {
+			return SolidLocked(a_x, a_y, a_z);
+		}
+
+		std::optional<double> FirstSolid(const McVec& a_from, const McVec& a_to, int a_maxCells)
+		{
+			std::optional<double> found;
+			std::shared_lock      lock(solidsLock);
+			BlockWalk::Walk(a_from.x, a_from.y, a_from.z, a_to.x, a_to.y, a_to.z, a_maxCells, [&](int a_x, int a_y, int a_z, double a_t) {
+				if (SolidLocked(a_x, a_y, a_z)) {
+					found = a_t;
+					return true;
+				}
 				return false;
-			}
-			const int bit = (a_x & 15) + 16 * (a_z & 15) + 256 * (a_y & 15);
-			return (it->second[bit >> 6] >> (bit & 63)) & 1;
+			});
+			return found;
+		}
+
+		bool SolidBetween(const McVec& a_from, const McVec& a_to)
+		{
+			std::shared_lock lock(solidsLock);
+			return BlockWalk::SolidBetween(a_from.x, a_from.y, a_from.z, a_to.x, a_to.y, a_to.z, Stealth::kMaxSightCells,
+				[](int a_x, int a_y, int a_z) { return SolidLocked(a_x, a_y, a_z); });
 		}
 
 		bool Any()

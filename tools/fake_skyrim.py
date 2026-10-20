@@ -69,6 +69,10 @@ PLACE_INTERIOR = 1
 # McEvent types (skycraft_protocol.h)
 EV_HIT_ACTOR, EV_PLAYER_DIED, EV_EXPLOSION, EV_ARROW_STUCK, EV_SKILL_USE, EV_TAKE_ITEM, EV_SLEEP, EV_SPAWN_CREATURE, EV_ENTER_DUNGEON = range(1, 10)
 EV_PORTAL_TRAVEL = 11  # portal network: printed, not acted on (a real Skyrim moves the player)
+# HitFlags (skycraft_protocol.h), named when a hit is printed; power attack and crouching are combat's (sneak and power attacks)
+HIT_FLAG_NAMES = ((1, "critical"), (1 << 1, "projectile"), (1 << 2, "sweep"), (1 << 3, "fire"), (1 << 4, "power attack"), (1 << 5, "crouching"))
+# McState eyeLightFlags (light_stealth)
+EYE_LIGHT_VALID = 1
 EV_COMPANION = 14  # companions: answered for the fake wolf (SKYCRAFT_COMPANION=1)
 COMPANION_TAME, COMPANION_FOLLOW, COMPANION_WAIT, COMPANION_HEAL = 1, 2, 3, 4
 # ActorFlags and AnimalKind (skycraft_protocol.h)
@@ -186,7 +190,8 @@ class Link:
                 kind = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
                 self.companion_event(form, flags, a, kind)
             else:
-                print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}")
+                named = "".join(f", {name}" for bit, name in HIT_FLAG_NAMES if typ == EV_HIT_ACTOR and flags & bit)
+                print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}{named}")
             self.events.append(typ)
             tail += 1
         struct.pack_into("<Q", self.m, OFF_EVENTS + 0x40, tail)
@@ -318,7 +323,11 @@ class Link:
         seq, flags, x, y, z, yaw, pitch, eye, sens, ack, gui, frame, fov, bph, bam, _, ex, ey, ez = struct.unpack("<IIdddffffIIQfffIddd", raw)
         # McState spaceWorld, spaceX, spaceZ (@0xC8): where Minecraft keeps the blocks of the world its player is in.
         space_world, space_x, space_z = struct.unpack_from("<Iii", self.m, OFF_MC + 0xC8)
-        return dict(flags=flags, pos=(x, y, z), yaw=yaw, pitch=pitch, eye=eye, ack=ack, frame=frame, space=(space_world, space_x, space_z))
+        # McState features (@0xD8) and the light at the player's eyes (light_stealth, @0xDC): block, sky, flags.
+        features, block_light, sky_light, light_flags = struct.unpack_from("<IBBB", self.m, OFF_MC + 0xD8)
+        light = (block_light, sky_light) if light_flags & EYE_LIGHT_VALID else None
+        return dict(flags=flags, pos=(x, y, z), yaw=yaw, pitch=pitch, eye=eye, ack=ack, frame=frame, space=(space_world, space_x, space_z),
+                    features=features, light=light)
 
     def push_input(self, typ, code, a=0, b=0, c=0):
         a, b, c = (v - (1 << 32) if v >= 1 << 31 else v for v in (a, b, c))
@@ -469,6 +478,7 @@ def main():
     last_breaches = 0.0
     place, town = PLACE, TOWN
     last_space = None
+    last_light = None
     door = 0  # world-change check: 0 not yet, 1 in world B, 2 back in world A, 3 done
     results = []
     while time.time() - start < seconds:
@@ -490,6 +500,9 @@ def main():
             sent = True
             print(f"collision sent (world {link.world:08X}, epoch {epoch})")
         mc = link.read_mc()
+        if mc["light"] != last_light:
+            last_light = mc["light"]
+            print(f"light at Minecraft's eyes (light_stealth): block {last_light[0]}, sky {last_light[1]}" if last_light else "light at Minecraft's eyes: not sent")
         if mc["space"][0] and mc["space"] != last_space:
             last_space = mc["space"]
             print(f"Minecraft keeps world {mc['space'][0]:08X}'s blocks in its space at {mc['space'][1]} {mc['space'][2]}")

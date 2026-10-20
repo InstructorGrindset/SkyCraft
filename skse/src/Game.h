@@ -159,6 +159,12 @@ namespace skycraft
 		void OnSolids(const std::uint8_t* a_data, std::uint32_t a_bytes);
 		void Clear();
 		bool SolidAt(std::int32_t a_x, std::int32_t a_y, std::int32_t a_z);
+		// Any thread: the share of the way from a to b (Minecraft coords) at which the first solid block on it is entered:
+		// 0 when a is in one already, nothing with no solid block on the way (walked block by block, at most a_maxCells).
+		std::optional<double> FirstSolid(const McVec& a_from, const McVec& a_to, int a_maxCells);
+		// Any thread: a solid block somewhere between a and b, not counting the blocks a and b are in themselves (an
+		// NPC's eyes, a player's head in a slab or on a carpet). False for a line too long to walk (Stealth::kMaxSightCells).
+		bool SolidBetween(const McVec& a_from, const McVec& a_to);
 		// Whether Minecraft has sent any solid blocks (none in another dimension, or before it's in a world).
 		bool Any();
 		// For the blocks' contact shadows (any thread): sets a_bit in a_out[x + w*(y + h*z)] for
@@ -168,6 +174,18 @@ namespace skycraft
 		std::uint32_t Generation();
 		// Main thread, every frame: NPCs overlapping solid Minecraft blocks are pushed back out.
 		void PushActorsOut(RE::PlayerCharacter* a_player, float a_delta);
+	}
+
+	// Light and stealth (Stealth.cpp; the rules in Stealth.h).
+	namespace Stealth
+	{
+		// walls_hide_you: hooks Skyrim's line of sight (every call of Actor::CalculateLOS) so an NPC can't see the player
+		// through solid Minecraft blocks.
+		void Install();
+		// Main thread, every frame (Game's update, after Combat::PerFrame). a_mc: Minecraft's state, null when it isn't
+		// connected or the read was torn; a_puppeting: Minecraft drives the player. Keeps the player's head and chest for the
+		// line of sight hook, and folds Minecraft's light at the eyes into Skyrim's light on the player (light_stealth).
+		void PerFrame(RE::PlayerCharacter* a_player, const proto::McState* a_mc, bool a_puppeting);
 	}
 
 	namespace Arrows

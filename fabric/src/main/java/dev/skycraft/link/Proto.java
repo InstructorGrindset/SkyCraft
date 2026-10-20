@@ -222,6 +222,13 @@ public final class Proto {
 	public static final int HIT_PROJECTILE = 1 << 1;
 	public static final int HIT_SWEEP = 1 << 2;
 	public static final int HIT_FIRE = 1 << 3;
+	/**
+	 * power_attacks: a fully charged melee hit (attack strength over 0.9) that was a sprint or critical hit; Skyrim makes it a
+	 * power attack. Added within protocol 13 (an older plugin ignores it).
+	 */
+	public static final int HIT_POWER_ATTACK = 1 << 4;
+	/** sneak_attacks: the player who landed the hit was crouching (Skyrim's sneak). Added within protocol 13. */
+	public static final int HIT_CROUCHING = 1 << 5;
 	public static final int WEAPON_UNARMED = 0;
 	public static final int WEAPON_BLADE = 1;
 	public static final int WEAPON_AXE = 2;
@@ -358,6 +365,19 @@ public final class Proto {
 	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
 	public static final long MS_FEATURES = 0xD8;
 	public static final int FEATURES_VALID = 1 << 31;
+	// FeatureBits: combat and stealth, run by Skyrim (Stealth.cpp, Combat.cpp).
+	public static final int FEATURE_WALLS_HIDE_YOU = 1;
+	public static final int FEATURE_SNEAK_ATTACKS = 1 << 1;
+	public static final int FEATURE_POWER_ATTACKS = 1 << 2;
+	public static final int FEATURE_LIGHT_STEALTH = 1 << 3;
+	/**
+	 * light_stealth: Minecraft's block light and sky light (0-15 each, bytes) at the player's eyes, and EYE_LIGHT_VALID in the
+	 * flags byte when they're this tick's. Added within protocol 13 (was reserved and zero).
+	 */
+	public static final long MS_EYE_BLOCK_LIGHT = 0xDC;
+	public static final long MS_EYE_SKY_LIGHT = 0xDD;
+	public static final long MS_EYE_LIGHT_FLAGS = 0xDE;
+	public static final int EYE_LIGHT_VALID = 1;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;

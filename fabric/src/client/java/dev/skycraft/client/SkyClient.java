@@ -291,7 +291,25 @@ public final class SkyClient {
 		mc.bobO = bob ? avatar.getInterpolatedBob(0.0F) : 0.0F;
 		mc.bob = bob ? avatar.getInterpolatedBob(1.0F) : 0.0F;
 		mc.inMirror = dev.skycraft.SkyDimension.inMirror(minecraft.level);
+		publishEyeLight(minecraft, player);
 		SkyLink.writeMcState(mc);
+	}
+
+	/**
+	 * Light and stealth: Minecraft's light at the player's eyes, for Skyrim's detection. Block light is Minecraft's torches,
+	 * lava and glowstone; sky light is how far Minecraft's blocks let the sky in (15 under open sky, 0 in a sealed tunnel).
+	 * Skyrim folds them into its own light, which already carries its sun, the hour, the weather and its lamps.
+	 */
+	private static void publishEyeLight(Minecraft minecraft, LocalPlayer player) {
+		var level = minecraft.level;
+		mc.eyeLightValid = level != null && mc.inMirror && !MinecraftView.away()
+			&& dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.LIGHT_STEALTH);
+		if (!mc.eyeLightValid) {
+			return;
+		}
+		net.minecraft.core.BlockPos eye = net.minecraft.core.BlockPos.containing(player.getEyePosition());
+		mc.eyeBlockLight = level.getBrightness(net.minecraft.world.level.LightLayer.BLOCK, eye);
+		mc.eyeSkyLight = level.getBrightness(net.minecraft.world.level.LightLayer.SKY, eye);
 	}
 
 	/** Freeze the player until Skyrim's collision around them has arrived. */

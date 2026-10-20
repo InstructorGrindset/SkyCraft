@@ -392,6 +392,9 @@ public final class SkyLink {
 		public float tickMs = 50.0F;
 		public int cameraMode;
 		public float cameraDistance;
+		/** light_stealth: Minecraft's block light and sky light at the player's eyes (0-15), when eyeLightValid. */
+		public int eyeBlockLight, eyeSkyLight;
+		public boolean eyeLightValid;
 	}
 
 	public static void writeMcState(McState st) {
@@ -446,6 +449,9 @@ public final class SkyLink {
 		s.set(JAVA_INT, b + MS_SPACE_X, mirror ? WorldSpaces.originX(space) : 0);
 		s.set(JAVA_INT, b + MS_SPACE_Z, mirror ? WorldSpaces.originZ(space) : 0);
 		s.set(JAVA_INT, b + MS_FEATURES, dev.skycraft.config.Features.skyrimBits());
+		s.set(JAVA_BYTE, b + MS_EYE_BLOCK_LIGHT, (byte) dev.skycraft.combat.CombatRules.lightLevel(st.eyeBlockLight));
+		s.set(JAVA_BYTE, b + MS_EYE_SKY_LIGHT, (byte) dev.skycraft.combat.CombatRules.lightLevel(st.eyeSkyLight));
+		s.set(JAVA_BYTE, b + MS_EYE_LIGHT_FLAGS, (byte) (st.eyeLightValid ? EYE_LIGHT_VALID : 0));
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 
