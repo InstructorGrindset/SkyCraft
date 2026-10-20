@@ -40,6 +40,10 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| Weather sync | `weather_sync` | Skyrim's weather is Minecraft's: clear and cloudy skies are clear, rain and snow are rain (Minecraft's own snow in Tamriel Wilds' cold biomes and Home's, which share the mirror's weather), a thunderstorm is thunder; indoors Minecraft's stays as it is. The mirror's only biome (the void) has no precipitation, so there it's the sky's darkness that follows, and snow settling: while snow falls in Skyrim, snow layers settle on the tops of Minecraft blocks open to the sky (no block and no Skyrim roof, bridge or cliff over them) near you, never on Skyrim's ground, at most a layer a block each pass, up to `max_layers`, and melt again in clear weather; Skyrim's rain waters farmland open to the sky. The other way: `/weather` (or a mod) changes Skyrim's weather to the nearest of its region's own weathers (rain is snow in a region that only snows, thunder rain where there are no storms), picked by their classification, never by form id; indoors or while a quest holds the weather Skyrim says no and Minecraft's goes back to Skyrim's. Only Minecraft asks, only for changes it didn't make, and Skyrim answers each request once (a sequence number), so the two never ping-pong. See [World](#world) | `weather/` (SkyWeather, WeatherRules), `link/SkyLink` (SkyState weather, McState request) | `Weather.cpp` (`Sky::ForceWeather` on the region's weathers), `WeatherKinds.h` (unit tested), `Game::FeatureOn(kFeatWeatherSync)` | `skycraft-weather.txt` | `SkyCraft-weather` (both halves) | Written |
+| Skyrim farming | `skyrim_farming` | A hoe on Skyrim's grass, dirt or mud (the land, or a mound of earth, facing up) tills it: that cell becomes a Minecraft farmland block, dug out of Skyrim's geometry the way digging does (its mesh cut, the pit's walls drawn), its top within half a block of the ground. Seeds, potatoes and carrots plant on it and grow by Minecraft's rules; water within four blocks (or Skyrim's rain, Weather sync) keeps it moist. Skyrim's own crops (wheat, cabbages, potatoes, leeks, gourds, ...) are harvested by activating them, G or a right click (click to activate), with a hoe in hand too: Skyrim tells Minecraft when its crosshair is on a plant to harvest, and the hoe leaves the ground alone; the produce converts like any loot. Needs Skyrim destruction on. See [World](#world) | `farming/` (SkyFarming, FarmRules), client `FarmingClient`, `net/SkyNet` (FarmTill) | `Farming.cpp` (SkyState `aim`) | none | `SkyCraft-farm` | Written |
+| Tamriel Wilds villagers | `wilds_villagers` | Villagers in Tamriel Wilds get a Skyrim name by profession, "Hrodmar, Nord Blacksmith", "Livia Mallius, Imperial Cartographer", "Ilvesa, Dark Elf Priest of Arkay" (race and name from the villager, mostly Nords; the title follows its job; a name tag's name stays), and sell Skyrim wares beside Minecraft's trades: armorers SkyCraft armor, weaponsmiths SkyCraft weapons, toolsmiths Skyrim's ingots, leatherworkers leather strips, clerics Skyrim potions as SkyCraft converts them; one at novice, another at journeyman and at master. Villagers anywhere else stay vanilla. See [World](#world) | `villagers/` (SkyVillagers, WildsVillagers), `loot/SkyBridge.converted` | none | none | `SkyCraft-wilds` | Written |
+| Shrine blessings | `shrine_blessings` | A Skyrim shrine's blessing (a spell named "Blessing of ..." on the player, new or cast again) gives a Minecraft effect for as long as it has left in real time: 8 game hours at Skyrim's timescale (24 minutes at 20). Talos and Stendarr Resistance, Kynareth Speed, Mara Regeneration, Arkay Health Boost, Dibella Luck, Julianos and Akatosh Haste, Zenithar Hero of the Village, Dawnguard's Auriel Night Vision, any other shrine Luck. Guests get theirs too. See [World](#world) | `blessings/` (SkyBlessings, Blessings), client `InputBridge`, `net/SkyNet` (Blessing) | `Blessings.cpp` (the player's active effects), `BlessingKinds.h` (unit tested), `kInBlessing` | none | `SkyCraft-blessing` (both halves) | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -410,11 +414,162 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
 
+## World
+
+Four features that tie Minecraft's world to Skyrim's: its weather, its farms, the villages of Tamriel Wilds and its
+shrines. Their switches are in the "World" group of `skycraft-features.txt`.
+
+### Weather sync
+
+Switch `weather_sync` (Skyrim's half needs it too: `kFeatWeatherSync`, bit 12 of `McState.features`), numbers in
+`skycraft-weather.txt`. Both halves log `SkyCraft-weather`.
+
+**Skyrim to Minecraft.** Every frame Skyrim says what its sky is doing where the player is (`SkyState.weather`): the
+current weather's classification (Skyrim's weather records are flagged pleasant, cloudy, rainy or snow; rain or snow
+with a thunder sound is a thunderstorm; a weather with no flag, like fog, counts as cloudy), and whether rain or snow is
+falling right now (`Sky::IsRaining`, `IsSnowing`, which follow the fade in and out). Indoors it says nothing. Once a
+second Minecraft sets its weather to match with `/weather` (clear and cloudy: clear; rain and snow: rain; a storm:
+thunder).
+
+What that looks like where: the mirror's only biome is `minecraft:the_void`, which has no precipitation, so Minecraft's
+own rain and snow never fall there (no rain drawn, no fires put out, no lightning strikes, no snow of its own); its sky
+and the light on your blocks darken under rain and thunder. Tamriel Wilds and Home share the mirror's weather (their
+levels take the overworld's), so there it rains, snows in the cold biomes and thunders the Minecraft way while Skyrim's
+does, Skyrim's parked player's weather. The Nether has none.
+
+**Snow settles.** While snow falls in Skyrim and you're outdoors in the mirror, every `settle_every` ticks
+`settle_columns` random block columns within `settle_radius` of the host are looked at. Where the top of a column is a
+Minecraft block within 24 blocks of your height, with nothing of Minecraft's over it and nothing of Skyrim's either
+(no roof, bridge or cliff within 48 blocks up), a snow layer settles with `settle_chance`, or a layer is added to the snow
+already there, up to `max_layers`; never more than one a column each pass, never on Skyrim's own ground or on
+something like a torch or a flower. In clear weather (pleasant, nothing falling) a layer melts with `melt_chance` a pass,
+snow you placed yourself in the mirror included (set `melt_chance = 0` to keep it); cloudy and wet weather keep it. While
+rain falls, farmland open to the sky is watered (`rain_waters_farmland`).
+
+| Setting | Default | |
+|---|---|---|
+| `settle_every` | 40 | Ticks between passes |
+| `settle_columns` | 64 | Columns looked at a pass |
+| `settle_radius` | 16 | Blocks around the host |
+| `settle_chance` | 0.25 | A column's chance of a layer a pass while it snows |
+| `max_layers` | 2 | Most layers snow settles to (1 to 8) |
+| `melt_chance` | 0.1 | A column's chance of losing a layer a pass in clear weather |
+| `rain_waters_farmland` | on | Skyrim's rain waters farmland open to the sky |
+
+At the defaults a block in the open near you gets its first layer in a minute or two of snowfall.
+
+**Minecraft to Skyrim.** A change of Minecraft's weather that SkyCraft didn't make (a player's `/weather`, a mod),
+once it has held five seconds (SkyCraft's own changes fade in for ten seconds first and don't count), is a request:
+`McState.weatherSeq` goes up by one and `weatherWant` says the kind (clear, rain, thunderstorm). Skyrim handles each
+number once: it looks at the weathers its current region can have (the region's weather data, else its climate's) and
+forces the nearest (`Sky::ForceWeather`, no override, so the region's own weather takes over again in time): rain falls
+back to snow, then a storm; a storm to rain, then snow; clear to cloudy; the likeliest of the best. Nothing is picked by
+form id. It refuses indoors, while a quest holds the weather (`Sky::overrideWeather`), when the region has nothing of
+the sort, or with its switch off. Then it answers in `SkyState.weatherAck` (with `kWeatherRefused` when it said no).
+Meanwhile Minecraft keeps the player's weather; after the answer it follows Skyrim's again, so a refusal puts
+Minecraft's weather back, with a line on the action bar ("Skyrim's sky can't turn to thunderstorms here, ..."), and so
+does a nearest that isn't the same ("Skyrim has no thunderstorms here: rain instead"). An older plugin never answers;
+after 15 seconds Minecraft gives up and follows Skyrim's weather. Skyrim never asks, and Minecraft asks only about
+changes it didn't make, so the two never take turns changing each other's weather.
+
+**Try it.** Outside in Skyrim, wait for rain or force a weather with Skyrim's console (`fw <weather id>`: Skyrim.esm's
+SkyrimStormRain, SkyrimStormSnow and SkyrimClear, their ids from xEdit or UESP): Minecraft's log says `Minecraft's
+weather set to thunder for Skyrim's thunderstorms` and the light on your blocks darkens. Force a snow storm by some
+blocks you placed in the open: snow layers settle on them within a few minutes, never on the ground around them nor
+under a Skyrim roof or walkway; force a clear weather and they melt. In Minecraft, `/weather thunder` outside Whiterun:
+Skyrim's sky turns stormy and SkyCraft.log has `Minecraft asked for thunderstorm: Skyrim's weather is now ...`;
+`/weather rain` in Winterhold brings snow; `/weather clear` in an inn: "can't turn" on the action bar and Minecraft's
+weather goes back. With `weather_sync = off`, neither follows the other. (If `/weather` is refused right after a console
+`fw`, the console may have made it an override, like a quest's: `rw` releases it.)
+
+### Skyrim farming
+
+Switch `skyrim_farming`; logs `SkyCraft-farm`. **What worked already:** dig into Skyrim's grass and the dirt blocks it
+reveals can be hoed and farmed like any Minecraft dirt; and Skyrim's own crops (wheat, cabbages, potatoes, leeks,
+gourds, ...) are Skyrim flora, harvested by activating them with G or a right click Minecraft has no use for (click to
+activate: an empty hand, a sword, a hoe), their produce converting like any loot (`skycraft-items.txt`: wheat to
+wheat, potatoes to potatoes, cabbages and leeks to beetroot, carrots to carrots, a gourd to bread). A hoe on Skyrim's
+ground itself did nothing (there's no block there for it), and seeds on it fail (crops need farmland under them).
+
+**Now** a right click with a hoe on Skyrim soil tills it. Skyrim's surfaces carry what they're made of (`SkyTri.material`,
+a `Proto.DIG_*` Skyrim picks from the Havok material: on the land the material of its land texture, so a farm's plowed
+soil is dirt or mud and its edges grass); grass, dirt and mud facing up no steeper than you can walk count. The hoeing
+player's client (it has Skyrim's geometry) picks the cell whose farmland top comes nearest the ground and asks the
+server (`SkyNet.FarmTill`), which digs the cell out of Skyrim's geometry the way digging does (and the cell over it when
+the ground reaches into it, so the crop isn't buried), puts farmland there, plays the hoe's sound and wears the hoe. The
+pit's walls are Skyrim's ground, as for any dug cell. From then on it's Minecraft farmland: plant seeds, potatoes or
+carrots; crops grow by Minecraft's random ticks (the mirror's sky light reaches them, day and night); water within four
+blocks keeps the soil moist and the crops quick, and so does Skyrim's rain (Weather sync). It needs Skyrim destruction on
+(pause menu), like digging. While Skyrim's crosshair is on a plant it can harvest (`SkyState.aim`, `kAimHarvest`: flora
+or a tree with produce, not yet picked), the hoe leaves the ground alone and the click harvests the plant.
+
+**Try it.** At a farm (Pelagia Farm outside Whiterun's gate, the farms by Rorikstead), hoe the soil between the
+crops: farmland, a little pit, `SkyCraft-farm: ... tilled Skyrim's soil` in the log. `/give @s
+minecraft:wheat_seeds 8`, plant, `/tick sprint 1d` (or wait): wheat. Point the hoe at a cabbage and right click: it's
+harvested, a beetroot in your inventory. Hoe stone or a road: nothing.
+
+### Tamriel Wilds villagers
+
+Switch `wilds_villagers`; logs `SkyCraft-wilds`. Every five seconds the villagers within 64 blocks of a player in Tamriel
+Wilds are named in Skyrim's way for their profession: "Hrodmar, Nord Blacksmith" (weaponsmith), "Ulfar, Nord Armorer",
+"Gaston Belmont, Breton Smith" (toolsmith), "Livia Mallius, Imperial Cartographer", "Dravis, Dark Elf Priest of
+Mara" (cleric), "Sigvard, Nord Tanner" (leatherworker), Scholar (librarian), Stonemason, Farmer, Fisherman, Fletcher,
+Butcher, Shepherd, Beggar (nitwit), Laborer (no job yet), Child. Race and name come from the villager's UUID, so they
+never change (half are Nords; then Imperials, Bretons, Redguards, Dark Elves, a few High and Wood Elves, Khajiit and
+Argonians); the title follows its job. A name a player gave with a name tag is left alone.
+
+They also sell Skyrim wares beside Minecraft's own trades, for emeralds:
+
+| Profession | Novice | Journeyman | Master |
+|---|---|---|---|
+| Armorer | Steel Helmet, 7 | Orcish Cuirass, 18 | Elven Cuirass, 28 |
+| Weaponsmith | Steel Sword, 7 | Orcish War Axe, 15 | Dwarven Sword, 24 |
+| Toolsmith | 3 Steel Ingots, 4 | 2 Orichalcum Ingots, 6 | 2 Refined Malachite, 12 |
+| Leatherworker | 4 Leather Strips, 2 | | |
+| Cleric | Potion of Minor Healing, 3 | Potion of Resist Fire, 6 | Potion of Ultimate Healing, 12 |
+
+The potions are what SkyCraft converts those Skyrim potions into (`skycraft-items.txt`). A villager that changes job
+starts its trades over, Skyrim's with the new one's. Villagers in the mirror, the Nether or Home are never touched.
+
+**Try it.** `/execute in skycraft:tamriel_wilds run locate structure #minecraft:village`, go there: the villagers' names
+show when you look at them; trade with an armorer or a cleric. `/summon minecraft:villager ~ ~ ~
+{VillagerData:{profession:"minecraft:weaponsmith",level:5}}` there: within five seconds a Skyrim name and three Skyrim
+trades. The same in the Nether: a plain villager.
+
+### Shrine blessings
+
+Switch `shrine_blessings` (Minecraft's half only: with it off Minecraft ignores Skyrim's blessing input). Logs
+`SkyCraft-blessing` in both halves. Once a second Skyrim looks at the player's active effects for a spell named
+"Blessing of ..." (the shrines of the Nine, Dawnguard's Auriel, any other shrine's); a new one, or one cast again,
+goes to Minecraft (`kInBlessing`) with the game hours it has left of its 8 and Skyrim's timescale, and Minecraft gives
+the effect for as long in real time: 8 hours x 3600 / timescale seconds, 24 minutes at the default 20. A blessing
+Minecraft missed (it wasn't running) is sent when it's back, with what's left of it.
+
+| Blessing | Minecraft effect |
+|---|---|
+| Akatosh | Haste |
+| Arkay | Health Boost |
+| Dibella | Luck |
+| Julianos | Haste |
+| Kynareth | Speed |
+| Mara | Regeneration |
+| Stendarr | Resistance |
+| Talos | Resistance |
+| Zenithar | Hero of the Village |
+| Auriel (Dawnguard) | Night Vision |
+| Any other "Blessing of ..." | Luck |
+
+All level I, ambient like a beacon's; the action bar says "Blessing of Talos: Resistance". A guest's own Skyrim blessing
+reaches the host's server (`SkyNet.Blessing`).
+
+**Try it.** Pray at the shrine of Talos below Whiterun's Gildergreen (activate it, G or a right click): Resistance for 24
+minutes, and both logs have a `SkyCraft-blessing` line. In Skyrim's console `set timescale to 10`, then pray at another
+shrine: twice as long. Pray at the same shrine again later: the effect starts over.
+
 ## Planned
 
 | Feature | Notes |
 |---|---|
-| Farming on Skyrim soil | May already work with dug dirt; needs a test first |
 | Artifacts | About 20 named Skyrim artifacts as unique Minecraft items with real enchantments |
 
 ## Protocol 13
@@ -477,6 +632,19 @@ plugin Skyrim's arrows go through blocks as before):
 | Addition | Direction | Used by |
 |---|---|---|
 | `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
+The world features (weather sync, Skyrim farming, shrine blessings) added these within 13, without a version bump. They
+fill the space the groundwork set aside (`SkyState.reservedWeather` 0x80, `McState.reservedWeather` 0xE4), so an older
+plugin sends zeros (no weather known, nothing aimed at, no request answered) and an older Minecraft never asks; an older
+plugin ignores the request and the input type, an older Minecraft the new fields:
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `SkyState.weather` (0x80, u8: `WeatherKind` 0 none or indoors, 1 clear, 2 cloudy, 3 rain, 4 snow, 5 thunderstorm), `weatherFlags` (0x81: `kWeatherRaining` 1, `kWeatherSnowing` 2, `kWeatherRefused` 4), `weatherAck` (0x84, u32: the last `McState.weatherSeq` Skyrim handled) | Skyrim to Minecraft | Weather sync: Skyrim's weather where its player is, what's falling now, and its answer to Minecraft's last request |
+| `McState.weatherSeq` (0xE4, u32), `weatherWant` (0xE8, u8 `WeatherKind`, 0 once answered) | Minecraft to Skyrim | Weather sync: Minecraft's weather was changed by someone (`/weather`, a mod); Skyrim handles each number once |
+| `FeatureBits` `kFeatWeatherSync` (bit 12 of `McState.features`) | Minecraft to Skyrim | Weather sync's switch: off, Skyrim refuses requests |
+| `SkyState.aim` (0x82, u8: `AimFlags` `kAimHarvest` 1) | Skyrim to Minecraft | Skyrim farming: the crosshair is on a plant Skyrim can harvest, so a hoe doesn't till under it |
+| `kInBlessing` (17) in the input ring, `BlessingKind` 1 Akatosh to 9 Zenithar, 10 Auriel, 11 other | Skyrim to Minecraft | Shrine blessings: code = the kind, a = game hours left x 1000, b = Skyrim's timescale x 1000 |
 
 ## Testing a build
 

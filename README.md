@@ -48,6 +48,15 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   gives Skyrim's death camera with your Minecraft body ragdolling.
 - **Skyrim's own animations:** chairs, crafting stations, beds, pull levers, horses and scripted
   scenes hand control to Skyrim until they finish.
+- **Weather:** Skyrim's clear skies, rain, snow and thunderstorms are Minecraft's, and snow slowly settles on
+  the tops of your blocks open to the sky (and melts in the sun). `/weather` in Minecraft changes Skyrim's sky to the
+  nearest weather its region has.
+- **Farming:** a hoe tills Skyrim's grass, dirt and mud into farmland for Minecraft's crops. Skyrim's own crops are
+  harvested with a right click (or G), hoe in hand too, and their produce becomes Minecraft food.
+- **Shrines:** a Skyrim shrine's blessing also gives a Minecraft effect for as long as it lasts (Talos resistance,
+  Kynareth speed, Mara regeneration, ...).
+- **Tamriel Wilds villages:** their villagers have Skyrim names by trade (a Nord blacksmith, an Imperial
+  cartographer) and sell Skyrim gear, ingots and potions.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
 
