@@ -1,3 +1,4 @@
+#include "CreatureKinds.h"
 #include "Game.h"
 
 // Minecraft's light-emitting blocks (torches, lava, glowstone, ...) as real Skyrim point lights,
@@ -295,6 +296,31 @@ namespace skycraft
 		{
 			const auto it = hazards.find(BlockKey(a_x, a_y, a_z));
 			return it != hazards.end() ? it->second : std::uint8_t(proto::kHazardNone);
+		}
+
+		int LightAt(const McVec& a_at, McVec& a_from)
+		{
+			const int x = int(std::floor(a_at.x)), y = int(std::floor(a_at.y)), z = int(std::floor(a_at.z));
+			int       best = 0;
+			// Minecraft's brightest light (15) reaches 14 blocks: the sections within that of the spot.
+			for (int sy = (y - 14) >> 4; sy <= (y + 14) >> 4; ++sy) {
+				for (int sz = (z - 14) >> 4; sz <= (z + 14) >> 4; ++sz) {
+					for (int sx = (x - 14) >> 4; sx <= (x + 14) >> 4; ++sx) {
+						const auto it = bySection.find(SectionKey(sx, sy, sz));
+						if (it == bySection.end()) {
+							continue;
+						}
+						for (const auto& e : it->second) {
+							const int light = CreatureKinds::LightFrom(e.level, e.x - x, e.y - y, e.z - z);
+							if (light > best) {
+								best = light;
+								a_from = { e.x + 0.5, e.y + 0.5, e.z + 0.5 };
+							}
+						}
+					}
+				}
+			}
+			return best;
 		}
 
 		bool IsOurs(const RE::NiLight* a_light)

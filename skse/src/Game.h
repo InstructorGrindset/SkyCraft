@@ -143,6 +143,10 @@ namespace skycraft
 		bool IsOurs(const RE::NiLight* a_light);
 		// What a Minecraft block does to whoever stands in it (proto::BlockHazard: lava, fire, magma).
 		std::uint8_t HazardAt(std::int32_t a_x, std::int32_t a_y, std::int32_t a_z);
+		// The strongest Minecraft block light reaching a spot (Minecraft coords), falling off a level a block as Minecraft's does,
+		// from the light-emitting blocks Minecraft sent (walls in between aren't counted); a_from: the block it comes from (its
+		// middle). 0 when none reaches it. Main thread (creatures_and_light).
+		int LightAt(const McVec& a_at, McVec& a_from);
 	}
 
 	namespace PathAvoid

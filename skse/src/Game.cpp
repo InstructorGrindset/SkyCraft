@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Breach.h"
+#include "Horses.h"
 #include "Loot.h"
 #include "Travel.h"
 #include "WorldState.h"
@@ -1196,6 +1197,7 @@ namespace skycraft
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
+			Horses::Describe(a_player, sky.horse, sky.horseInfo);  // the player's horse, for horses_carry_over
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

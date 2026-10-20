@@ -1,9 +1,11 @@
 #include "Breach.h"
 #include "CoSave.h"
 #include "Companion.h"
+#include "Creatures.h"
 #include "Dig.h"
 #include "Loot.h"
 #include "Game.h"
+#include "Horses.h"
 #include "Spawn.h"
 #include "Travel.h"
 
@@ -47,6 +49,8 @@ namespace
 			skycraft::Game::OnGameLoaded();
 			skycraft::Spawn::Reset();
 			skycraft::Companion::Reset();
+			skycraft::Horses::Reset();     // the horse carried over to and from Minecraft
+			skycraft::Creatures::Reset();
 			skycraft::Breach::Reset();
 			skycraft::Travel::Reset();  // portal network
 			break;
