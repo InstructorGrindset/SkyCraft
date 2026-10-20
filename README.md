@@ -220,12 +220,15 @@ For development:
 
 ## Credits
 
-SkyCraft is by chasmlol. Contributors:
+SkyCraft is by chasmlol. Contributors (the full credits are in [CREDITS.md](CREDITS.md)):
 
 - **Higor Machado** ([waTools-br](https://github.com/waTools-br)): playtesting, and the loot fixes from
   [waTools-br/SkyCraft](https://github.com/waTools-br/SkyCraft/tree/dev-higor): loot and gear drop state
   that was never cleared (memory kept growing), drops lifted out of blocks and onto Skyrim's ground,
   and coin and odds-and-ends drops for bandits, guards, mages and other people.
+
+Want to help? [CONTRIBUTING.md](CONTRIBUTING.md) says how to build each half, where to send pull
+requests, and how contributions are credited.
 
 ## License
 
