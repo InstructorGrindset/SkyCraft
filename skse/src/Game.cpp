@@ -1199,6 +1199,7 @@ namespace skycraft
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
 			Weather::Update(a_player, haveMc ? &mc : nullptr, sky);  // Skyrim's weather for Minecraft, Minecraft's /weather for Skyrim
 			sky.aim = Farming::Aim();  // a plant to harvest under the crosshair: a right click harvests it, a hoe doesn't till there
+			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

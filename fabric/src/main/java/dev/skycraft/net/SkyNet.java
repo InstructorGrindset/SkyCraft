@@ -104,6 +104,25 @@ public final class SkyNet {
 	}
 
 	/**
+	 * Client -> server: a guest's Skyrim player has a shrine's blessing (Shrine blessings, as proto::InputEvent kInBlessing):
+	 * the host's server gives the guest the Minecraft effect. {@code kind} is a Proto.BLESSING_*, the times as Skyrim sent them.
+	 */
+	public record Blessing(int kind, float hours, float timescale) implements CustomPacketPayload {
+		public static final Type<Blessing> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "blessing"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, Blessing> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, Blessing::kind,
+			ByteBufCodecs.FLOAT, Blessing::hours,
+			ByteBufCodecs.FLOAT, Blessing::timescale,
+			Blessing::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
 	 * Server -> client: where the host's world keeps each Skyrim world's blocks (SkySpace), as
 	 * {@code worlds[i]} has space {@code spaces[i]}. All of them on joining, then again whenever one is
 	 * added. A guest's client places its own Skyrim's worlds by it.
@@ -197,6 +216,11 @@ public final class SkyNet {
 			ServerPlayer player = context.player();
 			context.server().execute(() -> dev.skycraft.farming.SkyFarming.till(player, payload.world(), payload.pos(), payload.digAbove(),
 				payload.mainHand() ? net.minecraft.world.InteractionHand.MAIN_HAND : net.minecraft.world.InteractionHand.OFF_HAND));
+		});
+		PayloadTypeRegistry.serverboundPlay().register(Blessing.TYPE, Blessing.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(Blessing.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.blessings.SkyBlessings.give(player, payload.kind(), payload.hours(), payload.timescale()));
 		});
 		PayloadTypeRegistry.clientboundPlay().register(Died.TYPE, Died.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(Hurt.TYPE, (payload, context) -> {
