@@ -9,7 +9,9 @@ import java.util.Map;
 
 /**
  * On/off switches for the fork's features, from {@code config/skycraft-features.txt}. Every feature
- * is on unless its line says off. Read once per game launch; restart Minecraft after editing.
+ * is on unless its line says off. Read once per game launch; restart Minecraft after editing the file.
+ * The pause menu's SkyCraft settings screen switches them in game ({@link #set}): that rewrites the
+ * file's line and counts at once, except for the switches that {@link #needsRestart}.
  */
 public final class Features {
 	public enum Feature {
@@ -110,7 +112,10 @@ public final class Features {
 	private Features() {
 	}
 
-	/** Whether this feature is switched on. Any thread: the server asks, and so does the client (click_to_activate). */
+	/**
+	 * Whether this feature is switched on. Any thread: the server asks, and so does the client (click_to_activate).
+	 * A switch changed in game ({@link #set}) answers its new value from then on, unless it {@link #needsRestart}.
+	 */
 	public static boolean on(Feature feature) {
 		Map<Feature, Boolean> map = switches;
 		if (map == null) {
@@ -193,9 +198,148 @@ public final class Features {
 	private static String defaultText() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("# SkyCraft fork features. Set a line to off to switch that feature off, then restart Minecraft.\n");
+		sb.append("# Or switch them in game: SkyCraft settings, in the top left of the pause menu (O).\n");
 		for (Feature f : Feature.values()) {
 			sb.append("\n# ").append(f.about).append('\n').append(f.key).append(f.defaultOn ? " = on\n" : " = off\n");
 		}
 		return sb.toString();
+	}
+
+	// ---- Switching in game (the pause menu's SkyCraft settings screen) ------------------------------
+
+	/**
+	 * Switches read once, whose change waits for Minecraft's next start: SkyDimension keeps minecraft_view for
+	 * the whole game (every system asks it which world is Skyrim's, and changing that under a player standing in
+	 * the Nether isn't safe), and natural_spawns sets the spawn game rules as the world opens
+	 * (SkyCraft.configureServer). A feature that reads its switch only once (at start, or to register something)
+	 * belongs here, so the settings screen says so.
+	 */
+	private static final java.util.Set<Feature> AT_RESTART = java.util.EnumSet.of(Feature.MINECRAFT_VIEW, Feature.NATURAL_SPAWNS);
+
+	/** What skycraft-features.txt says since a change in game: {@link #on}'s switches plus changes waiting for a restart. */
+	private static volatile Map<Feature, Boolean> saved;
+
+	/** Whether a change to this switch only takes effect after Minecraft restarts ({@link #on} keeps the old value until then). */
+	public static boolean needsRestart(Feature feature) {
+		return AT_RESTART.contains(feature);
+	}
+
+	/** What skycraft-features.txt says for this feature: {@link #on}'s answer, or a change waiting for a restart. */
+	public static boolean saved(Feature feature) {
+		Map<Feature, Boolean> map = saved;
+		if (map == null) {
+			map = switches != null ? switches : load();
+		}
+		return map.getOrDefault(feature, feature.defaultOn);
+	}
+
+	/** Whether this switch was changed in game and the change waits for a restart. */
+	public static boolean waitsForRestart(Feature feature) {
+		return saved(feature) != on(feature);
+	}
+
+	/**
+	 * Switches a feature on or off in game (the SkyCraft settings screen) and saves it in skycraft-features.txt, keeping
+	 * the file's comments and every other line ({@link #rewrite}). {@link #on} answers the new value at once, unless the
+	 * switch {@link #needsRestart}. Render thread; {@link #on} may be asked from any thread meanwhile.
+	 */
+	public static synchronized void set(Feature feature, boolean value) {
+		Map<Feature, Boolean> live = switches != null ? switches : load();
+		saved = with(saved != null ? saved : live, feature, value);
+		switches = afterSet(live, feature, value);
+		java.nio.file.Path path = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve(FILE);
+		try {
+			String text = java.nio.file.Files.exists(path) ? java.nio.file.Files.readString(path) : DEFAULT_TEXT;
+			java.nio.file.Files.createDirectories(path.getParent());
+			java.nio.file.Files.writeString(path, rewrite(text, Map.of(feature, value)));
+		} catch (java.io.IOException e) {
+			SkyCraft.LOG.warn("SkyCraft: couldn't save {}: {}", path, e.toString());
+		}
+		SkyCraft.LOG.info("SkyCraft: feature {} switched {} in game{}", feature.key, value ? "on" : "off",
+			needsRestart(feature) ? ", from the next start" : "");
+	}
+
+	/** {@code live} once {@code feature} is set to {@code value} in game: changed at once, unless it waits for a restart. */
+	static Map<Feature, Boolean> afterSet(Map<Feature, Boolean> live, Feature feature, boolean value) {
+		return needsRestart(feature) ? live : with(live, feature, value);
+	}
+
+	private static Map<Feature, Boolean> with(Map<Feature, Boolean> map, Feature feature, boolean value) {
+		Map<Feature, Boolean> copy = new EnumMap<>(Feature.class);
+		copy.putAll(map);
+		copy.put(feature, value);
+		return copy;
+	}
+
+	/**
+	 * skycraft-features.txt's {@code text} with the switches in {@code values} set: each one's {@code key = on|off}
+	 * line gets the new value (every line, if the key is there twice), its spacing and trailing comment kept, and a
+	 * line already saying so (yes, true) stays as it is. Comments, blank lines, unknown keys and other switches are
+	 * kept as written, with the file's line endings. A switch without a line yet (a feature newer than the file) is
+	 * added at the end with its comment, as the defaults write it.
+	 */
+	public static String rewrite(String text, Map<Feature, Boolean> values) {
+		String newline = text.contains("\r\n") ? "\r\n" : "\n";
+		String[] lines = text.split("\\R", -1);
+		java.util.Set<Feature> written = java.util.EnumSet.noneOf(Feature.class);
+		StringBuilder out = new StringBuilder(text.length() + 64);
+		for (int i = 0; i < lines.length; i++) {
+			String line = lines[i];
+			Feature feature = lineFeature(line);
+			if (feature != null && values.containsKey(feature)) {
+				line = withValue(line, values.get(feature));
+				written.add(feature);
+			}
+			out.append(line);
+			if (i < lines.length - 1) {
+				out.append(newline);
+			}
+		}
+		for (Feature f : Feature.values()) {
+			if (values.containsKey(f) && !written.contains(f)) {
+				if (out.length() > 0 && out.charAt(out.length() - 1) != '\n') {
+					out.append(newline);
+				}
+				out.append(newline).append("# ").append(f.about).append(newline).append(f.key).append(values.get(f) ? " = on" : " = off").append(newline);
+			}
+		}
+		return out.toString();
+	}
+
+	/** The feature a {@code key = value} line of the file switches, or null (a comment, a blank or unknown line). */
+	private static Feature lineFeature(String line) {
+		int hash = line.indexOf('#');
+		String code = hash >= 0 ? line.substring(0, hash) : line;
+		int eq = code.indexOf('=');
+		if (eq < 0) {
+			return null;
+		}
+		String key = code.substring(0, eq).strip().toLowerCase(Locale.ROOT);
+		for (Feature f : Feature.values()) {
+			if (f.key.equals(key)) {
+				return f;
+			}
+		}
+		return null;
+	}
+
+	/** A switch's line saying {@code on}: its value word replaced, everything else (key, spacing, comment) kept. */
+	private static String withValue(String line, boolean on) {
+		int hash = line.indexOf('#');
+		String code = hash >= 0 ? line.substring(0, hash) : line;
+		String comment = hash >= 0 ? line.substring(hash) : "";
+		int eq = code.indexOf('=');
+		String value = code.substring(eq + 1);
+		String word = value.strip().toLowerCase(Locale.ROOT);
+		boolean says = on ? word.equals("on") || word.equals("true") || word.equals("yes") : word.equals("off") || word.equals("false") || word.equals("no");
+		if (says) {
+			return line;
+		}
+		String wanted = on ? "on" : "off";
+		if (word.isEmpty()) {
+			return code.substring(0, eq + 1).stripTrailing() + " " + wanted + (comment.isEmpty() ? "" : " " + comment);
+		}
+		int start = eq + 1 + (value.length() - value.stripLeading().length());
+		return code.substring(0, start) + wanted + code.substring(start + value.strip().length()) + comment;
 	}
 }

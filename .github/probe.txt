@@ -9,3 +9,17 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+# SkyCraft settings screen (client FeaturesScreen): the vanilla option screen it extends and the widgets it adds to its list.
+net.minecraft.client.gui.screens.options.OptionsSubScreen
+net.minecraft.client.gui.components.OptionsList
+net.minecraft.client.gui.components.StringWidget
+# Conversion messages (loot/SkyBridge): the Minecraft name of what a Skyrim item became.
+-c net.minecraft.world.item.ItemStack getHoverName
+# /skycraft report (report/SkyReport): the console check, and the chat path's click to copy.
+-c net.minecraft.commands.CommandSourceStack getEntity
+-c net.minecraft.network.chat.Style withClickEvent
+net.minecraft.network.chat.ClickEvent$CopyToClipboard
+net.minecraft.network.chat.ClickEvent$OpenFile
+# Guide book (guide/GuideBook), made as worlds/HomeCamp.journal makes Steve's journal.
+net.minecraft.world.item.component.WrittenBookContent
+net.minecraft.server.network.Filterable

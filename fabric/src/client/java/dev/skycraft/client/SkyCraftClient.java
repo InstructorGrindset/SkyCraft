@@ -12,6 +12,7 @@ public final class SkyCraftClient implements ClientModInitializer {
 		dev.skycraft.link.SkyLink.announceRunning();
 		DiscordPresence.start();
 		DestructionToggle.register();
+		FeaturesScreen.register(); // the pause menu's "SkyCraft settings", beside "Skyrim destruction"
 		MinecraftView.init(); // /skyview: to the Nether (or any other dimension) and back, for testing the Minecraft view
 		// Multiplayer without editing files: the host opens their world to LAN (O, Open to LAN) and
 		// e4mc gives them a link; friends type /join <link> in chat, and /leave to come back.
@@ -74,6 +75,10 @@ public final class SkyCraftClient implements ClientModInitializer {
 				dev.skycraft.link.SkyLink.pushEvent(dev.skycraft.link.Proto.EV_PLAYER_DIED, payload.attackerFormId(), 0, 0, 0, 0, 0);
 			}
 		});
+		// /skycraft report: the files are on this player's machine, so this client writes the zip and says where.
+		net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(dev.skycraft.report.SkyReport.Ask.TYPE, (payload, context) ->
+			dev.skycraft.report.SkyReport.writeInBackground(payload.crashReports(), result -> net.minecraft.client.Minecraft.getInstance().execute(() ->
+				net.minecraft.client.Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(dev.skycraft.report.SkyReport.message(result)))));
 		// Skyrim draws the real NPC; its Minecraft stand-in is only a hitbox.
 		EntityRendererRegistry.register(SkyCombat.SKYRIM_ACTOR, NoopRenderer::new);
 		// Players (client-side movement AND the integrated server's re-check of it) use the smooth

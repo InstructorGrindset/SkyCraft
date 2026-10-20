@@ -14,7 +14,8 @@ but it hasn't been compiled against Minecraft 26.3 or built for Skyrim yet.
 
 ## Feature map
 
-Every feature can be switched off in `skycraft-features.txt` (restart Minecraft after editing).
+Every feature can be switched off in `skycraft-features.txt` (restart Minecraft after editing), or in game with
+**SkyCraft settings** in the pause menu ([Settings screen](#settings-screen)).
 Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side under `skse/src/`.
 
 | Feature | Switch | What it does | Minecraft side | Skyrim side | Config | Log tag | Status |
@@ -40,6 +41,10 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| Settings screen | none | **SkyCraft settings**, beside **Skyrim destruction** in the top left of the pause menu (O), lists every switch of `skycraft-features.txt` under a header for its part of the game, each an On/Off button with its description as the tooltip, in vanilla's scrolling option list with Done at the bottom. A click saves the switch's line (comments and other lines kept) and counts at once; `minecraft_view` and `natural_spawns` are read once, so they say "(restart)" and take effect after Minecraft restarts. In a friend's world the switches show greyed out with a note: the host's file decides | `config/Features` (`set`, `rewrite`, `needsRestart`), `config/FeatureAreas`, client `FeaturesScreen` | none (`McState.features` carries a switched Skyrim bit the next frame) | `skycraft-features.txt` | `SkyCraft` | Written |
+| Conversion messages | `conversion_messages` | The action bar says what each item you loot in Skyrim became: "Steel Sword → Iron Sword", "Iron Ore ×3 → Raw Iron ×3", "Ruby → Gold Nugget ×3 + Diamond", or "Gold ×25 → stays in Skyrim" when the rules keep it ("(quest item)" for one). Pickups within a second of the first share its line, "Steel Sword → Iron Sword, +3 more", so taking everything from a chest is one line; a conversion takes the line from an item that stayed. Names are Minecraft's own (a renamed potion's name) | `loot/ConversionNotes` (the lines and their batching), `loot/SkyBridge` (`note`, `showNotes`) | none | none | `SkyCraft-loot` (each conversion, as before) | Written |
+| Bug reports | none | `/skycraft report` (any player, or the server console) packs what a tester should send into `skycraft-report-<date-time>.zip` in Minecraft's game folder: `logs/latest.log`, the three newest crash reports, every `config/skycraft-*.txt` and the Skyrim plugin's `SkyCraft.log` (Documents found the way SKSE finds it, Steam's or GOG's `SKSE` folder), with a `README.txt` of what's in it and what wasn't found, and nothing else. Chat gives the zip's path (click to copy it). A guest's own client writes theirs, of their own games. See [Bug reports](#bug-reports) | `report/` (ReportPlan, SkyReport), the `report_ask` packet's receiver in client `SkyCraftClient` | none (its log is read) | none | `SkyCraft-report` | Written |
+| Guide book | `guide_book` | The first time a player (host or guest) is in a world whose Skyrim is linked, a written book "SkyCraft" goes in their inventory (at their feet if it's full): a short page each on crouching as Skyrim's sneak, looting into Minecraft items, G and right click, merchants with an empty hand, portals bound with soul gems, the SkyCraft settings button and `/skycraft report`. It comes once: a data attachment on the player (`skycraft:guide_book`, kept on death) remembers it. With the switch off nothing is given or remembered | `guide/` (GuideBook, GuidePages) | none | none | `SkyCraft-guide` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -409,6 +414,89 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
+
+## Settings screen
+
+Press **O** for Minecraft's pause menu: **SkyCraft settings** is in its top left corner, right of **Skyrim
+destruction**. It opens a screen like Minecraft's own option screens (vanilla's option list, scrolling, **Done** at the
+bottom) with every switch of `skycraft-features.txt` as an On/Off button, under a header for its part of the game: loot
+and items, dungeons and the deep, merchants, food and potions, combat and stealth, skills, time and weather, worlds and
+portals, towns and building, creatures and companions, controls and messages, multiplayer, saves and performance
+(`config/FeatureAreas`; a switch none of them lists shows under **More**, and `FeatureAreasTest` fails until it's
+listed). Each button's tooltip is the switch's description from `Features.Feature.about` and its key in the file.
+
+**A click** (`Features.set`) saves the switch at once: only its `key = on|off` line changes, with its spacing and
+trailing comment; comments, blank lines, unknown lines, the other switches and the file's line endings stay as written,
+and a switch the file has no line for yet (a feature newer than the file) is added at the end with its comment
+(`Features.rewrite`, unit tested). `Features.on` answers the new value from then on, on the server (the integrated
+server reads the same switches) and the client alike, and a feature Skyrim runs part of gets its bit in
+`McState.features` the next frame. Two switches are read only once, so the screen marks them **(restart)** and a change
+shows as **(after restart)**: `minecraft_view` (`SkyDimension` keeps it for the whole game; every system asks it which
+world is Skyrim's, and changing that under a player in the Nether isn't safe) and `natural_spawns` (the spawn game rules
+are set as the world opens). `Features.on` keeps their launch value until Minecraft restarts. A feature that reads its
+switch only once belongs in `Features.AT_RESTART`, so the screen says so.
+
+**In a friend's world** the host's file decides for everyone (their integrated server asks their switches), so the
+screen shows your own switches greyed out, with a note at the top. A few things still follow your own file there (click
+to activate, and the Skyrim bits sent to your own Skyrim); change them from your own world. Editing the file by hand
+still works as before (restart Minecraft after).
+
+**Try it:**
+
+1. In your own world, O, **SkyCraft settings**: the notes, then the headers and switches; scroll to the end
+   (**Saves and performance**). Hover a button: its description.
+2. Click **Merchants**: "Merchants: Off". Done, then right click a vendor with an empty hand: no trade screen.
+   `latest.log` has `SkyCraft: feature merchants switched off in game`; `skycraft-features.txt` says
+   `merchants = off`, its comments as they were. Switch it on again: trading works without a restart.
+3. Click **Minecraft view**: "Minecraft view: Off (after restart)". `/skyview` still goes to the Nether until Minecraft
+   restarts; after the restart the button reads "Minecraft view: Off (restart)" and other dimensions act like the mirror.
+4. Join a friend's world (`/join`): the buttons are greyed out, and the note says their settings decide.
+
+## Conversion messages and the guide book
+
+**Conversion messages** (switch `conversion_messages`). Each Skyrim pickup item conversion handles gets a line on the
+action bar (`loot/ConversionNotes`, unit tested; `loot/SkyBridge` sends it once a tick when it changed): what it was,
+with its count, an arrow and what it became, by Minecraft's own names (a converted potion carries its Skyrim name), or
+"stays in Skyrim" when the rules keep it or name an item Minecraft doesn't have, "(quest item)" for a quest item. A line
+takes every pickup in the second after its first one and counts them ("Steel Sword → Iron Sword, +3 more"); a pickup
+that converted takes the line from one that stayed. Gear a dying actor wore (Gear drops) never shows. To try it: loot a
+weapon or an ore; take everything from a dungeon chest (one line with "+N more"); pick up coins ("Gold ×25 → stays in
+Skyrim"). Switched off, conversions happen as before without a line.
+
+**Guide book** (switch `guide_book`). Once a second the server looks for players who have never had the book while
+Skyrim is linked (`SkyLink.active`), so it comes after the join's starter kit, and gives it: the written book
+"SkyCraft" by SkyCraft (`guide/GuidePages`, eight pages, each checked to fit a book page), made as Steve's journal is
+(`HomeCamp.journal`). The `skycraft:guide_book` attachment (`guide/GuideBook.GIVEN`, saved with the player, kept on death)
+says it was given, so dying, losing it or rejoining never brings a second one. To try it: start a new SkyCraft world (or
+the dev client with another `SKYCRAFT_USERNAME`) with Skyrim running: the book is in the inventory within a second, and
+`latest.log` says `SkyCraft-guide: gave the SkyCraft guide book to <name>`. Die, or leave and come back: no second book.
+With the switch off nobody gets it, and switching it on gives it to whoever hasn't had it.
+
+## Bug reports
+
+Type **`/skycraft report`** in chat. "Writing a SkyCraft report..." and a moment later "SkyCraft report saved:
+C:\...\.minecraft\skycraft-report-2026-10-17_15-04-05.zip (click to copy). Send it with your bug report." The zip
+(`report/ReportPlan`, unit tested) holds only:
+
+| In the zip | From |
+|---|---|
+| `minecraft/logs/latest.log` | Minecraft's game folder (Prism's `instances/SkyCraft/.minecraft`) |
+| `minecraft/crash-reports/*.txt` | The three newest crash reports there, if any |
+| `minecraft/config/skycraft-*.txt` | Every SkyCraft config file (not `.old` copies, not `skycraft.properties`, which holds a friend's link) |
+| `skyrim/SkyCraft.log` | The plugin's log, where `skse/src/main.cpp` `SetupLog` writes it: SKSE's `log_directory`, `Documents/My Games/Skyrim Special Edition/SKSE` (`Skyrim Special Edition GOG` for the GOG game). Documents is asked of Windows (`SHGetKnownFolderPath`, as SKSE does, so a moved or OneDrive Documents is found), then `%USERPROFILE%\Documents` and the like; the newest log found wins |
+| `README.txt` | What's in the zip, when it was written, and notes: anything not found (no Skyrim log: where it should be) or unreadable |
+
+Nothing else goes in: no worlds, no options, no other mods' files, never a link to somewhere else. It's written as
+`.part` and renamed when done. The player who asks gets a report of their own machine: the server asks their client to
+write it (`SkyReport.Ask`), so a guest in a friend's world packs their own logs, in their own game folder. From the
+server console the server writes one of its own folders. `latest.log` gets a `SkyCraft-report` line with what went in.
+
+**Try it:**
+
+1. `/skycraft report`; click the path in chat and paste it into Explorer's address bar: the zip, with the files above.
+2. In the dev client (`gradlew runClient` in `fabric`) on a PC without Skyrim's log: chat says Skyrim's log wasn't
+   found, and `README.txt` in the zip says where it should be.
+3. As a guest in a friend's world: the zip is in your own `.minecraft`, with your logs; the host's folder gets none.
 
 ## Planned
 

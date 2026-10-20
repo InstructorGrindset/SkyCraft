@@ -50,6 +50,12 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   scenes hand control to Skyrim until they finish.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
+- **Looting:** food, potions, ores and salvaged gear you loot in Skyrim become Minecraft items, and the
+  action bar says what each became ("Steel Sword → Iron Sword", or "→ stays in Skyrim").
+- **Guide book:** the first time you play, a written book "SkyCraft" in your inventory tells you what
+  works differently.
+- **Settings:** **SkyCraft settings** in the top left of the pause menu (O) switches each of SkyCraft's
+  features on or off, most of them at once; it's saved in `config/skycraft-features.txt`.
 
 ## Requirements
 
@@ -149,12 +155,15 @@ Every other key is Minecraft's: **E** inventory, **F5** camera, **T** chat, **/*
 and trades with merchants (empty hand). When Minecraft has no use for a click (empty hand, a sword
 or pickaxe, nothing to place), it activates what Skyrim's crosshair is on, like **G**. Only a fresh
 click counts, so holding right click to draw a bow or block stays Minecraft's. Switch it off with
-`click_to_activate = off` in `config/skycraft-features.txt`.
+**Click to activate** in **SkyCraft settings** (pause menu), or `click_to_activate = off` in
+`config/skycraft-features.txt`.
 
 ## Known limitations
 
 - If something goes wrong, `Documents\My Games\Skyrim Special Edition\SKSE\SkyCraft.log` says what.
-  For bug reports, set `bDiagnostics = 1` in `SkyCraft.ini` for detailed logs.
+  For bug reports, type **`/skycraft report`** in chat: it packs Minecraft's log and crash reports, SkyCraft's
+  config files and that `SkyCraft.log` into one zip in Minecraft's folder and tells you where. Set
+  `bDiagnostics = 1` in `SkyCraft.ini` for detailed logs.
 - **Stuck on "SkyCraft: starting Minecraft..."?** After a minute SkyCraft says which of these it is:
   - Prism Launcher is still busy. Alt-Tab to it: it may be downloading, or need you to sign in,
     or show an error.

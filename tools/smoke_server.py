@@ -55,6 +55,8 @@ LATE_CHECKS = [
     ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma 30 1", "Applied"),
     ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:stealth 30 0", "Applied"),
     ("effect give @e[tag=skycraft_smoke,limit=1] skycraft:skooma_withdrawal 30 2", "Applied"),
+    # /skycraft report from the console packs the server's own files (report/SkyReport), its README noting no Skyrim log.
+    ("skycraft report", "Writing a SkyCraft report"),
 ]
 BAD_LOG = ("Mixin apply failed", "InvalidInjectionException", "InvalidMixinException", "MixinApplyError", "Exception in server tick loop",
            "This crash report", "Encountered an unexpected exception", "Caused by:")
