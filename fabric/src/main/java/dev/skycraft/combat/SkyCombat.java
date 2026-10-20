@@ -178,7 +178,7 @@ public final class SkyCombat {
 	 * Skyrim's NPCs press pressure plates and trip tripwires. Their stand-ins are placed, not moved
 	 * (no physics), so Minecraft never checks what they step into; do it for those blocks here.
 	 */
-	private static void stepOnTriggers(ServerLevel level, SkyrimActorEntity proxy) {
+	public static void stepOnTriggers(ServerLevel level, SkyrimActorEntity proxy) {
 		var box = proxy.getBoundingBox().deflate(1.0E-5);
 		var from = net.minecraft.core.BlockPos.containing(box.minX, box.minY, box.minZ);
 		var to = net.minecraft.core.BlockPos.containing(box.maxX, box.maxY, box.maxZ);
@@ -230,7 +230,11 @@ public final class SkyCombat {
 			return; // (Skyrim's player is parked while they're in another dimension: a late hit from before)
 		}
 		ServerLevel level = player.level();
-		SkyrimActorEntity attacker = PROXIES.get(attackerFormId);
+		// A guest's own Skyrim's attacker has a stand-in of the guest's (party.GuestParity); else the host's of that id, if near.
+		SkyrimActorEntity attacker = dev.skycraft.net.SkyNet.isHost(player) ? null : dev.skycraft.party.GuestParity.proxy(player, attackerFormId);
+		if (attacker == null) {
+			attacker = PROXIES.get(attackerFormId);
+		}
 		if (attacker != null && attacker.distanceToSqr(player) > 24.0 * 24.0) {
 			attacker = null; // a guest's own NPC with the same form id as one of the host's
 		}
@@ -274,14 +278,15 @@ public final class SkyCombat {
 	/**
 	 * Skyrim skills for taking a hit: Block when the shield caught it, otherwise Light or Heavy
 	 * Armor by what the player mostly wears (leather, chainmail, gold, copper and turtle count as
-	 * light; iron, diamond and netherite as heavy). Only the host's own Skyrim is told.
+	 * light; iron, diamond and netherite as heavy). The player's own Skyrim is told: the host's on the
+	 * link, a guest's through their client (guest parity).
 	 */
 	private static void trainDefence(ServerPlayer player, float damage, boolean blocked) {
-		if (!dev.skycraft.net.SkyNet.isHost(player) || damage <= 0.0F) {
+		if (damage <= 0.0F || !dev.skycraft.party.GuestParity.reachesSkyrim(player)) {
 			return;
 		}
 		if (blocked) {
-			SkyLink.pushEvent(Proto.EV_SKILL_USE, Proto.SKILL_BLOCK, damage, 0.0F, 0.0F, 0.0F, 0);
+			dev.skycraft.party.GuestParity.pushSkyrim(player, Proto.EV_SKILL_USE, Proto.SKILL_BLOCK, damage, 0.0F, 0.0F, 0.0F, 0);
 			return;
 		}
 		int light = 0, heavy = 0;
@@ -309,8 +314,8 @@ public final class SkyCombat {
 			}
 		}
 		if (light + heavy > 0) {
-			SkyLink.pushEvent(Proto.EV_SKILL_USE, heavy > light ? Proto.SKILL_HEAVY_ARMOR : Proto.SKILL_LIGHT_ARMOR, damage * (light + heavy) / 4.0F, 0.0F, 0.0F,
-				0.0F, 0);
+			dev.skycraft.party.GuestParity.pushSkyrim(player, Proto.EV_SKILL_USE, heavy > light ? Proto.SKILL_HEAVY_ARMOR : Proto.SKILL_LIGHT_ARMOR,
+				damage * (light + heavy) / 4.0F, 0.0F, 0.0F, 0.0F, 0);
 		}
 	}
 

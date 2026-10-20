@@ -31,6 +31,7 @@ public final class SkyCraftClient implements ClientModInitializer {
 			}));
 		});
 		ClientTickEvents.END_CLIENT_TICK.register(SkyClient::clientTick);
+		PartyClient.init(); // a guest's own Skyrim and the host's server (guest parity, shared world events)
 		// Multiplayer testing on one PC: SKYCRAFT_LAN_PORT opens the world to LAN on that port as soon
 		// as it's loaded, and SKYCRAFT_LAN_OFFLINE lets offline (dev) clients join it.
 		net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.JOIN.register((handler, sender, minecraft) -> {

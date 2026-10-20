@@ -52,7 +52,7 @@ public abstract class AbstractArrowMixin {
 	@WrapOperation(method = "onHitEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;setArrowCount(I)V"))
 	private void skycraft$stickInSkyrimActor(LivingEntity mob, int count, Operation<Void> original) {
 		original.call(mob, count);
-		if (!(mob instanceof SkyrimActorEntity actor) || this.skycraft$hitAt == null || !SkyLink.active()) {
+		if (!(mob instanceof SkyrimActorEntity actor) || this.skycraft$hitAt == null || actor.owner() == null && !SkyLink.active()) {
 			return;
 		}
 		AbstractArrow self = (AbstractArrow) (Object) this;
@@ -61,6 +61,10 @@ public abstract class AbstractArrowMixin {
 		float pitch = (float) (Mth.atan2(v.y, v.horizontalDistance()) * Mth.RAD_TO_DEG);
 		int texture = self instanceof SpectralArrow ? 2 : self instanceof Arrow tippable && tippable.getColor() > 0 ? 1 : 0;
 		Vec3 at = this.skycraft$hitAt;
+		if (actor.owner() != null) {
+			dev.skycraft.party.GuestParity.arrowStuck(actor, at, yaw, pitch, texture); // a guest's own Skyrim's actor: their Skyrim pins it
+			return;
+		}
 		SkyLink.pushEventAt(Proto.EV_ARROW_STUCK, actor.formId(), at.x, at.y, at.z, yaw, Float.floatToRawIntBits(pitch), texture);
 	}
 }

@@ -50,6 +50,14 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   scenes hand control to Skyrim until they finish.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
+  - Each friend fights the NPCs of their own Skyrim, and gets what you get from yours: kill drops,
+    gear drops and XP, their Skyrim loot turned into Minecraft items, dungeon chests, their own
+    merchants, taming, skill training, a bed's night and trips through your portals.
+  - Their Skyrim's arrows stick in Minecraft's blocks, as yours do.
+  - A dragon attacking someone, a dragon slain, you entering a dungeon or a shout are told to
+    everyone else: a title, a sound and a small shake of their camera.
+  - `/skyparty` shows who's who; `guest_parity` and `shared_world_events` in
+    `skycraft-features.txt` switch these off.
 
 ## Requirements
 
@@ -175,8 +183,8 @@ click counts, so holding right click to draw a bow or block stays Minecraft's. S
 - Sign text isn't drawn yet.
 - All Skyrim interiors share one Minecraft world, so blocks placed in one interior can appear in
   another at the same coordinates.
-- Multiplayer syncs only the Minecraft world. Each player has their own Skyrim, and guests
-  can't hit their own Skyrim NPCs yet.
+- Multiplayer syncs only the Minecraft world. Each player has their own Skyrim. Breach doors,
+  deep creatures, binding portals and the world's clock follow the host's Skyrim only.
 - Mods that also take over the camera (Improved Camera SE, SmoothCam, True Directional Movement)
   will conflict.
 

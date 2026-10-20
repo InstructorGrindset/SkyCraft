@@ -36,7 +36,8 @@ import org.jspecify.annotations.Nullable;
  * {@code config/skycraft-trades.txt} and {@code config/skycraft-towns.txt} (see {@link TradeRules}),
  * picked by the merchant's form id and priced for the town Skyrim reports and for recent trading
  * there (see {@link Demand}). Each trade can be made 8 times; a use comes back every two minutes.
- * Trading trains Skyrim's Speech skill for the host.
+ * Trading trains Skyrim's Speech skill in the trader's own Skyrim (a guest's too, with guest parity). A guest's own
+ * merchants (party.GuestParity gives them stand-ins) keep shops of their own, priced for the guest's town.
  */
 public final class SkyTrade implements Merchant {
 	private static final String TRADES_FILE = "skycraft-trades.txt";
@@ -46,7 +47,8 @@ public final class SkyTrade implements Merchant {
 	public static final int DECAY_TICKS = 2400;
 	private static final double MAX_DISTANCE_SQR = 8.0 * 8.0;
 
-	private static final Map<Integer, SkyTrade> BY_ACTOR = new HashMap<>();
+	/** Shops by merchant: "host" or the guest whose own Skyrim they're in (guest parity), then the form id. */
+	private static final Map<String, SkyTrade> BY_ACTOR = new HashMap<>();
 	private static final Demand DEMAND = new Demand();
 	private static final Set<String> WARNED = new HashSet<>();
 	private static TradeRules rules;
@@ -71,10 +73,12 @@ public final class SkyTrade implements Merchant {
 		if (!dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.MERCHANTS)) {
 			return;
 		}
+		// The merchant's town: where the host's Skyrim is, or for a guest's own merchant, theirs (party.GuestParity).
 		SkyLink.SkyState state = new SkyLink.SkyState();
-		String town = SkyLink.readSkyState(state) ? state.town.strip() : "";
+		String town = actor.owner() != null ? dev.skycraft.party.GuestParity.town(actor.owner()) : SkyLink.readSkyState(state) ? state.town.strip() : "";
 		String name = actor.getName().getString();
-		SkyTrade trade = BY_ACTOR.computeIfAbsent(actor.formId(), id -> new SkyTrade());
+		String key = (actor.owner() != null ? actor.owner().toString() : "host") + " " + actor.formId();
+		SkyTrade trade = BY_ACTOR.computeIfAbsent(key, id -> new SkyTrade());
 		Player other = trade.tradingPlayer;
 		if (other != null && other != player && trade.stillValid(other)) {
 			player.sendSystemMessage(Component.literal(name + " is busy with another customer."));
@@ -243,8 +247,9 @@ public final class SkyTrade implements Merchant {
 		String merchant = this.actor != null ? this.actor.getName().getString() : "?";
 		SkyCraft.LOG.info("SkyCraft-trade: {} {} {} x {} {} {} for {} coins", who, source.sell() ? "bought" : "sold", count, source.item(),
 			source.sell() ? "from" : "to", merchant, price);
-		if (this.tradingPlayer instanceof ServerPlayer player && dev.skycraft.net.SkyNet.isHost(player)) {
-			SkyLink.pushEvent(Proto.EV_SKILL_USE, Proto.SKILL_SPEECH, price * 2.0F, 0.0F, 0.0F, 0.0F, 0);
+		if (this.tradingPlayer instanceof ServerPlayer player) {
+			// Speech for the trader's own Skyrim: the host's on the link, a guest's through their client (guest parity).
+			dev.skycraft.party.GuestParity.pushSkyrim(player, Proto.EV_SKILL_USE, Proto.SKILL_SPEECH, price * 2.0F, 0.0F, 0.0F, 0.0F, 0);
 		}
 	}
 

@@ -106,14 +106,26 @@ public final class InputBridge {
 		});
 	}
 
-	/** A Skyrim arrow stopped at a Minecraft block: one of Minecraft's sticks in the block there (the integrated server's). */
+	/**
+	 * A Skyrim arrow stopped at a Minecraft block: one of Minecraft's sticks in the block there, on the integrated server, or
+	 * for a guest on the host's (SkyNet.ArrowBlocked).
+	 */
 	private static void arrowBlocked(Minecraft minecraft, int code, double x, double y, double z) {
 		var server = minecraft.getSingleplayerServer();
-		if (minecraft.player == null || server == null || MinecraftView.away()) {
-			return; // (a guest: Skyrim's arrow ends at the block all the same)
+		if (minecraft.player == null || MinecraftView.away()) {
+			return;
 		}
+		// Into the mirror's terms, as every position from this Skyrim (a guest's by its copy of the host's spaces; until
+		// the host has said where this world's blocks are, the arrow just ends at the block in Skyrim).
 		int world = SkyLink.skyrimWorld();
+		if (!SkySpace.known(world)) {
+			return;
+		}
 		Vec3 at = new Vec3(x + SkySpace.originX(world), y, z + SkySpace.originZ(world));
+		if (server == null) {
+			PartyClient.arrowBlocked(at, code); // a guest in a friend's world: the host's server sticks it
+			return;
+		}
 		double[] flight = Proto.arrowFlight(code);
 		Vec3 toward = new Vec3(flight[0], flight[1], flight[2]);
 		var uuid = minecraft.player.getUUID();

@@ -31,6 +31,8 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.portal.SkyPortals.init(); // portal network: soul gem items, tick, frame breaks
 		dev.skycraft.worlds.SkyWorlds.init();
 		dev.skycraft.skooma.SkySkooma.init(); // Skooma, Stealth and Skooma Withdrawal effects; the addiction
+		dev.skycraft.party.GuestParity.init(); // a guest's own Skyrim through this server: stand-ins, loot, skills
+		dev.skycraft.party.SharedWorldEvents.init(); // dragons, dungeons and shouts told to everyone; /skyparty
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

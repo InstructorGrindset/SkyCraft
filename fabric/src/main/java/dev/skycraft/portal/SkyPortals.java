@@ -169,6 +169,8 @@ public final class SkyPortals {
 	}
 
 	private static final Map<UUID, Seam> SEAMS = new HashMap<>();
+	/** Each guest's last portal trip (System.nanoTime), at most one each TRIP_GAP_NANOS (guest parity). */
+	private static final Map<UUID, Long> GUEST_TRIPS = new HashMap<>();
 
 	/** A place picked in the Seamstone's chest, applied on the next tick (SeamMenu). */
 	private record Choice(UUID player, String dimension, int world, Shape shape, Target target) {
@@ -808,7 +810,11 @@ public final class SkyPortals {
 			return;
 		}
 		if (!SkyNet.isHost(player)) {
-			player.sendOverlayMessage(Component.literal("The portal answers only to the host's Skyrim."));
+			if (dev.skycraft.party.GuestParity.reachesSkyrim(player) && dev.skycraft.party.GuestParity.skyrimWorld(player) != 0) {
+				guestReach(level, player, entry);
+			} else {
+				player.sendOverlayMessage(Component.literal("The portal answers only to the host's Skyrim."));
+			}
 			return;
 		}
 		long now = System.nanoTime();
@@ -848,6 +854,90 @@ public final class SkyPortals {
 			SEAMS.remove(player.getUUID());
 		}
 		goTo(server, level, player, from, target);
+	}
+
+	/**
+	 * A guest stood in a portal (guest parity): they go where the network has it lead, as far as their own Skyrim can
+	 * follow. Into another world, and from one to another, a Minecraft teleport: their own Minecraft view parks their
+	 * Skyrim. Back into the mirror, a teleport too, but only into the Skyrim world their Skyrim is parked in (it follows
+	 * them there). Between Skyrim places a short hop is a teleport, and a far trip asks their own Skyrim to move them there
+	 * (EV_PORTAL_TRAVEL through their client); their Minecraft follows it as after a load door. Binding portals, keys,
+	 * Seamstone and the Time-Wound stay the host's.
+	 */
+	private static void guestReach(ServerLevel level, ServerPlayer player, BlockPos entry) {
+		long now = System.nanoTime();
+		Long last = GUEST_TRIPS.get(player.getUUID());
+		if (last != null && now - last < TRIP_GAP_NANOS) {
+			return;
+		}
+		Shape shape = shapeAt(level, entry);
+		if (shape == null) {
+			return;
+		}
+		MinecraftServer server = level.getServer();
+		PortalStore s = store(server);
+		int world = dev.skycraft.party.GuestParity.skyrimWorld(player);
+		// A portal in the mirror belongs to the Skyrim world whose space it stands in (the guest's own word isn't needed).
+		Portal from = isMirror(level) ? recordOf(s, dev.skycraft.link.SkySpace.worldAt(shape.x(), shape.z()), shape) : recordIn(s, dimensionOf(level), shape);
+		Target target = from != null ? s.lead(from) : null;
+		if (target == null) {
+			player.sendOverlayMessage(Component.literal(isMirror(level) ? "This portal is not bound. The host's Skyrim binds portals." : "This crack leads nowhere."));
+			return;
+		}
+		String fromName = from != null ? where(from) : "an unlisted portal";
+		if (target instanceof Target.ToArrival(String dimension)) {
+			ServerLevel to = levelOf(server, dimension);
+			if (to == null || !SkyDimension.viewEnabled()) {
+				player.sendOverlayMessage(Component.literal("The crack won't open onto " + PortalKeys.worldName(dimension) + "."));
+				return;
+			}
+			Arrival a = arrivalOf(s, to, dimension);
+			PortalBuilder.pad(to, (int) Math.floor(a.x()), (int) Math.floor(a.y()), (int) Math.floor(a.z())); // only if it isn't safe already
+			GUEST_TRIPS.put(player.getUUID(), now);
+			guestTeleport(player, to, a.x(), a.y(), a.z(), a.yaw(), fromName, PortalKeys.worldName(dimension));
+			return;
+		}
+		Portal to = s.get(((Target.ToPortal) target).id());
+		ServerLevel toLevel = to != null ? levelOf(server, to.dimension()) : null;
+		if (to == null || toLevel == null || !Boolean.TRUE.equals(intact(toLevel, to, true))) {
+			player.sendOverlayMessage(Component.literal("The portal it led to has gone out."));
+			return; // (the host's next trip tidies the network)
+		}
+		double[] exit = to.exit();
+		GUEST_TRIPS.put(player.getUUID(), now);
+		if (!to.inMirror()) {
+			guestTeleport(player, toLevel, exit[0], exit[1], exit[2], (float) exit[3], fromName, placeName(to));
+			return;
+		}
+		if (!isMirror(player.level())) {
+			if (to.world() != world) {
+				player.sendOverlayMessage(Component.literal("Your Skyrim waits in another world than " + placeName(to) + ": the crack won't take you there."));
+				return;
+			}
+			guestTeleport(player, toLevel, exit[0], exit[1], exit[2], (float) exit[3], fromName, placeName(to)); // their Skyrim follows them back
+			return;
+		}
+		double dx = exit[0] - player.getX(), dy = exit[1] - player.getY(), dz = exit[2] - player.getZ();
+		if (to.world() == world && dx * dx + dy * dy + dz * dz < LOCAL_HOP * LOCAL_HOP) {
+			guestTeleport(player, toLevel, exit[0], exit[1], exit[2], (float) exit[3], fromName, placeName(to));
+			return;
+		}
+		int flags = to.interior() ? Proto.PORTAL_INTERIOR : 0;
+		// In to's world's terms; their Skyrim drops it if they're no longer in the world they were in.
+		dev.skycraft.party.GuestParity.pushSkyrim(player, Proto.EV_PORTAL_TRAVEL, to.world(), (float) dev.skycraft.link.SkySpace.local(exit[0]), (float) exit[1],
+			(float) dev.skycraft.link.SkySpace.local(exit[2]), (float) exit[3], flags, world);
+		player.setPortalCooldown();
+		player.connection.send(new ClientboundLevelEventPacket(LevelEvent.SOUND_PORTAL_TRAVEL, BlockPos.ZERO, 0, false));
+		player.sendOverlayMessage(Component.literal("The portal pulls you toward " + placeName(to) + "..."));
+		SkyCraft.LOG.info("SkyCraft-portal: guest {} steps through {} to {}: their Skyrim moves them", player.getName().getString(), fromName, where(to));
+	}
+
+	/** A guest's trip by Minecraft teleport (their own Skyrim parks or follows by itself). */
+	private static void guestTeleport(ServerPlayer player, ServerLevel to, double x, double y, double z, float yaw, String fromName, String name) {
+		player.teleportTo(to, x, y, z, Set.<Relative>of(), yaw, player.getXRot(), true);
+		player.setPortalCooldown();
+		player.connection.send(new ClientboundLevelEventPacket(LevelEvent.SOUND_PORTAL_TRAVEL, BlockPos.ZERO, 0, false));
+		SkyCraft.LOG.info("SkyCraft-portal: guest {} steps through {} to {} ({})", player.getName().getString(), fromName, name, to.dimension().identifier());
 	}
 
 	/** Takes the host from a portal in {@code level} to a target. */

@@ -72,8 +72,12 @@ public final class Features {
 		CREATURES_AND_LIGHT("creatures_and_light", "skeevers and Falmer keep away from torches, and Skyrim's undead burn in sunlight"),
 
 		// Multiplayer
-		GUEST_PARITY("guest_parity", "friends in your world get Skyrim drops, skill training and item conversion as you do"),
-		SHARED_WORLD_EVENTS("shared_world_events", "dragon attacks and big explosions in your Skyrim are felt by everyone in the world"),
+		GUEST_PARITY("guest_parity", "friends in your world get from their own Skyrim what you get from yours: their NPCs to fight (kill drops, gear drops, XP), "
+			+ "their loot converted, dungeon chests, their merchants, taming, skill training and portal trips, through your server, which holds them "
+			+ "to distances and rates (skycraft-party.txt); the host's and each guest's switch must both be on"),
+		SHARED_WORLD_EVENTS("shared_world_events", "a dragon attacking a player, a dragon slain, a player entering a dungeon and a shout are told to everyone "
+			+ "else in the Skyrim mirror: a title or action bar line, a sound and a small camera shake (cooldowns in skycraft-party.txt)", true,
+			dev.skycraft.link.Proto.FEATURE_SHARED_WORLD_EVENTS),
 
 		// Players and testers
 		CONVERSION_MESSAGES("conversion_messages", "a message says what each Skyrim item became"),

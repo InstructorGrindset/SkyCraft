@@ -9,3 +9,8 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+# Party (guest parity, shared world events): picking a stand-in, distances, the dragon sounds
+-c net.minecraft.world.entity.LivingEntity isPickable
+-c net.minecraft.world.entity.Entity isPickable
+-c net.minecraft.world.entity.Entity distanceToSqr
+-c net.minecraft.sounds.SoundEvents ENDER_DRAGON

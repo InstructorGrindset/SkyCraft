@@ -113,6 +113,112 @@ public final class SkyNet {
 		}
 	}
 
+	/**
+	 * Guest -> server: a guest's Skyrim arrow or bolt stopped at a Minecraft block (as proto::InputEvent kInArrowBlocked),
+	 * where it reached the block in the mirror's terms (the guest's client moved it into its Skyrim world's space) and its
+	 * flight (Proto.arrowFlight). The host's server sticks a Minecraft arrow there, as for the host's own.
+	 */
+	public record ArrowBlocked(float x, float y, float z, int code) implements CustomPacketPayload {
+		public static final Type<ArrowBlocked> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "arrow_blocked"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, ArrowBlocked> CODEC = StreamCodec.composite(
+			ByteBufCodecs.FLOAT, ArrowBlocked::x,
+			ByteBufCodecs.FLOAT, ArrowBlocked::y,
+			ByteBufCodecs.FLOAT, ArrowBlocked::z,
+			ByteBufCodecs.VAR_INT, ArrowBlocked::code,
+			ArrowBlocked::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Guest -> server (guest parity): the guest's own Skyrim's actor table near them and its place, packed by
+	 * party.PartyCodec. Up to ten a second; the host's server gives those actors stand-ins of the guest's own.
+	 */
+	public record GuestActors(List<Integer> data) implements CustomPacketPayload {
+		public static final Type<GuestActors> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "guest_actors"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, GuestActors> CODEC = StreamCodec.composite(
+			ByteBufCodecs.INT.apply(ByteBufCodecs.list(dev.skycraft.party.PartyCodec.MAX_ACTOR_INTS)), GuestActors::data,
+			GuestActors::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** Guest -> server (guest parity): items that landed in the guest's own Skyrim inventory (its item ring), packed by party.PartyCodec. */
+	public record GuestLoot(List<Integer> data) implements CustomPacketPayload {
+		public static final Type<GuestLoot> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "guest_loot"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, GuestLoot> CODEC = StreamCodec.composite(
+			ByteBufCodecs.INT.apply(ByteBufCodecs.list(dev.skycraft.party.PartyCodec.MAX_ITEM_INTS)), GuestLoot::data,
+			GuestLoot::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Server -> guest (guest parity): an event for the guest's own Skyrim, as the host's server would push it onto its own
+	 * link (proto::McEvent): {@code values} a, b, c, d (a place already in the guest's Skyrim world's terms),
+	 * {@code ints} flags, weapon. The guest's client passes on only the types party.GuestParity sends.
+	 */
+	public record GuestEvent(int kind, int formId, List<Float> values, List<Integer> ints) implements CustomPacketPayload {
+		public static final Type<GuestEvent> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "guest_event"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, GuestEvent> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, GuestEvent::kind,
+			ByteBufCodecs.INT, GuestEvent::formId,
+			ByteBufCodecs.FLOAT.apply(ByteBufCodecs.list(4)), GuestEvent::values,
+			ByteBufCodecs.INT.apply(ByteBufCodecs.list(2)), GuestEvent::ints,
+			GuestEvent::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Guest -> server (shared world events): a dragon fight in the guest's own Skyrim, {@code kind} 1 an attack, 2 a dragon
+	 * slain, {@code name} the dragon's (party.PartyCodec.name). The host's server tells the others.
+	 */
+	public record GuestDragon(int kind, List<Integer> name) implements CustomPacketPayload {
+		public static final Type<GuestDragon> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "guest_dragon"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, GuestDragon> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, GuestDragon::kind,
+			ByteBufCodecs.INT.apply(ByteBufCodecs.list(1 + dev.skycraft.party.PartyCodec.ACTOR_NAME_BYTES / 4)), GuestDragon::name,
+			GuestDragon::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/** Server -> client (shared world events): shake this player's Skyrim camera a little (proto kEvPartyShake). */
+	public record WorldEventShake(float strength, float seconds) implements CustomPacketPayload {
+		public static final Type<WorldEventShake> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "world_event_shake"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, WorldEventShake> CODEC = StreamCodec.composite(
+			ByteBufCodecs.FLOAT, WorldEventShake::strength,
+			ByteBufCodecs.FLOAT, WorldEventShake::seconds,
+			WorldEventShake::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
 	/** The host's world's spaces, for sending. */
 	public static Spaces spaces() {
 		var table = dev.skycraft.link.SkySpace.table();
@@ -178,6 +284,30 @@ public final class SkyNet {
 			// A hit's worth of damage, whatever the guest's client claims (friends only, but still).
 			float damage = Math.max(0.0F, Math.min(payload.skyrimDamage(), 10000.0F));
 			context.server().execute(() -> SkyCombat.hurtPlayer(player, payload.kind(), damage, payload.attackerFormId(), payload.flags()));
+		});
+		// Guests' Skyrims (party.GuestParity holds what they claim to distances and rates; party.SharedWorldEvents tells
+		// their dragon fights to the others).
+		PayloadTypeRegistry.serverboundPlay().register(ArrowBlocked.TYPE, ArrowBlocked.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(GuestActors.TYPE, GuestActors.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(GuestLoot.TYPE, GuestLoot.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(GuestDragon.TYPE, GuestDragon.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(GuestEvent.TYPE, GuestEvent.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(WorldEventShake.TYPE, WorldEventShake.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(ArrowBlocked.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.party.GuestParity.arrowBlocked(player, payload.x(), payload.y(), payload.z(), payload.code()));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(GuestActors.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.party.GuestParity.onActors(player, payload.data()));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(GuestLoot.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.party.GuestParity.onLoot(player, payload.data()));
+		});
+		ServerPlayNetworking.registerGlobalReceiver(GuestDragon.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.party.SharedWorldEvents.onGuestDragon(player, payload.kind(), payload.name()));
 		});
 	}
 
