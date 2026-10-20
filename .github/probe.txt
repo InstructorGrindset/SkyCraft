@@ -9,3 +9,29 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+# Creatures (mobs and NPCs fight, wolves, daylight, night monsters, horses)
+net.minecraft.world.entity.Mob
+-c net.minecraft.world.entity.Mob setTarget
+net.minecraft.world.entity.TamableAnimal
+net.minecraft.world.entity.OwnableEntity
+-c net.minecraft.world.entity.Entity igniteForSeconds
+-c net.minecraft.world.entity.Entity isInWater
+-c net.minecraft.world.entity.Entity removeTag
+-c net.minecraft.world.entity.Entity ejectPassengers
+net.minecraft.world.entity.ai.control.MoveControl
+net.minecraft.world.entity.ai.control.LookControl
+-c net.minecraft.world.entity.ai.navigation.PathNavigation isDone
+net.minecraft.tags.EntityTypeTags
+net.minecraft.world.entity.ai.attributes.Attributes
+net.minecraft.world.entity.ai.attributes.AttributeInstance
+net.minecraft.core.UUIDUtil
+-c net.minecraft.commands.CommandSourceStack withLevel
+-c net.minecraft.world.level.Level getEntity
+-c net.minecraft.world.level.Level isRainingAt
+-c net.minecraft.world.level.LevelReader canSeeSky
+-c net.minecraft.server.level.ServerLevel getEntity
+-c net.minecraft.world.entity.LivingEntity knockback
+-c net.minecraft.world.entity.ai.goal.MeleeAttackGoal canContinueToUse
+-c net.minecraft.world.entity.animal.horse.AbstractHorse addAdditionalSaveData
+list:net/minecraft/world/entity/animal/
+net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
