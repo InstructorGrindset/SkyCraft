@@ -46,3 +46,8 @@ net.minecraft.world.item.alchemy.PotionBrewing$Builder
 -c net.minecraft.core.component.DataComponents POTION_DURATION_SCALE
 -c net.minecraft.world.entity.player.Player giveExperienceLevels
 -c net.minecraft.sounds.SoundEvents PLAYER_LEVELUP
+# Combat and stealth: power attacks read the swing at Player.attack's head; the stand-in reads crouching and sprinting.
+-c net.minecraft.world.entity.player.Player attack
+-c net.minecraft.world.entity.player.Player getAttackStrengthScale
+-c net.minecraft.world.entity.Entity isSprinting
+-c net.minecraft.world.entity.Entity isCrouching

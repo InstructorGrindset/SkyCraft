@@ -33,10 +33,14 @@ public final class Features {
 		SKOOMA_ADDICTION("skooma_addiction", "Skooma can make a player addicted: withdrawal without it, cured after days clean; a comedown when a high wears off (skycraft-skooma.txt)"),
 
 		// Combat and stealth
-		WALLS_HIDE_YOU("walls_hide_you", "Skyrim NPCs can't see you through Minecraft blocks"),
-		SNEAK_ATTACKS("sneak_attacks", "a crouched hit on a Skyrim NPC that hasn't noticed you is a Skyrim sneak attack"),
-		POWER_ATTACKS("power_attacks", "a fully charged Minecraft hit on a Skyrim NPC is a Skyrim power attack: it staggers"),
-		LIGHT_STEALTH("light_stealth", "how lit you are in Minecraft (torches, dark tunnels) is how lit Skyrim's detection thinks you are"),
+		WALLS_HIDE_YOU("walls_hide_you", "Skyrim NPCs can't see you through solid Minecraft blocks (glass, leaves and fences count as solid); they can still hear you",
+			true, dev.skycraft.link.Proto.FEATURE_WALLS_HIDE_YOU),
+		SNEAK_ATTACKS("sneak_attacks", "a hit while crouching on a Skyrim NPC that hasn't detected you is a Skyrim sneak attack: Skyrim's multiplier and perks (Backstab, Deadly Aim, ...), its message and Sneak experience",
+			true, dev.skycraft.link.Proto.FEATURE_SNEAK_ATTACKS),
+		POWER_ATTACKS("power_attacks", "a fully charged sprint or critical hit on a Skyrim NPC is a Skyrim power attack: Skyrim's stagger; off: sprint hits and knockback stagger as before",
+			true, dev.skycraft.link.Proto.FEATURE_POWER_ATTACKS),
+		LIGHT_STEALTH("light_stealth", "how lit you are in Minecraft counts for Skyrim's detection: blocks over you shade you from Skyrim's sun and lamps (a dug tunnel is dark), torches light you up",
+			true, dev.skycraft.link.Proto.FEATURE_LIGHT_STEALTH),
 
 		// Skills and progression
 		SNEAK_SKILL("sneak_skill", "your Skyrim Sneak level makes Minecraft mobs notice you later while you crouch (skycraft-skills.txt)"),

@@ -1,5 +1,6 @@
 package dev.skycraft.combat;
 
+import dev.skycraft.config.Features;
 import dev.skycraft.link.Proto;
 import java.util.UUID;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -56,6 +57,13 @@ public class SkyrimActorEntity extends LivingEntity {
 	private double pushX, pushZ;
 	private float pushStrength;
 	private boolean hitThisTick;
+	// For Skyrim's sneak and power attacks (CombatRules.hitFlags): the swing a player began on us this tick (its attack
+	// strength and sprint, before Minecraft resets them), whether a player's own swing landed, and whether a player who
+	// landed a hit was crouching.
+	private float swingStrength;
+	private boolean swingSprinting;
+	private boolean meleeThisTick;
+	private boolean crouchedThisTick;
 
 	public SkyrimActorEntity(EntityType<? extends SkyrimActorEntity> type, Level level) {
 		super(type, level);
@@ -178,6 +186,12 @@ public class SkyrimActorEntity extends LivingEntity {
 		this.pendingDamage += dmg;
 		if (source.getEntity() instanceof Player player) {
 			this.lastPlayerHit = player.getUUID();
+			if (source.getDirectEntity() == player) {
+				this.meleeThisTick = true;
+			}
+			if (player.isCrouching()) {
+				this.crouchedThisTick = true;
+			}
 		}
 		if (source.getDirectEntity() instanceof Projectile) {
 			this.pendingFlags |= Proto.HIT_PROJECTILE;
@@ -206,6 +220,17 @@ public class SkyrimActorEntity extends LivingEntity {
 	/** Player.crit() was called on us this tick. */
 	public void markCritical() {
 		this.pendingFlags |= Proto.HIT_CRITICAL;
+	}
+
+	/**
+	 * A player began a melee attack on us (Player.attack, mixin.PlayerAttackMixin): how charged it was and whether they
+	 * sprinted, read before Minecraft resets them, for Skyrim's power attacks.
+	 */
+	public void noteSwing(float attackStrength, boolean sprinting) {
+		if (attackStrength >= this.swingStrength) {
+			this.swingStrength = attackStrength;
+			this.swingSprinting = sprinting;
+		}
 	}
 
 	/** Which kind of Skyrim weapon impact this hit should look and sound like. */
@@ -237,10 +262,17 @@ public class SkyrimActorEntity extends LivingEntity {
 
 	/** Returns this tick's hit (damage, flags, push, weapon) and clears it; null if nothing hit us. */
 	public float[] takeHit() {
+		int flags = this.pendingFlags | CombatRules.hitFlags(this.meleeThisTick, this.swingStrength, this.swingSprinting,
+			(this.pendingFlags & Proto.HIT_CRITICAL) != 0, this.crouchedThisTick, Features.on(Features.Feature.POWER_ATTACKS),
+			Features.on(Features.Feature.SNEAK_ATTACKS));
+		this.swingStrength = 0.0F; // a swing that didn't land counts for nothing later
+		this.swingSprinting = false;
+		this.meleeThisTick = false;
+		this.crouchedThisTick = false;
 		if (!this.hitThisTick) {
 			return null;
 		}
-		float[] hit = { this.pendingDamage, (float) this.pushX, (float) this.pushZ, this.pushStrength, Float.intBitsToFloat(this.pendingFlags),
+		float[] hit = { this.pendingDamage, (float) this.pushX, (float) this.pushZ, this.pushStrength, Float.intBitsToFloat(flags),
 			Float.intBitsToFloat(this.pendingWeapon) };
 		this.pendingDamage = 0.0F;
 		this.pendingFlags = 0;

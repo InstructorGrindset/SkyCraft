@@ -28,37 +28,6 @@ namespace skycraft
 		std::vector<Blocked> blocked;  // for Minecraft, sent on the main thread (PerFrame)
 		int                  logged = 0;
 
-		// The share of the way from a to b (MC coords) at which the first solid block on it is
-		// entered: 0 when a is in one already, nothing with no solid block on the way.
-		std::optional<double> FirstSolid(const McVec& a_from, const McVec& a_to)
-		{
-			const double p[3] = { a_from.x, a_from.y, a_from.z };
-			const double d[3] = { a_to.x - a_from.x, a_to.y - a_from.y, a_to.z - a_from.z };
-			int          cell[3], step[3];
-			double       next[3], every[3];
-			for (int i = 0; i < 3; ++i) {
-				cell[i] = static_cast<int>(std::floor(p[i]));
-				step[i] = d[i] > 0.0 ? 1 : d[i] < 0.0 ? -1 : 0;
-				if (step[i] == 0) {
-					next[i] = every[i] = DBL_MAX;
-					continue;
-				}
-				next[i] = ((step[i] > 0 ? cell[i] + 1.0 : double(cell[i])) - p[i]) / d[i];
-				every[i] = std::abs(1.0 / d[i]);
-			}
-			double t = 0.0;
-			for (int n = 0; n < kMaxCells && t <= 1.0; ++n) {
-				if (NpcBlocks::SolidAt(cell[0], cell[1], cell[2])) {
-					return t;
-				}
-				const int axis = next[0] < next[1] ? (next[0] < next[2] ? 0 : 2) : (next[1] < next[2] ? 1 : 2);
-				t = next[axis];
-				cell[axis] += step[axis];
-				next[axis] += every[axis];
-			}
-			return std::nullopt;
-		}
-
 		McVec Along(const McVec& a_from, const McVec& a_to, double a_t)
 		{
 			return { a_from.x + (a_to.x - a_from.x) * a_t, a_from.y + (a_to.y - a_from.y) * a_t, a_from.z + (a_to.z - a_from.z) * a_t };
@@ -99,7 +68,7 @@ namespace skycraft
 				const McVec from = SkyToMc(start);
 				const McVec to = SkyToMc(start + velocity * a_delta);
 				float       share = 1.0f;
-				if (const auto t = FirstSolid(from, to)) {
+				if (const auto t = NpcBlocks::FirstSolid(from, to, kMaxCells)) {
 					const double length = double(speed) * a_delta / proto::kUnitsPerBlock;  // blocks
 					const double gap = *t * length;
 					if (gap <= kAtFace) {
@@ -116,7 +85,7 @@ namespace skycraft
 					return;
 				}
 				const McVec went = SkyToMc(now);
-				if (const auto t = FirstSolid(from, went)) {
+				if (const auto t = NpcBlocks::FirstSolid(from, went, kMaxCells)) {
 					Stop(a_this, Along(from, went, *t), from, went);
 				}
 			}

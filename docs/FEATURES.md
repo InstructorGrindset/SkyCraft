@@ -51,6 +51,10 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Enchanting skill | `enchanting_skill` | The enchanting table counts a bookshelf more for the host for every 6 Enchanting above 15 (14 more at 100), 15 at most, so better offers with fewer shelves; a Filled Soul Gem goes in the lapis slot, one gem for each lapis (anyone's) | `skills/SkySkills`, `skills/SoulGemFuelSlot`, `mixin/EnchantingTableMixin`, `mixin/EnchantingCostMixin`, `mixin/EnchantingLapisSlotMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
 | Dragon souls | `dragon_souls` | Each dragon soul the host absorbs in Skyrim gives 5 Minecraft XP levels, a chat line and the level-up sound. The count last seen is kept on the player (per world), so reconnecting never pays twice, and a save loaded or a new game only records its count; souls spent on shouts aren't taken back | `skills/SkySkills` (attachment `skycraft:dragon_souls`), `skills/SkillRules` (`SoulLedger`) | `WorldState.cpp` (`Skills`: dragonSouls, skillsLoad; `SkillsReloaded` on every game loaded) | `skycraft-skills.txt` | `SkyCraft-skills` (both halves) | Written |
 | Alchemy brewing | `alchemy_brewing` | Potions the host takes out of a brewing stand last longer with Skyrim Alchemy: 0.5% a level above 15 (x1.425 at 100), counted when drunk, splashed or left as a cloud, and in the tooltip. An allium (what Purple Mountain Flower, Skyrim's Fortify Sneak flower, becomes) brews an awkward potion into a Potion of Stealth (3:00; redstone 8:00, glowstone Stealth II 1:30) | `skills/SkyAlchemy`, `mixin/BrewingTakeMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
+| Walls hide you | `walls_hide_you` | A Skyrim NPC can't see you through solid Minecraft blocks: when Skyrim's own line of sight says it sees you, the lines from its eyes to your head and to your chest are walked block by block, and with a block on both it doesn't. Detection, its combat and the stealth eye follow; it can still hear you. Every block with a collision shape counts (glass, leaves and fences too), but not the block the NPC's eyes or your head are in (a slab, a carpet). Each NPC's answer is kept six frames. While Minecraft drives the player. See [Combat and stealth](#combat-and-stealth) | `link/SkyLink` (eye and feet, features) | `Stealth.cpp` (every call of `Actor::CalculateLOS` hooked), `NpcBlocks.cpp` (`SolidBetween`), `BlockWalk.h` | none | `walls hide you` in SkyCraft.log | Written |
+| Sneak attacks | `sneak_attacks` | A hit while crouching on a Skyrim NPC that hasn't detected you (Skyrim's detection level for you is 0 or less) is a Skyrim sneak attack: Skyrim's base for the weapon it lands as (three times for swords, axes, maces, tools and tridents in hand; twice for arrows, thrown tridents and fists) times your perks through Skyrim's Mod Sneak Attack Mult perk entry point (Backstab, Assassin's Blade, Deadly Aim), "Sneak attack for 6.0x damage!" in the corner, and Sneak experience. An arrow counts by whether you crouch as it lands | `combat/SkyrimActorEntity` (crouching), `combat/CombatRules` | `Combat.cpp` (`SneakAttackMult`, `ApplyHit`), `Stealth.h` | none | `SkyCraft` (", crouching" on the hit line), `sneak attack` in SkyCraft.log | Written |
+| Power attacks | `power_attacks` | A fully charged melee hit (attack strength over 0.9, Minecraft's own threshold) that's a sprint hit or a critical hit is a Skyrim power attack: the hit carries Skyrim's power attack flag and at least the stagger of the vanilla weapon it lands as, so Skyrim's own stagger and hit reactions follow and its hit event says power attack. Damage stays Minecraft's. Off: sprint hits and knockback enchantments count as power attacks, as before | `mixin/PlayerAttackMixin` (the swing's charge and sprint), `combat/SkyrimActorEntity`, `combat/CombatRules` | `Combat.cpp` (`ApplyHit`) | none | `SkyCraft` (", power attack" on the hit line), `power attack` in SkyCraft.log | Written |
+| Light and stealth | `light_stealth` | How lit you are in Minecraft counts for Skyrim's detection. Skyrim's own light on you (its sun, the hour, the weather, its lamps) is shaded by Minecraft's blocks as far as they shut out Minecraft's sky, and Minecraft's torches, lava and glowstone light you up, whichever is brighter: a tunnel dug into the ground is dark, a torch beside you is about as bright as a Skyrim day. Where no Minecraft blocks are over you (outdoors, Skyrim's interiors) Skyrim's light stands | `client/SkyClient` (`publishEyeLight`: block and sky light at the eyes), `link/SkyLink` | `Stealth.cpp` (the player's light level each frame), `Stealth.h` (`PlayerLight`) | none | `light and stealth` in SkyCraft.log | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -608,6 +612,89 @@ SKYCRAFT_SOUL_EVERY=30` absorbs a soul every 30 seconds.
 Not built or played yet: everything above is Written (the rules are unit tested). The Minecraft calls the mixins rely on
 are listed in `.github/probe.txt` to check against 26.3.
 
+## Combat and stealth
+
+Skyrim's own combat and stealth take over where Minecraft's world reaches into them (switches `walls_hide_you`,
+`sneak_attacks`, `power_attacks`, `light_stealth`, all on by default; each has a Skyrim bit, `McState.features`, since
+Skyrim runs them). Minecraft's crouch is Skyrim's sneak (`Game.cpp` SyncSneak), so Skyrim's stealth eye shows how Skyrim's
+NPCs see you.
+
+**Walls hide you** (`Stealth.cpp`). Skyrim's line of sight, `Actor::CalculateLOS` (CommonLib wraps it, AE ID 37768; it
+says which of a target's eye, head, torso and feet an actor can see), is called directly, so every call of it in the game's
+code is redirected (the way `Game.cpp` hooks PlayerCamera::Update); SkyCraft.log says how many. When it says an NPC sees the
+player, the lines from the NPC's eye point (Skyrim's own, `CalculateLOSLocation`) to Minecraft's eye and to the chest
+(three quarters of the eye height up) are walked through the solid blocks Minecraft sends (`NpcBlocks::SolidBetween`, the
+walk in `BlockWalk.h` that Skyrim's arrows use too). A solid block on both lines hides the player from that NPC. The blocks
+the NPC's eyes and the player's head are in don't count, so a carpet or a slab you stand in hides nothing. Each NPC's answer
+is worked out again every six frames at most. What it doesn't cover: blocks are solid by their collision shape, so glass,
+leaves, fences and iron bars hide you too; sounds still give you away (Skyrim's detection hears through blocks); scripts
+and conditions that ask for a line of sight another way (`HasLOS`, `GetLineOfSight`) aren't changed; and a call of the
+function the game makes other than a plain `call` (none is expected) isn't hooked.
+
+**Sneak attacks** (`Combat.cpp`). A hit with Minecraft's "crouching" bit on an actor whose detection level for the player
+(Skyrim's `Actor::RequestDetectionLevel`, the detection its stealth eye shows; over 0 is detected) is 0 or less, checked
+before the hit lands. That level already takes in combat: an NPC fighting you that sees you has you detected, and as in
+Skyrim an NPC that lost you in a fight can be sneak attacked again. The multiplier starts at Skyrim's base for the vanilla
+weapon the hit lands as (Iron Sword for swords, Iron War Axe for axes, Iron Dagger for tridents and spears in hand, Iron
+Mace for maces and tools: one-handed, three times; a projectile lands as the Hunting Bow and fists count as hand to hand:
+twice) and goes through Skyrim's Mod Sneak Attack Mult perk entry point with that weapon and the NPC, so Backstab (six
+times), Assassin's Blade (tridents and spears land as a dagger: fifteen times) and Deadly Aim (arrows: three times) apply as
+in Skyrim; which argument is the weapon is read from Skyrim's own entry point table and logged once. The damage is
+Minecraft's times the multiplier; "Sneak attack for 6.0x damage!" shows in the corner, and Sneak trains by 30 skill uses for
+a melee sneak attack, 2.5 for a ranged one. Skyrim's own sneak attack handling of the hit stays off (its multiplier is in
+the damage already), so Skyrim's hit event doesn't call it a sneak attack.
+
+**Power attacks** (`Combat.cpp`, `mixin/PlayerAttackMixin`). Minecraft resets a swing's charge before the hit lands, so the
+charge and the sprint are read as `Player.attack` begins; at the end of the tick the stand-in sends "power attack" for a
+melee swing over 0.9 charged that was a sprint hit or a critical hit (Minecraft only crits a fully charged swing). Skyrim sets
+its power attack flag on the hit and gives it at least the stagger value of the weapon it lands as (the Iron Dagger a
+trident lands as has none, which leaves it SkyCraft's own sprint and critical stagger), and its hit processing does the
+rest. The damage stays Minecraft's, with its own 1.5 for a critical hit; Skyrim's power attack damage comes with its attack animations, which a
+Minecraft swing has none of. Arrows, thrown tridents and sweeps are never power attacks.
+
+**Light and stealth** (`Stealth.cpp`, `Stealth.h`). Every tick in the mirror Minecraft's client reads the block light and the
+sky light at its player's eyes (`McState` 0xDC). Every frame Skyrim puts in the player's light level (`HighProcessData::lightLevel`,
+the light Skyrim's detection and the `GetLightLevel` condition read) the brighter of
+
+- Skyrim's own light on the player, times Minecraft's brightness for its sky light there: all of it in the open, or anywhere
+  without Minecraft blocks overhead (outdoors, Skyrim's interiors and buildings, day or night: Skyrim's light already carries
+  its sun, the hour, the weather and its lamps), about four fifths one block in under an overhang, half under a deeper roof,
+  nothing sealed into a dug tunnel;
+- Minecraft's block light on Skyrim's scale: Minecraft's brightness curve times 100 (15 is about an exterior in daylight; a
+  torch's own block 78, two blocks off 50, four off 33, eight off 14).
+
+Skyrim keeps working out its own light; SkyCraft remembers it and replaces it each frame, and gives it back when the switch is
+off or Minecraft isn't driving the player. Minecraft's sky light is used only as cover, not with the time of day folded in:
+the mirror has no Minecraft blocks over Skyrim's interiors, so Minecraft's sky there would make every dungeon broad daylight.
+
+**Try it** (Skyrim console and Minecraft chat, cheats on):
+
+1. Walls: stand in the open twenty blocks from a guard or a bandit camp until they notice you (the stealth eye opens), then
+   build a wall of stone two blocks high between you and crouch behind it. The eye closes, SkyCraft.log says "walls hide
+   you: ... can't see the player through Minecraft blocks", and enemies lose you and search. Glass hides you too; a wall one
+   block high (they see your head over it) doesn't. `walls_hide_you = off`: they see through it.
+2. Sneak attacks: crouch up behind an NPC that hasn't noticed you (a sleeping or wandering bandit, the eye closed) and hit
+   it with a sword: "Sneak attack for 3.0x damage!", the log says `sneak attack 3.0x`, and Sneak goes up (`player.getav
+   sneak` before and after). With Backstab (`player.addperk 00058210`, Skyrim.esm's) it's 6.0x; add Assassin's Blade
+   (`player.addperk 00058211`) and a trident in hand makes it 15.0x. Crouch and shoot one with a bow: 2.0x (Deadly Aim,
+   `player.addperk 00105F19`: 3.0x). Hit one that's fighting you and sees you: no message, and the log says "no sneak attack
+   ... detection level". `sneak_attacks = off`: crouched hits are plain hits.
+3. Power attacks: wait for the attack indicator to fill, then sprint into an NPC and hit it (or jump and hit it on the way
+   down): it staggers like a Skyrim power attack, and both logs say "power attack". A half charged sprint hit doesn't.
+4. Light: at noon dig a tunnel five blocks into a hillside and seal the entrance. In the console `player.getlightlevel` (the
+   GetLightLevel condition) reads near 0 (Skyrim's own reading outside is the daylight figure); place a torch beside you:
+   about 78. SkyCraft.log's `light and stealth` lines show Skyrim's light, Minecraft's and the result. Bandits walking past
+   an unlit tunnel mouth no longer see you in it.
+
+Headless: `tools/fake_skyrim.py` prints the light Minecraft reads at its eyes and names the hit's flags ("power attack",
+"crouching").
+
+Not played yet: whether Skyrim's detection reads the line of sight and the light through these (CommonLib names both for
+what detection uses; the hooked call count and `player.getlightlevel` show they're reached), Skyrim's light scale (100 for
+Minecraft's brightest is a guess at a sunlit exterior), the Mod Sneak Attack Mult argument order (checked against Skyrim's
+own table at run time), the vanilla sneak attack bases and Sneak skill uses (from what vanilla Skyrim gives), and how often
+detection asks.
+
 ## Planned
 
 | Feature | Notes |
@@ -684,6 +771,15 @@ reads as no skills known, no bonus and no souls paid; an older Minecraft ignores
 | `SkyState.skills[kSkillCount]` (0x68, 18 bytes; `kSkillCount` 18, `kSkillFirst` 6) | Skyrim to Minecraft | Skills: the player's level in ActorValue `kSkillFirst + i`, One-Handed (6) to Enchanting (23): Skyrim's current value rounded and clamped to 0-255, 0 = unknown. Refreshed about once a second and at once after a game loads, never while loading |
 | `SkyState.dragonSouls` (0x7A, u16) | Skyrim to Minecraft | Dragon souls: the player's unspent Dragon Souls (ActorValue `kDragonSouls`) |
 | `SkyState.skillsLoad` (0x7C, u32) | Skyrim to Minecraft | Dragon souls: a new number each time a game is loaded or started (never 0 once written; it starts somewhere new each Skyrim run), so Minecraft pays only for a rise within the same game |
+
+Combat and stealth added these within 13, without a version bump (an older half ignores them: an older Minecraft never sets
+the bits and sends zeros, an older plugin ignores them):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatWallsHideYou` (bit 0), `kFeatSneakAttacks` (1), `kFeatPowerAttacks` (2), `kFeatLightStealth` (3) in `McState.features` | Minecraft to Skyrim | The four switches, which Skyrim runs |
+| `HitFlags` `kHitPowerAttack` (bit 4), `kHitCrouching` (bit 5) in `kEvHitActor`'s flags | Minecraft to Skyrim | Power attacks: a fully charged melee swing that was a sprint or critical hit. Sneak attacks: the player who landed it was crouching |
+| `McState.eyeBlockLight` (0xDC), `eyeSkyLight` (0xDD), `eyeLightFlags` (0xDE, `kEyeLightValid` bit 0), 5 bytes pad (was `reservedStealth`) | Minecraft to Skyrim | Light and stealth: block light and sky light (0-15) at the player's eyes, valid in the mirror with the switch on |
 
 ## Testing a build
 

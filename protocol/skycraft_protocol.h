@@ -229,9 +229,18 @@ namespace skycraft::proto
 
 		// Added within version 13, zeros from an older Minecraft.
 		std::uint32_t features;  // 0xD8: FeatureBits, the skycraft-features.txt switches Skyrim's side needs
+		// Light and stealth (light_stealth): Minecraft's light at its player's eyes, read once a tick in the mirror.
+		// Skyrim folds it into its own light for its detection (Stealth.h PlayerLight): Minecraft's blocks shade the
+		// player from Skyrim's sun, sky and lamps as far as they shut out Minecraft's sky, and Minecraft's lights
+		// (torches, lava, glowstone) light the player. Zeros from an older Minecraft: no kEyeLightValid, and Skyrim
+		// keeps its own light.
+		std::uint8_t eyeBlockLight;  // 0xDC: block light there, 0-15
+		std::uint8_t eyeSkyLight;    // 0xDD: sky light there, 0-15, as Minecraft's blocks let it in (15 under open sky, day
+		                             // or night: Skyrim's own light carries the hour and the weather; less under a roof; 0
+		                             // sealed in, as in a tunnel dug into the ground)
+		std::uint8_t eyeLightFlags;  // 0xDE: EyeLightFlags
+		std::uint8_t stealthPad[5];  // 0xDF
 		// Set aside for the features that fill them in:
-		// stealth and detection
-		std::uint8_t reservedStealth[8];  // 0xDC
 		// weather
 		std::uint8_t reservedWeather[8];  // 0xE4
 		// building
@@ -240,11 +249,29 @@ namespace skycraft::proto
 	};
 	static_assert(sizeof(McState) == 0x100);
 	static_assert(offsetof(McState, features) == 0xD8);  // Proto.MS_FEATURES
+	static_assert(offsetof(McState, eyeBlockLight) == 0xDC && offsetof(McState, eyeSkyLight) == 0xDD && offsetof(McState, eyeLightFlags) == 0xDE &&
+	              offsetof(McState, reservedWeather) == 0xE4);  // Proto.MS_EYE_*
+
+	// McState::eyeLightFlags (light_stealth).
+	enum EyeLightFlags : std::uint8_t
+	{
+		kEyeLightValid = 1u << 0,  // eyeBlockLight and eyeSkyLight are this tick's: the player is in the mirror, its level is
+		                           // loaded and light_stealth is on. Clear: Skyrim keeps its own light
+	};
 
 	// McState::features. Minecraft sets kFeaturesValid with the bits of every switched on feature whose Skyrim
 	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
 	enum FeatureBits : std::uint32_t
 	{
+		// Combat and stealth (Stealth.cpp, Combat.cpp).
+		kFeatWallsHideYou = 1u << 0,  // walls_hide_you: an NPC whose sight of the player (head and chest) is cut by solid
+		                              // Minecraft blocks can't see them (Skyrim's line of sight, Actor::CalculateLOS)
+		kFeatSneakAttacks = 1u << 1,  // sneak_attacks: a hit with kHitCrouching on an actor that hasn't detected the player is a
+		                              // Skyrim sneak attack (multiplier with its perks, message, Sneak experience)
+		kFeatPowerAttacks = 1u << 2,  // power_attacks: a hit with kHitPowerAttack is a Skyrim power attack (HitData kPowerAttack
+		                              // and the weapon's stagger); without it sprint hits and knockback count, as before
+		kFeatLightStealth = 1u << 3,  // light_stealth: Skyrim's light on the player for detection takes in McState's eye light
+
 		kFeaturesValid = 1u << 31,
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
@@ -474,6 +501,11 @@ namespace skycraft::proto
 		kHitProjectile = 1u << 1,
 		kHitSweep = 1u << 2,
 		kHitFire = 1u << 3,
+
+		// Combat (added within version 13: an older Minecraft never sets them, an older plugin ignores them).
+		kHitPowerAttack = 1u << 4,  // power_attacks: a fully charged melee hit (attack strength over 0.9, Minecraft's own
+		                            // "full") that was a sprint hit or a critical hit
+		kHitCrouching = 1u << 5,    // sneak_attacks: the player who landed it was crouching (Skyrim's sneak) as it landed
 	};
 
 	// What landed a kEvHitActor (Skyrim plays that weapon class's impact effect and sounds).

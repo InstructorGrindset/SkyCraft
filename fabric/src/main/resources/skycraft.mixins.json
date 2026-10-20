@@ -22,6 +22,7 @@
     "LivingEntityStealthMixin",
     "MinecraftServerFlightMixin",
     "NetherPortalBlockMixin",
+    "PlayerAttackMixin",
     "PlayerEdgeMixin",
     "PressurePlateMixin",
     "ProjectileMixin",

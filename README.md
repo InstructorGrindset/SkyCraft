@@ -38,6 +38,11 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   Damage is scaled to NPC level, and NPCs fight back.
   - NPCs collide with blocks and path around them, and their arrows and bolts stop at blocks
     (a Minecraft arrow sticks where one hits, and you can pick it up).
+  - Sneak attacks: crouch and hit an NPC that hasn't noticed you for Skyrim's sneak attack, with its
+    multiplier, perks (Backstab, Deadly Aim, Assassin's Blade), message and Sneak experience.
+  - Power attacks: a fully charged sprint or critical hit is a Skyrim power attack and staggers.
+  - Stealth: NPCs can't see you through solid blocks, a tunnel you dug is dark to them, and torches
+    light you up.
   - Lava and fire hurt NPCs, and NPCs press pressure plates.
 - **Skyrim progression:**
   - Your Skyrim skills level up from Minecraft play. Swords, maces and tools train
