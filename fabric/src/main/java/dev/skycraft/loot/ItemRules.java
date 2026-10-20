@@ -238,7 +238,7 @@ public final class ItemRules {
 	}
 
 	/**
-	 * Every default this file shipped with before, by hash (dev builds b91819f to dded01c): a config file still
+	 * Every default this file shipped with before, by hash (dev builds b91819f to 96760ed): a config file still
 	 * holding one of them untouched gets {@link #DEFAULT_TEXT} instead (config.Config.read). Add the hash of the
 	 * current default here ({@code Config.sha256(DEFAULT_TEXT)}) whenever you change it.
 	 */
@@ -252,7 +252,8 @@ public final class ItemRules {
 		"sha256:58ad79f0b836d9dbaa6a73e01f80728b09ef5cedb9699de289d4c39d2eef6625",
 		"sha256:04dca244c63b2906470fb972eebc8aef79af2f286530dd3877ef81ec1e0cdfd6",
 		"sha256:b5df8342f71997d853834f4d9d20e54bdc3d6f14338f015f71c839ca15cb889b",
-		"sha256:27ea3184c36639d40d80657d84f79dc84d90f2ff551a3ffe87dc1b076f4fb985");
+		"sha256:27ea3184c36639d40d80657d84f79dc84d90f2ff551a3ffe87dc1b076f4fb985",
+		"sha256:4670a25c478cf36f1e51fa323a4a741fb5ff985ba8218fe7d74dc8465f14e5e1");
 
 	/** Where the default rules live in the jar, beside this class: {@link #DEFAULT_TEXT}. */
 	static final String DEFAULT_RESOURCE = "skycraft-items.txt";

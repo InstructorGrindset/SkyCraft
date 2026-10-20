@@ -1,8 +1,10 @@
 # Skyrim to Minecraft conversions
 
-What the default rules in `skycraft-items.txt` (`ItemRules.DEFAULT_TEXT`) turn Skyrim items into. Every name below is a real name read from Skyrim.esm, Update.esm, the three DLCs, the Creation Club plugins and USSEP, with the tags the SKSE plugin gives it (its VendorItem keywords). Counts are Minecraft items per Skyrim item.
+What the default rules in `skycraft-items.txt` turn Skyrim items into. The defaults ship in the jar as `fabric/src/main/resources/dev/skycraft/loot/skycraft-items.txt` (`ItemRules.DEFAULT_TEXT`; several thousand rules no longer fit a Java string). Every name below is a real name read from Skyrim.esm, Update.esm, the three DLCs, the Creation Club plugins and USSEP, or one the reviewed conversion proposals confirmed, with the tags the SKSE plugin gives it (its VendorItem keywords). Counts are Minecraft items per Skyrim item.
 
-An existing `config/skycraft-items.txt` keeps its old rules: delete it (or merge by hand) to get these.
+A `config/skycraft-items.txt` you never edited gets the new defaults by itself when Minecraft starts (`ItemRules.OLD_DEFAULTS`, the old file kept as `skycraft-items.txt.old`); one you edited keeps its rules: delete it, or merge by hand, to get these.
+
+First match wins, so every rule has to be reachable: `ItemRulesTest.everyDefaultRuleCanBeReached` builds, for each rule, the item made of exactly its own conditions and fails when an earlier rule takes it.
 
 [Creature drops](#creature-drops) (`skycraft-loot.txt`) are at the end.
 
@@ -169,7 +171,7 @@ An existing `config/skycraft-items.txt` keeps its old rules: delete it (or merge
 
 ### Stays in Skyrim on purpose
 
-Gold, keys, books, spell tomes, scrolls, lockpicks, wine, ale, mead, milk (Jug of Milk), Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
+Gold, keys, books, spell tomes other than Flames and Healing, scrolls no rule names, lockpicks, wine, ale, mead, milk (Jug of Milk), Salmon Roe, Nirnroot and Crimson Nirnroot, soul gems other than the filled Greater, Grand and Black ones, Sheogorath-Shaped Amber, the Exquisite Sapphire, Ysgramor's Soup Spoon, Balbus' Fork, Michaela's Flagon, Wylandriah's Spoon, Mammoth Tusk Powder, and the Thieves Guild's Jeweled Goblet, Flagon, Pitcher and Candlestick. Quest items never convert in any case.
 
 ### Clothing (pending your call)
 
@@ -199,6 +201,321 @@ Also commented out. A gem in the name gives the gem plus gold nuggets; otherwise
 | Silver (Silver Ring) | 4 iron_nugget |
 | Copper (Copper and Onyx Circlet) | 4 copper_nugget |
 | Anything else (Saarthal Amulet, Amulet of Mara) | 3 iron_nugget |
+
+## More conversions: the reviewed proposals
+
+5,237 proposed conversions were written for real Skyrim items and checked against the mod's parser (every id a real Minecraft 26.3 or SkyCraft item, every rule catching its own item). The ones that passed are in the defaults, those with names confirmed in the source data first and then the rest, each in the section its items belong to: a more specific rule before a general one, and no rule that takes an item an earlier rule already gives the same to. Where a proposal would have changed an item that already converted, it was one marked as better. The tables group items that become the same thing.
+
+Gear of no smithing material converts only when looted or bought (`from looted from bought`), as the other gear rules do: gear you forge, temper or enchant yourself arrives as picked up (`world`) and stays in Skyrim, so Skyrim smithing and enchanting still work.
+
+### Books and scrolls
+
+<!-- gen:books -->
+| Item | Becomes | Why |
+|---|---|---|
+| Treasure Map I, Treasure Map II, Treasure Map III, Treasure Map IV, Treasure Map V, Treasure Map VI, Treasure Map VII, Treasure Map VIII, Treasure Map IX, Treasure Map X, Treasure Map XI | buried_treasure_map | A Skyrim treasure map is a sketch of where a chest is buried: Minecraft's buried treasure map is the same thing |
+| Spell Tome: Wall of Flames, Spell Tome: Healing Hands, Spell Tome: Fast Healing, Spell Tome: Grand Healing | stays in Skyrim | A spell worth learning: kept, so the Flames and Healing tome rules can't take it |
+| Spell Tome: Flames, Spell Tome: Healing | book | Every character starts knowing Flames, so this tome can't teach anything and only sells for a few coins: a plain book |
+| Scroll of Firebolt | splash_potion: Instant Damage I | A one-shot fire bolt becomes a thrown harming potion, the way Skyrim poisons become splash potions |
+| Scroll of Fireball | splash_potion: Instant Damage II | An exploding fireball: a thrown area harming potion, one level up from Firebolt |
+| Scroll of Fire Storm | lingering_potion: Instant Damage II | Master fire storm around the caster: a lingering harming cloud |
+| Scroll of Ice Spike | splash_potion: Instant Damage I, Slowness II 8 s | Frost damages and slows, like the Frostbite Venom rule |
+| Scroll of Ice Storm | lingering_potion: Instant Damage I, Slowness II 10 s | A rolling storm of frost: a lingering harm-and-slow cloud |
+| Scroll of Blizzard | lingering_potion: Instant Damage II, Slowness III 15 s | Master frost storm: a stronger lingering harm-and-slow cloud |
+| Scroll of Lightning Bolt | splash_potion: Instant Damage I, Weakness I 15 s | Shock damages and drains magicka |
+| Scroll of Chain Lightning | splash_potion: Instant Damage II, Weakness I 20 s | Lightning that leaps between targets: a thrown area harm with the shock drain |
+| Scroll of Fire Rune, Scroll of Frost Rune, Scroll of Lightning Rune | tnt | A rune is an explosive trap laid on the ground: Minecraft's placed explosive is TNT |
+| Scroll of Oakflesh | potion: Resistance I 60 s | Armor skin: this file maps armor buffs to Resistance |
+| Scroll of Stoneflesh | potion: Resistance I 120 s | Stronger armor skin than Oakflesh |
+| Scroll of Ironflesh | potion: Resistance II 60 s | Expert armor skin: Resistance II |
+| Scroll of Ebonyflesh | potion: Resistance II 120 s | Master armor skin: longer Resistance II |
+| Scroll of Dragonhide | potion: Resistance IV 30 s | Dragonhide absorbs 80% of physical damage for 30 s |
+| Scroll of Candlelight | potion: Night Vision I 60 s | A light that follows you for a minute: Night Vision, as this file does for Night Eye |
+| Scroll of Magelight | 4 torch | A ball of light that sticks where it lands: torches you place |
+| Scroll of Waterbreathing | potion: Water Breathing I 60 s, Conduit Power I 60 s | Same effects as this file's Waterbreathing potions, for the spell's 60 seconds |
+| Scroll of Paralyze | splash_potion: Slowness V 10 s, Mining Fatigue III 10 s | Same effects as the Paralysis poison rule, for the spell's 10 seconds |
+| Scroll of Mass Paralysis | lingering_potion: Slowness V 15 s, Mining Fatigue III 15 s | Area paralysis: the Paralyze effects as a lingering cloud |
+| Scroll of Courage | potion: Health Boost I 60 s, Strength I 60 s | Courage fortifies health and stamina and stops fleeing |
+| Scroll of Rally | potion: Health Boost II 60 s, Strength I 60 s | A stronger Courage |
+| Scroll of Call to Arms | splash_potion: Health Boost II 120 s, Strength II 120 s | Master Courage for everyone nearby: a splash potion so it reaches your allies |
+| Scroll of Calm | splash_potion: Weakness II 30 s | A calmed foe stops fighting: Weakness takes its bite away |
+| Scroll of Pacify | splash_potion: Weakness III 60 s | A stronger Calm |
+| Scroll of Harmony | lingering_potion: Weakness III 60 s | Master Calm over an area: a lingering cloud |
+| Scroll of Fear | splash_potion: Darkness I 30 s, Weakness I 30 s | Same effects as the Fear poison rule |
+| Scroll of Rout | splash_potion: Darkness I 60 s, Weakness II 60 s | A stronger Fear |
+| Scroll of Hysteria | lingering_potion: Darkness I 60 s, Weakness II 60 s | Master Fear cloak around the caster: a lingering cloud |
+| Scroll of Fury | splash_potion: Nausea I 30 s | Same effect as the Frenzy poison rule |
+| Scroll of Frenzy | splash_potion: Nausea I 60 s | A stronger Fury, as the Frenzy poison rule |
+| Scroll of Mayhem | lingering_potion: Nausea I 60 s | Master Frenzy over an area: a lingering cloud |
+| Scroll of Muffle | potion: Invisibility I 60 s | Same effect as this file's Muffle potions |
+| Scroll of Invisibility | potion: Invisibility I 30 s | The spell's 30 seconds of invisibility |
+| Scroll of Fast Healing | potion: Instant Health II | A big instant self-heal |
+| Scroll of Heal Other, Scroll of Turn Undead, Scroll of Repel Undead | splash_potion: Instant Health II | Healing for someone else: thrown |
+| Scroll of Grand Healing, Scroll of Turn Greater Undead | splash_potion: Instant Health III | Heals you and everyone near you: a strong splash heal |
+| Scroll of Turn Lesser Undead, Scroll of Repel Lesser Undead | splash_potion: Instant Health I | Instant Health hurts Minecraft's undead, so turning the undead is a thrown healing potion |
+| Scroll of Circle of Protection | lingering_potion: Instant Health I | A circle the undead can't cross: a lingering healing cloud that burns them (name is cut to 'Protect' at 27 bytes) |
+| Scroll of Guardian Circle | lingering_potion: Instant Health II, Regeneration II 20 s | Master circle that repels the undead and heals whoever stands in it |
+| Scroll of Bane of the Undead | lingering_potion: Instant Health II | Master area spell that burns and turns the undead: a lingering cloud of Instant Health |
+<!-- /gen:books -->
+
+### Food
+
+<!-- gen:food -->
+| Item | Becomes | Why |
+|---|---|---|
+| Apple Cabbage Stew, Hot Apple Cabbage Stew, Cabbage Soup, Hot Cabbage Soup, Tomato Soup, Hot Tomato Soup, Vegetable Soup, Hot Vegetable Soup, Roasted Tomato Crab Bisque, Hot Roasted Tomato Crab Bisque | beetroot_soup | A cabbage-and-apple vegetable stew |
+| Clam Chowder, Hot Clam Chowder, Potato Crab Chowder, Hot Potato Crab Chowder, Creamy Crab Bisque, Hot Creamy Crab Bisque, Elsweyr Fondue, Hot Elsweyr Fondue | mushroom_stew | Creamy soup of clams, potato, milk and butter |
+| Potage le Magnifique | rabbit_stew | The Gourmet's famous soup, Skyrim's finest dish |
+| Horse Haunch, Venison Chop, Horker Loaf, Cooked Nix-Hound Meat | cooked_beef | raw Horse Meat is beef in the defaults, so the haunch is cooked beef |
+| Rabbit Haunch | cooked_rabbit | Roast rabbit is Minecraft's cooked rabbit |
+| Leg of Goat Roast | cooked_mutton | Raw Leg of Goat is mutton in the defaults, so its roast is cooked mutton, not the roast rule's cooked beef |
+| Pheasant Roast, Chicken Dumpling | cooked_chicken | Roast game bird |
+| Mammoth Steak | 2 cooked_beef | A mammoth-sized steak cooked from a Mammoth Snout, which already gives 2 beef raw |
+| Grilled Leeks | 2 beetroot | Leek is beetroot in the defaults |
+| Cooked Arctic Char, Cooked Arctic Grayling | cooked_salmon | Raw Arctic Char is salmon in the defaults, so cooked char is cooked salmon, not cooked cod |
+| Steamed Mudcrab Legs, Crab Cakes | cooked_cod | Raw Mudcrab Legs are cod in the defaults, so steamed legs are cooked cod |
+| Raw Rabbit Leg | rabbit | it is raw rabbit |
+| Boar Meat | porkchop | Boar is pig: Cooked Boar Meat is already cooked porkchop in the defaults, so the raw meat is a porkchop rather than the meat rule's beef |
+| Clam Meat, Crab Meat | cod | seafood is cod in the defaults, like Mudcrab Legs |
+| Potato Bread | bread | The potato rule comes first and turns this loaf into a raw potato |
+| Jazbay Crostata, Juniper Berry Crostata, Snowberry Crostata, Apple Dumpling | pumpkin_pie | A crostata is a fruit tart: Minecraft's pie, like Apple Pie in the defaults |
+| Long Taffy Treat, Boiled Creme Treat | 2 cookie | A small candy |
+| Eidar Cheese Wheel, Goat Cheese Wheel, Mammoth Cheese Bowl | cake | A whole round wheel you set down and cut slices from: Minecraft's cake (7 slices, 14 hunger, near the wheel's 15 Health) |
+| Gourd | pumpkin | Skyrim's squash is Minecraft's pumpkin (bake it into pumpkin pie) |
+| Sack of Flour | 3 wheat | Milled wheat for Hearthfire baking |
+| Poisoned Red Apple, Poisoned Green Apple | poisonous_potato | An assassin's apple laced with chokeberry |
+<!-- /gen:food -->
+
+### Ingredients
+
+<!-- gen:ingredients -->
+| Item | Becomes | Why |
+|---|---|---|
+| Bee, Dreugh Wax | honeycomb | a bee caught by a hive |
+| Butterfly Wing, Luna Moth Wing, Blue Dartwing, Orange Dartwing, Ancestor Moth Wing | phantom_membrane | a monarch butterfly's wing: the thin wing membrane |
+| Chicken's Egg, Hawk's Egg | egg | a bird's egg from a hawk nest: an egg |
+| Pine Thrush Egg | blue_egg | a small pale blue songbird egg: the blue (cold) egg |
+| Rock Warbler Egg | brown_egg | a small speckled brown songbird egg: the brown (warm) egg |
+| Spider Egg, Watcher's Eye | spider_eye | a frostbite spider part |
+| Chaurus Eggs, Slaughterfish Egg, Elytra Ichor, Sload Soap | slime_ball | a gooey clutch of insect eggs from a chaurus egg sac: a slimeball |
+| Canis Root, Trama Root | hanging_roots | a tangle of thin pale roots: hanging roots |
+| Taproot | carrot | a thick spriggan taproot |
+| Garlic | beetroot | a bulb vegetable |
+| Elves Ear | orange_tulip | the orange, ear-shaped blossom of the Reach: an orange flower |
+| Frost Mirriam | azure_bluet | a pale, frosty little herb from the tundra: the pale azure bluet |
+| Thistle Branch, Coda Flower | allium | a thistle's round purple flower head: the allium looks just like it |
+| Nordic Barnacle | sea_pickle | a small shelled sea creature clinging to rocks: the sea pickle |
+| Briar Heart | creaking_heart | the thorny heart that animates a Briarheart: Minecraft's creaking heart animates a wooden creature |
+| Charred Skeever Hide | rabbit_hide | a scrap of rat-sized hide: rabbit hide (a quarter of leather) |
+| Hawk Beak | bone |  |
+| Human Flesh, Human Heart, Hunger Tongue, Imp Gall | rotten_flesh | a necromancer's heart: flesh |
+| Dwarven Oil | 2 redstone |  |
+| Small Pearl | prismarine_crystals | a lustrous gem from the sea: prismarine crystals |
+| Pearl | 2 prismarine_crystals | a larger sea pearl: two prismarine crystals |
+| Emperor Parasol Moss | moss_carpet | moss growing on Telvanni parasol mushrooms: moss |
+| Scathecraw | dead_bush | a dry, spiky Ashlands weed: the dead bush |
+| Spawn Ash | gunpowder | grey ash left by an ash spawn |
+| Chaurus Hunter Antennae | string | long thin insect feelers: string |
+| Gleamblossom | open_eyeblossom | a pale flower that glows in the Forgotten Vale's dark: the open eyeblossom glows at night |
+| Poison Bloom | crimson_fungus | a red, poison-spitting fungal bloom from Darkfall: the red crimson fungus |
+| Soul Husk | soul_sand | the dried husk of a Soul Cairn plant, full of trapped souls: soul sand |
+| Alocasia Fruit | glow_berries | a Shivering Isles fruit whose effects include Light: glow berries |
+| Ambrosia | honey_bottle | food of the gods that heals and cures poison: honey heals hunger and cures poison in Minecraft |
+| Aster Bloom Core | oxeye_daisy | the heart of an aster, a daisy-like flower: the oxeye daisy |
+| Bittergreen Petals | lily_of_the_valley | pale petals of a bitter, poisonous Morrowind plant: the white, poisonous lily of the valley |
+| Bog Beacon | shroomlight | a tall swamp mushroom that glows like a beacon: shroomlight, the glowing fungus |
+| Bungler's Bane, Hypha Facia, Rot Scale | shelf_mushroom | a bracket fungus that grows on Bitter Coast trees: the shelf mushroom |
+| Chokeberry | 2 sweet_berries |  |
+| Corkbulb Root | potato | a bulbous, cork-skinned root: the potato |
+| Daedra Venin | fermented_spider_eye | Daedric venom: the fermented spider eye, Minecraft's brewing base for harmful potions |
+| Fire Petal | red_tulip | red petals of the fire fern: a red flower |
+| Flame Stalk | torchflower | a flame-shaped flower on a stalk: the torchflower |
+| Fungus Stalk | brown_mushroom | a mushroom stalk: a mushroom |
+| Gnarl Bark | pale_oak_wood | bark of a Gnarl, a living tree creature: wood of the pale oak, where Minecraft's living tree creature (the creaking) lives |
+| Gold Kanet | sunflower | a tall, golden-yellow flower: the sunflower |
+| Hackle-Lo Leaf | fern | a green leaf from the Grazelands: a fern |
+| Heart of Order | 2 amethyst_shard | the crystalline heart of a Knight of Order: amethyst shards |
+| Hydnum Azure Giant Spore, Steel-Blue Entoloma | warped_fungus | the spore of an azure giant mushroom: the blue warped fungus, which grows into a giant fungus |
+| Lichor | experience_bottle | a magical liquor whose effects are all Magicka: a bottle of enchanting |
+| Marshmerrow | sugar_cane | a tall, sweet-pulped marsh reed: sugar cane |
+| Ogre's Teeth | 2 bone | big ogre teeth (weight 3) are two bones, like Minotaur Horn and Bear Claws |
+| Red Kelp Gas Bladder | kelp | the float of a red kelp: kelp |
+| Roobrush | bush | a scrubby brush plant: the bush |
+| Saltrice | wheat | a grain crop: wheat |
+| Scalon Fin | armadillo_scute | a scaled fin of the reptilian Scalon: a scute |
+| Scrib Jerky | cooked_beef | dried, cured meat: jerky is cooked meat |
+| Stoneflower Petals | pink_petals | loose purple-pink flower petals: pink petals |
+| Void Essence | ender_pearl |  |
+| Wisp Stalk Caps | 2 brown_mushroom | a few mushroom caps: mushrooms |
+| Withering Moon | closed_eyeblossom | a pale, moon-shaped Shivering Isles flower: the pale, night-bound eyeblossom |
+| Bloodgrass | crimson_roots | red grass of the Deadlands: crimson roots, the red grass of the Nether |
+| Harrada | weeping_vines | a lashing red Deadlands vine: the red Nether weeping vines |
+| Spiddal Stick | 2 stick | a dry, thorny stem: sticks |
+| Bliss Bug Thorax | glowstone_dust |  |
+| Screaming Maw | pitcher_plant | a carnivorous plant with a gaping maw: the pitcher plant |
+| Juvenile Mudcrab | turtle_scute |  |
+| Angler Larvae | cod |  |
+<!-- /gen:ingredients -->
+
+### Hides
+
+<!-- gen:hides -->
+| Item | Becomes | Why |
+|---|---|---|
+| Bear Pelt, Cave Bear Pelt, Snow Bear Pelt | 3 leather | A whole bear hide is the biggest pelt in Skyrim (worth 100 gold) |
+| Sabre Cat Pelt, Snowy Sabre Cat Pelt, Vale Sabre Cat Hide, Cow Hide, Horse Hide | 2 leather | A big cat hide, between a wolf and a bear |
+<!-- /gen:hides -->
+
+### Ores, ingots and smithing materials
+
+<!-- gen:metals -->
+| Item | Becomes | Why |
+|---|---|---|
+| Silver Ore, Quicksilver Ore | raw_iron | Minecraft has no silver |
+| Silver Ingot, Quicksilver Ingot | iron_ingot | A silver ingot is a whole ingot of the nearest Minecraft metal, iron |
+| Madness Ore | gilded_blackstone | Shivering Isles ore, a dark brown stone marbled with glowing gold veins: gilded blackstone looks just like it (two ores smelt to one Madness Ingot) |
+| Madness Ingot | ebony_ingot |  |
+| Heart Stone | redstone_block + 2 magma_cream | Glowing red chunk of the Heart of Lorkhan from Red Mountain: a block of redstone for its raw power (rubies are redstone |
+| Dragon Bone | 2 bone_block | A huge dragon bone (15 lb, 500 gold, smithing material for Dragonbone gear) is a pile of bone: two bone blocks (6 bones' worth) |
+| Dragon Scales | 2 turtle_scute | Scales are scutes |
+<!-- /gen:metals -->
+
+### Arrows and conjured weapons
+
+<!-- gen:arrows -->
+| Item | Becomes | Why |
+|---|---|---|
+| Bound Bow, Bound Arrow | stays in Skyrim | Conjured by the Bound Bow spell and gone when it ends |
+| Daedric Arrow, Dragonbone Arrow, Amber Arrow, Madness Arrow, Bone Arrow | tipped_arrow of harming | Skyrim's second-strongest arrow (24 damage): the hardest-hitting Minecraft arrow |
+| Stalhrim Arrow | tipped_arrow: Slowness I 8 s | Deathly cold Stalhrim tip: the hit chills and slows |
+| Fire Arrow | tipped_arrow: Instant Damage I | Bursts into flame on impact: an instant-damage arrow, named Fire Arrow |
+| Ice Arrow | tipped_arrow: Instant Damage I, Slowness II 8 s | Frost burst on impact: damage and a strong slow |
+| Lightning Arrow | tipped_arrow: Instant Damage I, Weakness I 10 s | Shock burst on impact: damage, and shock drains (Weakness, as the poison rules map magicka loss) |
+| Telekinesis Arrow | tipped_arrow: Levitation I 3 s | Arrows that hang in the air by telekinesis: the hit lifts the target |
+| Soul Stealer Arrow | tipped_arrow: Wither I 4 s, Glowing I 10 s | Rips out the target's soul: withering, and the soul shows through walls |
+| Sunhallowed Elven Arrow | spectral_arrow | Auriel's sunlit arrow: Minecraft's glowing arrow |
+| Bloodcursed Elven Arrow | tipped_arrow: Darkness I 8 s, Wither I 3 s | The vampire's cursed arrow that blots out the sun: darkness and decay |
+| Riekling Spear | stone_spear | The Rieklings' crude throwing spear (Skyrim ammo): Minecraft's stone spear |
+| Exploding Steel Bolt of Fire | tipped_arrow: Instant Damage I "Exploding Steel Bolt of Fire" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+| Exploding Steel Bolt of Ice | tipped_arrow: Instant Damage I, Slowness II 6 s "Exploding Steel Bolt of Ice" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+| Exploding Steel Bolt of Shock | tipped_arrow: Instant Damage I, Weakness I 10 s "Exploding Steel Bolt of Shock" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+| Exploding Dwarven Bolt of Fire | tipped_arrow: Instant Damage I "Exploding Dwarven Bolt of Fire" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+| Exploding Dwarven Bolt of Ice | tipped_arrow: Instant Damage I, Slowness II 8 s "Exploding Dwarven Bolt of Ice" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+| Exploding Dwarven Bolt of Shock | tipped_arrow: Instant Damage I, Weakness I 12 s "Exploding Dwarven Bolt of Shock" | Crossbow bolt that bursts on impact: Minecraft crossbows shoot tipped arrows |
+<!-- /gen:arrows -->
+
+### Armor sets without a smithing material
+
+Looted or bought (never when made or picked up). Stalhrim, Nordic Carved, Amber, Madness, Dark Seducer and Golden Saint armor have smithing materials, so they're in the next table, bought and looted like their weapons.
+
+<!-- gen:sets -->
+| Item | Becomes | Why |
+|---|---|---|
+| Whiterun Guard's Armor, Solitude Guard's Armor, Markarth Guard's Armor, Riften Guard's Armor, Falkreath Guard's Armor, Pale Guard's Armor, Hjaalmarch Guard's Armor, Winterhold Guard's Armor, Stormcloak Cuirass, Scaled Armor, Penitus Oculatus Armor, Dawnguard Armor | chainmail_chestplate | Whiterun guards' light mail-and-leather cuirass under the hold's tabard: chainmail |
+| Whiterun Guard's Helmet, Solitude Guard's Helmet, Markarth Guard's Helmet, Falkreath Guard's Helmet, Pale Guard's Helmet, Hjaalmarch Guard's Helmet, Stormcloak Helmet, Scaled Helmet, Penitus Oculatus Helmet, Dawnguard Helmet | chainmail_helmet | Whiterun guards' face-covering light helmet: chainmail helmet like the cuirass |
+| Whiterun Guard's Shield, Solitude Guard's Shield, Markarth Guard's Shield, Falkreath Guard's Shield, Pale Guard's Shield, Hjaalmarch Guard's Shield, Imperial Dragon Shield, Storm-Bear Shield, Stalhrim Shield, Blades Shield, Dawnguard Shield, Bonemold Shield, Chitin Shield, Nordic Shield, Amber Shield, Dark Seducer Shield, Golden Saint Shield, Madness Shield, Netch Leather Shield, Ordinator Shield | shield | Whiterun guards' heraldic shield |
+| Stormcloak Officer Armor | iron_chestplate | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Helmet | iron_helmet | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Boots | iron_boots | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Bracers | iron_leggings | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Imperial Dragon Armor, Storm-Bear Armor, Wolf Armor, Blades Armor, Dawnguard Heavy Armor, Bonemold Armor, Vigil Enforcer Armor | SkyCraft steel_cuirass | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
+| Imperial Dragon Helmet, Storm-Bear Helmet, Wolf Helmet, Blades Helmet, Dawnguard Full Helmet, Bonemold Helmet, Vigil Enforcer Helmet | SkyCraft steel_helmet | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
+| Imperial Dragon Boots, Storm-Bear Boots, Wolf Boots, Blades Boots, Dawnguard Heavy Boots, Bonemold Boots, Vigil Enforcer Boots | SkyCraft steel_boots | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
+| Imperial Dragon Gauntlets, Storm-Bear Gauntlets, Wolf Gauntlets, Blades Gauntlets, Dawnguard Heavy Gauntlets, Bonemold Gauntlets, Vigil Enforcer Gauntlets | SkyCraft steel_greaves | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
+| Fur Boots, Forsworn Boots, Boots of the Old Gods, Guild Master's Boots, Thieves Guild Boots, Linwe's Boots, Shrouded Boots, Morag Tong Boots, Blackguard's Boots, Netch Leather Boots | leather_boots | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
+| Fur Gauntlets, Forsworn Gauntlets, Gauntlets of the Old Gods, Guild Master's Gloves, Thieves Guild Gloves, Linwe's Gloves, Shrouded Gloves, Vampire Gauntlets, Blackguard's Gloves, Netch Leather Bracers, Painted Netch Leather Bracers | leather_leggings | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
+| Scaled Boots, Penitus Oculatus Boots, Dawnguard Boots | chainmail_boots | Scale-mail light armor (ArmorMaterialScaled, not a SkyCraft material): chainmail piece |
+| Scaled Bracers, Dawnguard Gauntlets | chainmail_leggings | Scale-mail light armor (ArmorMaterialScaled, not a SkyCraft material): chainmail piece |
+| Forsworn Armor, Armor of the Old Gods, Guild Master's Armor, Thieves Guild Armor, Linwe's Armor, Shrouded Armor, Vampire Armor, Morag Tong Armor, Blackguard's Armor, Netch Leather Armor | leather_chestplate | Forsworn hide-and-bone light armor (the headdress misses the piece rules): leather piece |
+| Forsworn Headdress, Guild Master's Hood, Thieves Guild Hood, Linwe's Hood, Shrouded Cowl, Morag Tong Hood, Blackguard's Hood, Netch Leather Helmet, Painted Netch Leather Helmet | leather_helmet | Forsworn hide-and-bone light armor (the headdress misses the piece rules): leather piece |
+| Falmer Helmet, Chitin Helmet | turtle_helmet | Chaurus-chitin Falmer helmet (chitin is turtle scute here): turtle helmet instead of 2 scutes |
+| Falmer Heavy Armor | SkyCraft ebony_cuirass | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
+| Falmer Heavy Helm | SkyCraft ebony_helmet | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
+| Falmer Heavy Boots | SkyCraft ebony_boots | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
+| Falmer Heavy Gauntlets | SkyCraft ebony_greaves | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
+| Falmer Hardened Armor | SkyCraft orcish_cuirass | Hardened chaurus-chitin heavy armor (Advanced Armors tier, like steel plate): SkyCraft orcish piece |
+| Falmer Hardened Helm | SkyCraft orcish_helmet | Hardened chaurus-chitin heavy armor (Advanced Armors tier, like steel plate): SkyCraft orcish piece |
+| Falmer Hardened Boots | SkyCraft orcish_boots | Hardened chaurus-chitin heavy armor (Advanced Armors tier, like steel plate): SkyCraft orcish piece |
+| Falmer Hardened Gauntlets | SkyCraft orcish_greaves | Hardened chaurus-chitin heavy armor (Advanced Armors tier, like steel plate): SkyCraft orcish piece |
+| Ancient Falmer Cuirass | SkyCraft glass_cuirass | Snow Elf light armor, statistically identical to glass: SkyCraft glass piece |
+| Ancient Falmer Boots | SkyCraft glass_boots | Snow Elf light armor, statistically identical to glass: SkyCraft glass piece |
+| Ancient Falmer Gauntlets | SkyCraft glass_greaves | Snow Elf light armor, statistically identical to glass: SkyCraft glass piece |
+| Chitin Armor, Indoril Armor, Her Hand Armor | SkyCraft elven_cuirass | Chitin armor needs Elven Smithing: SkyCraft elven cuirass |
+| Chitin Boots, Indoril Boots, Her Hand Boots | SkyCraft elven_boots | Chitin boots (Elven Smithing): SkyCraft elven boots |
+| Chitin Bracers, Chitin Heavy Gauntlets, Indoril Gauntlets, Her Hand Gauntlets | SkyCraft elven_greaves | Light chitin bracers (Elven Smithing): SkyCraft elven greaves |
+| Indoril Helmet, Her Hand Helmet | SkyCraft elven_helmet | Ordinator chitin-and-gold heavy armor: SkyCraft elven piece, like other chitin armor |
+<!-- /gen:sets -->
+
+### Bought and looted gear of other materials
+
+Bought, it's the gear of the nearest tier; looted, it salvages into what it's made of.
+
+<!-- gen:bought -->
+| Item | Becomes | Why |
+|---|---|---|
+| Ebony Scimitar, Stalhrim Sword | SkyCraft ebony_sword | Bought (also catches the line's dagger |
+| Wooden Sword | wooden_sword | A child's practice sword (2 damage, improved with firewood): Minecraft's wooden sword |
+| Nordic War Axe, Nordic Mace, Nordic Battleaxe, Nordic Warhammer, Forsworn Axe, Falmer War Axe, Skyforge Steel War Axe, Skyforge Steel Battleaxe, Dawnguard War Axe, Dawnguard Warhammer | SkyCraft orcish_war_axe | Bought: Nordic carved steel (no SkyCraft material) is a cut above steel: orcish, like the gear drops |
+| Nordic Sword, Falmer Sword, Skyforge Steel Sword, Skyforge Steel Dagger, Skyforge Steel Greatsword, Blades Sword, Scimitar | SkyCraft orcish_sword | Bought (also catches the line's dagger |
+| Nordic Dagger, Forsworn Sword | steel_ingot | Looted Nordic gear salvages like other looted gear (one material per weapon) |
+| Stalhrim War Axe, Stalhrim Mace, Stalhrim Battleaxe, Stalhrim Warhammer | SkyCraft ebony_war_axe | Bought: Stalhrim (no SkyCraft material) matches ebony, like the gear drops |
+| Stalhrim Dagger | blue_ice | Looted Stalhrim gear salvages like other looted gear (one material per weapon) |
+| Amber War Axe, Amber Mace, Amber Battleaxe, Amber Warhammer, Madness Warhammer, Dragonbone War Axe, Dragonbone Mace, Dragonbone Battleaxe, Dragonbone Warhammer | SkyCraft daedric_war_axe | Bought: Amber weapons (Amber Sword 15 damage) are top tier: daedric |
+| Amber Sword, Madness Sword, Dragonbone Sword, Dragonbone Dagger, Dragonbone Greatsword | SkyCraft daedric_sword | Bought (also catches the line's dagger |
+| Amber Dagger | 2 resin_brick | Looted Amber gear salvages like other looted gear (one material per weapon) |
+| Dark War Axe, Dark Mace, Dark Battleaxe, Dark Warhammer | SkyCraft glass_war_axe | Bought: Dark Seducer weapons are glass quality (Dark Sword 12 damage): glass |
+| Dark Sword | SkyCraft glass_sword | Bought (also catches the line's dagger |
+| Dark Dagger | obsidian | Looted Dark gear salvages like other looted gear (one material per weapon) |
+| Golden Battleaxe, Golden Warhammer | SkyCraft elven_war_axe | Bought: Golden Saint weapons match elven ones (Golden Sword 11 damage): elven |
+| Golden Sword | SkyCraft elven_sword | Bought (also catches the line's dagger |
+| Golden Greatsword | gold_ingot | Looted Golden gear salvages like other looted gear (one material per weapon) |
+| Honed Ancient Nord Greatsword, Ancient Nord Sword, Ancient Nord Greatsword, Nord Hero Sword, Nord Hero Greatsword, Imperial Sword | SkyCraft steel_sword | Bought Ancient Nord (draugr) gear becomes steel gear, as draugr gear drops do |
+| Honed Draugr War Axe, Ancient Nord War Axe, Ancient Nord Battle Axe, Nord Hero War Axe, Nord Hero Battle Axe | SkyCraft steel_war_axe | Bought Ancient Nord (draugr) gear becomes steel gear, as draugr gear drops do |
+| Silver Sword, Silver Greatsword | SkyCraft iron_sword (Smite II) | Bought silver becomes iron gear like silver gear drops |
+| Imperial Light Armor, Studded Imperial Armor | chainmail_chestplate | Imperial scout's light mail-and-leather piece bought in a shop: the chainmail piece (looted ones keep salvaging to steel) |
+| Imperial Light Helmet | chainmail_helmet | Imperial scout's light mail-and-leather piece bought in a shop: the chainmail piece (looted ones keep salvaging to steel) |
+| Imperial Light Boots | chainmail_boots | Imperial scout's light mail-and-leather piece bought in a shop: the chainmail piece (looted ones keep salvaging to steel) |
+| Imperial Light Bracers | chainmail_leggings | Imperial scout's light mail-and-leather piece bought in a shop: the chainmail piece (looted ones keep salvaging to steel) |
+| Imperial Armor, Ancient Nord Armor | SkyCraft steel_cuirass | Heavy Imperial legion steel bought in a shop: the SkyCraft steel piece, the metal looted Imperial gear already salvages to |
+| Imperial Helmet, Ancient Nord Helmet | SkyCraft steel_helmet | Heavy Imperial legion steel bought in a shop: the SkyCraft steel piece, the metal looted Imperial gear already salvages to |
+| Imperial Boots, Ancient Nord Boots | SkyCraft steel_boots | Heavy Imperial legion steel bought in a shop: the SkyCraft steel piece, the metal looted Imperial gear already salvages to |
+| Imperial Bracers, Ancient Nord Gauntlets | SkyCraft steel_greaves | Heavy Imperial legion steel bought in a shop: the SkyCraft steel piece, the metal looted Imperial gear already salvages to |
+| Daedric Mail Boots | SkyCraft daedric_boots | Daedric Mail light set boots: SkyCraft daedric boots |
+| Daedric Mail Gauntlets | SkyCraft daedric_greaves | Daedric Mail light set gauntlets: SkyCraft daedric greaves |
+| Daedric Mail | SkyCraft daedric_cuirass | Daedric Mail light set cuirass, named 'Mail' so no piece rule takes it (boots/gauntlets rules must come first): SkyCraft daedric cuirass |
+| Dwarven Mail Boots | SkyCraft dwarven_boots | Dwarven Mail light set boots: SkyCraft dwarven boots |
+| Dwarven Mail Gauntlets | SkyCraft dwarven_greaves | Dwarven Mail light set gauntlets: SkyCraft dwarven greaves |
+| Dwarven Mail Helmet | SkyCraft dwarven_helmet | Dwarven Mail light set helmet: SkyCraft dwarven helmet |
+| Dwarven Mail | SkyCraft dwarven_cuirass | Dwarven Mail light set cuirass, named 'Mail' so no piece rule takes it (boots/gauntlets rules must come first): SkyCraft dwarven cuirass |
+<!-- /gen:bought -->
+
+### Household goods
+
+<!-- gen:household -->
+| Item | Becomes | Why |
+|---|---|---|
+| Basket | bundle | A wicker carry-basket: Minecraft's carry-sack is the bundle (1 string + 1 leather), a modest price for very common clutter |
+| Bellows | leather + 2 oak_planks | A forge bellows is two wooden boards and a leather bag |
+| Embalming Tool | 2 iron_nugget | The four Nordic-ruin embalming tools (scalpel, pick, screw tool, scissors) are small iron tools: two nuggets, like the knife and fork rules |
+| Wooden Plate, Wooden Ladle | bowl | Minecraft's only wooden dish is the bowl, as for the Wooden Bowl |
+<!-- /gen:household -->
+
+### Proposals left out
+
+<!-- gen:left -->
+- 167: clothing: replaced by the clothing rules (dyed leather armor by slot, without the extra items)
+- 97: jewelry: replaced by the jewelry rules (plain rings, necklaces and circlets convert; enchanted and unique jewelry stays)
+- 58: unique armor: replaced by the named armor rules (its Skyrim name and enchantments)
+- 44: staffs and other spell-casting artifacts stay in Skyrim: nothing in Minecraft casts their spells
+- 27: drinks: taken over by the Drinks rules, without the names in the rules (a potion takes the Skyrim name anyway)
+- 24: rewritten: bought is the gear of the nearest tier, looted salvages, like the same family's weapons
+- 13: dragon gear: the daedric tier when bought and salvage when looted, like the other gear; nothing in Skyrim is netherite
+- 8: soul gems stay as they are: small gems for Skyrim's enchanting, the big filled ones portal keys, the stars Daedric artifacts
+- 3: Helmets of Waterbreathing: Respiration and Aqua Affinity on the helmet, like the others, rather than a turtle shell
+- 2: already today's rule
+- 2: Skooma is already SkyCraft's Skooma (its own section)
+- 2: horse armor: taken over by the household rules
+<!-- /gen:left -->
 
 ## Looted gear
 

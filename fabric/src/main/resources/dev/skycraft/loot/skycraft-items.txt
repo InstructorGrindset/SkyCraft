@@ -20,18 +20,80 @@
 # so a name word can be the whole word; the cut word ("hande") matches too.
 # Restart Skyrim after editing.
 
-# Stays in Skyrim: coins for merchants, keys and books for quests, drinks, two rare treasures
-# (Sheogorath-Shaped Amber, the Exquisite Sapphire). Lockpicks, spell tomes, scrolls and soul gems
-# you fill yourself stay too, since no rule takes them.
+# Stays in Skyrim: coins for merchants, keys, drinks, milk, two rare treasures (Sheogorath-Shaped
+# Amber, the Exquisite Sapphire). Lockpicks and soul gems you fill yourself stay too, since no rule
+# takes them. Books and scrolls have their own rules below.
 tag gold = keep
 tag key = keep
-tag book = keep
 tag food name wine = keep
 tag food name ale = keep
 tag food name mead = keep
 tag food name milk = keep
 name sheogorath = keep
 name exquisite = keep
+
+# Books and scrolls. A treasure map is Minecraft's buried treasure map. Every character starts
+# knowing Flames and Healing, so those two spell tomes are plain books (the keep lines guard the
+# tomes whose names hold those words); every other tome stays. A scroll is the potion of its spell:
+# fire, frost and shock bolts and storms splash Instant Damage (frost slows, shock weakens), the
+# runes are TNT, the flesh spells Resistance, Courage and Rally Strength and Health Boost, the
+# Calm and Fear spells Weakness and Darkness, Frenzy Nausea, healing Instant Health, and turning
+# the undead a splash of Instant Health, which harms them. Other books stay.
+name treasure name map = minecraft:buried_treasure_map 1
+name spell name tome name wall name flames = keep
+name spell name tome name healing name hands = keep
+name spell name tome name fast name healing = keep
+name spell name tome name grand name healing = keep
+name spell name tome name flames = minecraft:book 1
+name spell name tome name healing = minecraft:book 1
+name scroll name firebolt = minecraft:splash_potion{instant_damage:0:0 #e8641e} 1
+name scroll name fireball = minecraft:splash_potion{instant_damage:1:0 #e8641e} 1
+name scroll name fire name storm = minecraft:lingering_potion{instant_damage:1:0 #e8641e} 1
+name scroll name ice name spike = minecraft:splash_potion{instant_damage:0:0 + slowness:1:8 #8fd3ff} 1
+name scroll name ice name storm = minecraft:lingering_potion{instant_damage:0:0 + slowness:1:10 #8fd3ff} 1
+name scroll name blizzard = minecraft:lingering_potion{instant_damage:1:0 + slowness:2:15 #8fd3ff} 1
+name scroll name lightning name bolt = minecraft:splash_potion{instant_damage:0:0 + weakness:0:15 #c9b8ff} 1
+name scroll name chain name lightning = minecraft:splash_potion{instant_damage:1:0 + weakness:0:20 #c9b8ff} 1
+name scroll name fire name rune = minecraft:tnt 1
+name scroll name frost name rune = minecraft:tnt 1
+name scroll name lightning name rune = minecraft:tnt 1
+name scroll name oakflesh = minecraft:potion{resistance:0:60 #8b6b3d} 1
+name scroll name stoneflesh = minecraft:potion{resistance:0:120 #8b8b8b} 1
+name scroll name ironflesh = minecraft:potion{resistance:1:60 #a8a8a8} 1
+name scroll name ebonyflesh = minecraft:potion{resistance:1:120 #3a3340} 1
+name scroll name dragonhide = minecraft:potion{resistance:3:30 #6b8e3a} 1
+name scroll name candlelight = minecraft:potion{night_vision:0:60} 1
+name scroll name magelight = minecraft:torch 4
+name scroll name waterbreathing = minecraft:potion{water_breathing:0:60 + conduit_power:0:60} 1
+name scroll name paralyze = minecraft:splash_potion{slowness:4:10 + mining_fatigue:2:10} 1
+name scroll name mass name paralysis = minecraft:lingering_potion{slowness:4:15 + mining_fatigue:2:15} 1
+name scroll name courage = minecraft:potion{health_boost:0:60 + strength:0:60} 1
+name scroll name rally = minecraft:potion{health_boost:1:60 + strength:0:60} 1
+name scroll name call name arms = minecraft:splash_potion{health_boost:1:120 + strength:1:120} 1
+name scroll name calm = minecraft:splash_potion{weakness:1:30} 1
+name scroll name pacify = minecraft:splash_potion{weakness:2:60} 1
+name scroll name harmony = minecraft:lingering_potion{weakness:2:60} 1
+name scroll name fear = minecraft:splash_potion{darkness:0:30 + weakness:0:30} 1
+name scroll name rout = minecraft:splash_potion{darkness:0:60 + weakness:1:60} 1
+name scroll name hysteria = minecraft:lingering_potion{darkness:0:60 + weakness:1:60} 1
+name scroll name fury = minecraft:splash_potion{nausea:0:30} 1
+name scroll name frenzy = minecraft:splash_potion{nausea:0:60} 1
+name scroll name mayhem = minecraft:lingering_potion{nausea:0:60} 1
+name scroll name muffle = minecraft:potion{invisibility:0:60} 1
+name scroll name invisibility = minecraft:potion{invisibility:0:30} 1
+name scroll name fast name healing = minecraft:potion{instant_health:1:0 #c62828} 1
+name scroll name heal name other = minecraft:splash_potion{instant_health:1:0 #c62828} 1
+name scroll name grand name healing = minecraft:splash_potion{instant_health:2:0 #c62828} 1
+name scroll name turn name lesser = minecraft:splash_potion{instant_health:0:0 #f5e6a8} 1
+name scroll name repel name lesser = minecraft:splash_potion{instant_health:0:0 #f5e6a8} 1
+name scroll name turn name greater = minecraft:splash_potion{instant_health:2:0 #f5e6a8} 1
+name scroll name turn name undead = minecraft:splash_potion{instant_health:1:0 #f5e6a8} 1
+name scroll name repel name undead = minecraft:splash_potion{instant_health:1:0 #f5e6a8} 1
+name scroll name circle name protect = minecraft:lingering_potion{instant_health:0:0 #f5e6a8} 1
+name scroll name guardian name circle = minecraft:lingering_potion{instant_health:1:0 + regeneration:1:20 #f5e6a8} 1
+name scroll name bane = minecraft:lingering_potion{instant_health:1:0 #f5e6a8} 1
+
+tag book = keep
 
 # Skooma is SkyCraft's Skooma: a high of speed, higher jumps and quick, quiet sneaking, and an addiction
 # that comes with it (skycraft-skooma.txt). Redwater Skooma is the stronger cut. Moon sugar's rush is
@@ -40,7 +102,49 @@ name empty name skooma = minecraft:glass_bottle 1
 name redwater name skooma = minecraft:potion{skycraft:skooma:1:150 + saturation:1:0 #8e3fb5} 1
 name skooma = minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1
 
-# Food
+# Food (stews and soups are Minecraft's soups, a cheese wheel a cake, a poisoned apple a poisonous potato)
+tag food name apple name cabbage name stew = minecraft:beetroot_soup 1
+tag food name cabbage name soup = minecraft:beetroot_soup 1
+tag food name tomato name soup = minecraft:beetroot_soup 1
+tag food name vegetable name soup = minecraft:beetroot_soup 1
+tag food name clam name chowder = minecraft:mushroom_stew 1
+tag food name crab name chowder = minecraft:mushroom_stew 1
+tag food name creamy name crab = minecraft:mushroom_stew 1
+tag food name roasted name tomato name crab = minecraft:beetroot_soup 1
+tag food name elsweyr name fondue = minecraft:mushroom_stew 1
+tag food name potage name magnifique = minecraft:rabbit_stew 1
+tag food name horse name haunch = minecraft:cooked_beef 1
+tag food name rabbit name haunch = minecraft:cooked_rabbit 1
+tag food name goat name roast = minecraft:cooked_mutton 1
+tag food name pheasant name roast = minecraft:cooked_chicken 1
+tag food name venison name chop = minecraft:cooked_beef 1
+tag food name mammoth name steak = minecraft:cooked_beef 2
+tag food name horker name loaf = minecraft:cooked_beef 1
+tag food name grilled name leeks = minecraft:beetroot 2
+tag food name cooked name nix name hound = minecraft:cooked_beef 1
+tag food name cooked name arctic name char = minecraft:cooked_salmon 1
+tag food name cooked name arctic name grayling = minecraft:cooked_salmon 1
+tag food name steamed name mudcrab = minecraft:cooked_cod 1
+tag food name crab name cakes = minecraft:cooked_cod 1
+tag foodraw name rabbit name leg = minecraft:rabbit 1
+tag foodraw name boar name meat = minecraft:porkchop 1
+name clam name meat = minecraft:cod 1
+name crab name meat = minecraft:cod 1
+tag food name potato name bread = minecraft:bread 1
+tag food name jazbay name crostata = minecraft:pumpkin_pie 1
+tag food name juniper name crostata = minecraft:pumpkin_pie 1
+tag food name snowberry name crostata = minecraft:pumpkin_pie 1
+tag food name apple name dumpling = minecraft:pumpkin_pie 1
+tag food name chicken name dumpling = minecraft:cooked_chicken 1
+tag food name taffy name treat = minecraft:cookie 2
+tag food name creme name treat = minecraft:cookie 2
+tag food name eidar name cheese name wheel = minecraft:cake 1
+tag food name goat name cheese name wheel = minecraft:cake 1
+tag food name mammoth name cheese = minecraft:cake 1
+tag food name gourd = minecraft:pumpkin 1
+name sack name flour = minecraft:wheat 3
+name poisoned name red name apple = minecraft:poisonous_potato 1
+name poisoned name green name apple = minecraft:poisonous_potato 1
 tag food name pie = minecraft:pumpkin_pie 1
 tag food name salmon name steak = minecraft:cooked_salmon 1
 tag food name salmon = minecraft:salmon 1
@@ -88,6 +192,90 @@ tag foodraw name venison = minecraft:beef 1
 tag foodraw name beef = minecraft:beef 1
 tag foodraw name meat = minecraft:beef 1
 tag food = minecraft:bread 1
+
+# More ingredients: eggs, insects, roots and blooms from the DLCs and the Creation Club
+tag ingredient name bee = minecraft:honeycomb 1
+tag ingredient name butterfly name wing = minecraft:phantom_membrane 1
+tag ingredient name luna name moth name wing = minecraft:phantom_membrane 1
+tag ingredient name blue name dartwing = minecraft:phantom_membrane 1
+tag ingredient name orange name dartwing = minecraft:phantom_membrane 1
+tag ingredient name chicken's name egg = minecraft:egg 1
+tag ingredient name pine name thrush name egg = minecraft:blue_egg 1
+tag ingredient name rock name warbler name egg = minecraft:brown_egg 1
+tag ingredient name spider name egg = minecraft:spider_eye 1
+tag ingredient name chaurus name eggs = minecraft:slime_ball 1
+tag ingredient name slaughterfish name egg = minecraft:slime_ball 1
+tag ingredient name canis name root = minecraft:hanging_roots 1
+tag ingredient name taproot = minecraft:carrot 1
+tag ingredient name garlic = minecraft:beetroot 1
+tag ingredient name elves name ear = minecraft:orange_tulip 1
+tag ingredient name frost name mirriam = minecraft:azure_bluet 1
+tag ingredient name thistle name branch = minecraft:allium 1
+tag ingredient name nordic name barnacle = minecraft:sea_pickle 1
+tag ingredient name briar name heart = minecraft:creaking_heart 1
+tag ingredient name charred name skeever name hide = minecraft:rabbit_hide 1
+tag ingredient name hawk name beak = minecraft:bone 1
+tag ingredient name human name flesh = minecraft:rotten_flesh 1
+tag ingredient name human name heart = minecraft:rotten_flesh 1
+tag ingredient name dwarven name oil = minecraft:redstone 2
+tag ingredient name small name pearl = minecraft:prismarine_crystals 1
+tag ingredient name pearl = minecraft:prismarine_crystals 2
+tag ingredient name parasol name moss = minecraft:moss_carpet 1
+tag ingredient name scathecraw = minecraft:dead_bush 1
+tag ingredient name spawn name ash = minecraft:gunpowder 1
+tag ingredient name trama name root = minecraft:hanging_roots 1
+tag ingredient name ancestor name moth name wing = minecraft:phantom_membrane 1
+tag ingredient name chaurus name hunter name antennae = minecraft:string 1
+tag ingredient name gleamblossom = minecraft:open_eyeblossom 1
+tag ingredient name poison name bloom = minecraft:crimson_fungus 1
+tag ingredient name soul name husk = minecraft:soul_sand 1
+tag ingredient name hawk's name egg = minecraft:egg 1
+tag ingredient name alocasia name fruit = minecraft:glow_berries 1
+tag ingredient name ambrosia = minecraft:honey_bottle 1
+tag ingredient name aster name bloom name core = minecraft:oxeye_daisy 1
+tag ingredient name bittergreen name petals = minecraft:lily_of_the_valley 1
+tag ingredient name bog name beacon = minecraft:shroomlight 1
+tag ingredient name bungler's name bane = minecraft:shelf_mushroom 1
+tag ingredient name chokeberry = minecraft:sweet_berries 2
+tag ingredient name coda name flower = minecraft:allium 1
+tag ingredient name corkbulb name root = minecraft:potato 1
+tag ingredient name daedra name venin = minecraft:fermented_spider_eye 1
+tag ingredient name dreugh name wax = minecraft:honeycomb 1
+tag ingredient name elytra name ichor = minecraft:slime_ball 1
+tag ingredient name fire name petal = minecraft:red_tulip 1
+tag ingredient name flame name stalk = minecraft:torchflower 1
+tag ingredient name fungus name stalk = minecraft:brown_mushroom 1
+tag ingredient name gnarl name bark = minecraft:pale_oak_wood 1
+tag ingredient name gold name kanet = minecraft:sunflower 1
+tag ingredient name hackle name lo name leaf = minecraft:fern 1
+tag ingredient name heart name order = minecraft:amethyst_shard 2
+tag ingredient name hunger name tongue = minecraft:rotten_flesh 1
+tag ingredient name hydnum name azure = minecraft:warped_fungus 1
+tag ingredient name hypha name facia = minecraft:shelf_mushroom 1
+tag ingredient name imp name gall = minecraft:rotten_flesh 1
+tag ingredient name lichor = minecraft:experience_bottle 1
+tag ingredient name marshmerrow = minecraft:sugar_cane 1
+tag ingredient name ogre's name teeth = minecraft:bone 2
+tag ingredient name kelp name gas name bladder = minecraft:kelp 1
+tag ingredient name roobrush = minecraft:bush 1
+tag ingredient name saltrice = minecraft:wheat 1
+tag ingredient name scalon name fin = minecraft:armadillo_scute 1
+tag ingredient name scrib name jerky = minecraft:cooked_beef 1
+tag ingredient name sload name soap = minecraft:slime_ball 1
+tag ingredient name stoneflower name petals = minecraft:pink_petals 1
+tag ingredient name void name essence = minecraft:ender_pearl 1
+tag ingredient name watcher's name eye = minecraft:spider_eye 1
+tag ingredient name wisp name stalk name caps = minecraft:brown_mushroom 2
+tag ingredient name withering name moon = minecraft:closed_eyeblossom 1
+tag ingredient name entoloma = minecraft:warped_fungus 1
+tag ingredient name bloodgrass = minecraft:crimson_roots 1
+tag ingredient name harrada = minecraft:weeping_vines 1
+tag ingredient name spiddal name stick = minecraft:stick 2
+tag ingredient name bliss name bug name thorax = minecraft:glowstone_dust 1
+tag ingredient name rot name scale = minecraft:shelf_mushroom 1
+tag ingredient name screaming name maw = minecraft:pitcher_plant 1
+tag ingredient name juvenile name mudcrab = minecraft:turtle_scute 1
+tag ingredient name angler name larvae = minecraft:cod 1
 
 # Flowers, berries, mushrooms and feathers picked in Skyrim (Nirnroot and other rare ingredients stay)
 tag ingredient name blue name mountain name flower = minecraft:cornflower 1
@@ -175,6 +363,157 @@ tag ingredient name pygmy name sunfish = minecraft:tropical_fish 1
 tag ingredient name spadefish = minecraft:tropical_fish 1
 tag ingredient name glassfish = minecraft:tropical_fish 1
 
+# Armor sets without a smithing material, looted or bought: town guards' and Stormcloak armor is
+# chainmail (officers' iron), the Blades, Dawnguard, Vigil, Bonemold and wolf armor steel, Forsworn,
+# fur, Thieves Guild, Shrouded, Morag Tong and vampire armor leather, Chitin and Indoril elven,
+# Falmer heavy armor ebony and its hardened kind orcish. A shield is a shield. Stalhrim, Nordic
+# Carved, Amber, Madness, Dark Seducer and Golden Saint armor bought becomes the gear of the
+# nearest tier, looted it salvages, like their weapons below.
+tag armor name whiterun name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name whiterun name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name whiterun name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name solitude name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name solitude name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name solitude name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name markarth name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name markarth name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name markarth name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name riften name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name falkreath name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name falkreath name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name falkreath name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name pale name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name pale name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name pale name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name hjaalmarch name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name hjaalmarch name guard's name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name hjaalmarch name guard's name shield from looted from bought = minecraft:shield 1
+tag armor name winterhold name guard's name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name stormcloak name officer name armor from looted from bought = minecraft:iron_chestplate 1
+tag armor name stormcloak name officer name helmet from looted from bought = minecraft:iron_helmet 1
+tag armor name stormcloak name officer name boots from looted from bought = minecraft:iron_boots 1
+tag armor name stormcloak name officer name bracers from looted from bought = minecraft:iron_leggings 1
+tag armor name stormcloak name cuirass from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name stormcloak name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name imperial name dragon name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name imperial name dragon name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name imperial name dragon name boots from looted from bought = skycraft:steel_boots 1
+tag armor name imperial name dragon name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name imperial name dragon name shield from looted from bought = minecraft:shield 1
+tag armor name storm name bear name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name storm name bear name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name storm name bear name boots from looted from bought = skycraft:steel_boots 1
+tag armor name storm name bear name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name storm name bear name shield from looted from bought = minecraft:shield 1
+tag armor name stalhrim name shield from looted from bought = minecraft:shield 1
+tag armor name fur name boots from looted from bought = minecraft:leather_boots 1
+tag armor name fur name gauntlets from looted from bought = minecraft:leather_leggings 1
+tag armor name scaled name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name scaled name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name scaled name boots from looted from bought = minecraft:chainmail_boots 1
+tag armor name scaled name bracers from looted from bought = minecraft:chainmail_leggings 1
+tag armor name forsworn name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name forsworn name headdress from looted from bought = minecraft:leather_helmet 1
+tag armor name forsworn name boots from looted from bought = minecraft:leather_boots 1
+tag armor name forsworn name gauntlets from looted from bought = minecraft:leather_leggings 1
+tag armor name armor name old name gods from looted from bought = minecraft:leather_chestplate 1
+tag armor name boots name old name gods from looted from bought = minecraft:leather_boots 1
+tag armor name gauntlets name old name gods from looted from bought = minecraft:leather_leggings 1
+tag armor name wolf name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name wolf name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name wolf name boots from looted from bought = skycraft:steel_boots 1
+tag armor name wolf name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name blades name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name blades name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name blades name boots from looted from bought = skycraft:steel_boots 1
+tag armor name blades name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name blades name shield from looted from bought = minecraft:shield 1
+tag armor name penitus name oculatus name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name penitus name oculatus name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name penitus name oculatus name boots from looted from bought = minecraft:chainmail_boots 1
+tag armor name guild name master's name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name guild name master's name hood from looted from bought = minecraft:leather_helmet 1
+tag armor name guild name master's name boots from looted from bought = minecraft:leather_boots 1
+tag armor name guild name master's name gloves from looted from bought = minecraft:leather_leggings 1
+tag armor name thieves name guild name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name thieves name guild name hood from looted from bought = minecraft:leather_helmet 1
+tag armor name thieves name guild name boots from looted from bought = minecraft:leather_boots 1
+tag armor name thieves name guild name gloves from looted from bought = minecraft:leather_leggings 1
+tag armor name linwe's name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name linwe's name hood from looted from bought = minecraft:leather_helmet 1
+tag armor name linwe's name boots from looted from bought = minecraft:leather_boots 1
+tag armor name linwe's name gloves from looted from bought = minecraft:leather_leggings 1
+tag armor name shrouded name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name shrouded name cowl from looted from bought = minecraft:leather_helmet 1
+tag armor name shrouded name boots from looted from bought = minecraft:leather_boots 1
+tag armor name shrouded name gloves from looted from bought = minecraft:leather_leggings 1
+tag armor name falmer name helmet from looted from bought = minecraft:turtle_helmet 1
+tag armor name dawnguard name heavy name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name dawnguard name heavy name boots from looted from bought = skycraft:steel_boots 1
+tag armor name dawnguard name heavy name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name dawnguard name full name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name dawnguard name armor from looted from bought = minecraft:chainmail_chestplate 1
+tag armor name dawnguard name helmet from looted from bought = minecraft:chainmail_helmet 1
+tag armor name dawnguard name boots from looted from bought = minecraft:chainmail_boots 1
+tag armor name dawnguard name gauntlets from looted from bought = minecraft:chainmail_leggings 1
+tag armor name dawnguard name shield from looted from bought = minecraft:shield 1
+tag armor name vampire name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name vampire name gauntlets from looted from bought = minecraft:leather_leggings 1
+tag armor name falmer name heavy name armor from looted from bought = skycraft:ebony_cuirass 1
+tag armor name falmer name heavy name helm from looted from bought = skycraft:ebony_helmet 1
+tag armor name falmer name heavy name boots from looted from bought = skycraft:ebony_boots 1
+tag armor name falmer name heavy name gauntlets from looted from bought = skycraft:ebony_greaves 1
+tag armor name falmer name hardened name armor from looted from bought = skycraft:orcish_cuirass 1
+tag armor name falmer name hardened name helm from looted from bought = skycraft:orcish_helmet 1
+tag armor name falmer name hardened name boots from looted from bought = skycraft:orcish_boots 1
+tag armor name falmer name hardened name gauntlets from looted from bought = skycraft:orcish_greaves 1
+tag armor name ancient name falmer name cuirass from looted from bought = skycraft:glass_cuirass 1
+tag armor name ancient name falmer name boots from looted from bought = skycraft:glass_boots 1
+tag armor name ancient name falmer name gauntlets from looted from bought = skycraft:glass_greaves 1
+tag armor name bonemold name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name bonemold name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name bonemold name boots from looted from bought = skycraft:steel_boots 1
+tag armor name bonemold name gauntlets from looted from bought = skycraft:steel_greaves 1
+tag armor name bonemold name shield from looted from bought = minecraft:shield 1
+tag armor name chitin name helmet from looted from bought = minecraft:turtle_helmet 1
+tag armor name chitin name armor from looted from bought = skycraft:elven_cuirass 1
+tag armor name chitin name boots from looted from bought = skycraft:elven_boots 1
+tag armor name chitin name bracers from looted from bought = skycraft:elven_greaves 1
+tag armor name chitin name gauntlets from looted from bought = skycraft:elven_greaves 1
+tag armor name chitin name shield from looted from bought = minecraft:shield 1
+tag armor name nordic name shield from looted from bought = minecraft:shield 1
+tag armor name morag name tong name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name morag name tong name hood from looted from bought = minecraft:leather_helmet 1
+tag armor name morag name tong name boots from looted from bought = minecraft:leather_boots 1
+tag armor name blackguard's name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name blackguard's name hood from looted from bought = minecraft:leather_helmet 1
+tag armor name blackguard's name boots from looted from bought = minecraft:leather_boots 1
+tag armor name blackguard's name gloves from looted from bought = minecraft:leather_leggings 1
+tag armor name amber name shield from looted from bought = minecraft:shield 1
+tag armor name dark name seducer name shield from looted from bought = minecraft:shield 1
+tag armor name golden name saint name shield from looted from bought = minecraft:shield 1
+tag armor name madness name shield from looted from bought = minecraft:shield 1
+tag armor name netch name armor from looted from bought = minecraft:leather_chestplate 1
+tag armor name netch name helmet from looted from bought = minecraft:leather_helmet 1
+tag armor name netch name boots from looted from bought = minecraft:leather_boots 1
+tag armor name netch name bracers from looted from bought = minecraft:leather_leggings 1
+tag armor name netch name shield from looted from bought = minecraft:shield 1
+tag armor name painted name netch name helme from looted from bought = minecraft:leather_helmet 1
+tag armor name painted name netch name brace from looted from bought = minecraft:leather_leggings 1
+tag armor name indoril name armor from looted from bought = skycraft:elven_cuirass 1
+tag armor name indoril name helmet from looted from bought = skycraft:elven_helmet 1
+tag armor name indoril name boots from looted from bought = skycraft:elven_boots 1
+tag armor name indoril name gauntlets from looted from bought = skycraft:elven_greaves 1
+tag armor name ordinator name shield from looted from bought = minecraft:shield 1
+tag armor name her name hand name armor from looted from bought = skycraft:elven_cuirass 1
+tag armor name her name hand name helmet from looted from bought = skycraft:elven_helmet 1
+tag armor name her name hand name boots from looted from bought = skycraft:elven_boots 1
+tag armor name her name hand name gauntlets from looted from bought = skycraft:elven_greaves 1
+tag armor name vigil name armor from looted from bought = skycraft:steel_cuirass 1
+tag armor name vigil name helmet from looted from bought = skycraft:steel_helmet 1
+tag armor name vigil name boots from looted from bought = skycraft:steel_boots 1
+tag armor name vigil name gauntlets from looted from bought = skycraft:steel_greaves 1
+
 # Leather armor bought in a Skyrim shop becomes Minecraft leather armor
 tag armor material hide name helmet from bought = minecraft:leather_helmet 1
 tag armor material hide name hood from bought = minecraft:leather_helmet 1
@@ -183,13 +522,24 @@ tag armor material hide name bracers from bought = minecraft:leather_leggings 1
 tag armor material hide name gauntlets from bought = minecraft:leather_leggings 1
 tag armor material hide name boots from bought = minecraft:leather_boots 1
 
-# Hides and leather (strips before hides, in case Skyrim tags them as hide)
+# Hides and leather (strips before hides, in case Skyrim tags them as hide); big pelts give more leather
 name leather name strips = skycraft:leather_strips 1
+tag hide name bear name pelt = minecraft:leather 3
+tag hide name sabre name cat = minecraft:leather 2
+tag hide name cow name hide = minecraft:leather 2
+tag hide name horse name hide = minecraft:leather 2
 tag hide = minecraft:leather 1
 name leather = minecraft:leather 1
 name firewood = minecraft:oak_log 1
 
-# Metals and gems (flawless gems give more; rubies and garnets are redstone, sapphires lapis)
+# Metals and gems (flawless gems give more; rubies and garnets are redstone, sapphires lapis; silver and
+# quicksilver are iron)
+tag oreingot name silver name ore = minecraft:raw_iron 1
+tag oreingot name silver name ingot = minecraft:iron_ingot 1
+tag oreingot name quicksilver name ore = minecraft:raw_iron 1
+tag oreingot name quicksilver name ingot = minecraft:iron_ingot 1
+name madness name ore = minecraft:gilded_blackstone 1
+name madness name ingot = skycraft:ebony_ingot 1
 tag oreingot name iron name ingot = minecraft:iron_ingot 1
 tag oreingot name iron name ore = minecraft:raw_iron 1
 tag oreingot name steel = skycraft:steel_ingot 1
@@ -218,7 +568,7 @@ tag oreingot name chitin = minecraft:turtle_scute 1
 tag oreingot name hawk name claw = minecraft:bone 1
 tag oreingot name hawk name skull = minecraft:bone 2
 
-# Skyrim smithing materials for the SkyCraft gear sets (ore and ingot alike)
+# Skyrim smithing materials for the SkyCraft gear sets (ore and ingot alike), and dragon bone and scales
 tag oreingot name orichalcum = skycraft:orichalcum_ingot 1
 tag oreingot name dwarven = skycraft:dwarven_metal_ingot 1
 tag oreingot name moonstone = skycraft:refined_moonstone 1
@@ -234,8 +584,33 @@ tag oreingot name dwemer name actuator = skycraft:dwarven_metal_ingot 2
 tag oreingot name dwemer name lever = skycraft:dwarven_metal_ingot 1
 tag oreingot name dwemer name cog = skycraft:dwarven_metal_ingot 1
 tag oreingot name dwemer name gear = skycraft:dwarven_metal_ingot 1
+name heart name stone = minecraft:redstone_block 1 + minecraft:magma_cream 2
+name dragon name bone = minecraft:bone_block 2
+name dragon name scales = minecraft:turtle_scute 2
 
-# Arrows
+# Arrows: the strongest arrows (Daedric, dragonbone, amber, madness, bone) are arrows of Harming,
+# elemental arrows and bolts carry their element, and Bound Arrows stay: the spell takes them back
+tag arrow name bound name arrow = keep
+tag arrow name daedric name arrow = minecraft:tipped_arrow[harming] 1
+tag arrow name dragonbone = minecraft:tipped_arrow[harming] 1
+tag arrow name amber = minecraft:tipped_arrow[harming] 1
+tag arrow name madness = minecraft:tipped_arrow[harming] 1
+tag arrow name bone name arrow = minecraft:tipped_arrow[harming] 1
+tag arrow name stalhrim = minecraft:tipped_arrow{slowness:0:8 #9fd8ff} 1
+tag arrow name fire name arrow = minecraft:tipped_arrow{instant_damage:0:0 #e8641a} 1
+tag arrow name ice name arrow = minecraft:tipped_arrow{instant_damage:0:0 + slowness:1:8 #8fd3ff} 1
+tag arrow name lightning name arrow = minecraft:tipped_arrow{instant_damage:0:0 + weakness:0:10 #c9b8ff} 1
+tag arrow name telekinesis = minecraft:tipped_arrow{levitation:0:3 #b8a0ff} 1
+tag arrow name soul name stealer = minecraft:tipped_arrow{wither:0:4 + glowing:0:10 #4a2a6a} 1
+tag arrow name sunhallowed = minecraft:spectral_arrow 1
+tag arrow name bloodcursed = minecraft:tipped_arrow{darkness:0:8 + wither:0:3 #5a0d0d} 1
+tag arrow name riekling = minecraft:stone_spear 1
+tag arrow name exploding name steel name fir = minecraft:tipped_arrow{instant_damage:0:0 #e8641a "Exploding Steel Bolt of Fire"} 1
+tag arrow name exploding name steel name ice = minecraft:tipped_arrow{instant_damage:0:0 + slowness:1:6 #8fd3ff "Exploding Steel Bolt of Ice"} 1
+tag arrow name exploding name steel name sho = minecraft:tipped_arrow{instant_damage:0:0 + weakness:0:10 #c9b8ff "Exploding Steel Bolt of Shock"} 1
+tag arrow name exploding name dwarven name f = minecraft:tipped_arrow{instant_damage:0:0 #e8641a "Exploding Dwarven Bolt of Fire"} 1
+tag arrow name exploding name dwarven name i = minecraft:tipped_arrow{instant_damage:0:0 + slowness:1:8 #8fd3ff "Exploding Dwarven Bolt of Ice"} 1
+tag arrow name exploding name dwarven name s = minecraft:tipped_arrow{instant_damage:0:0 + weakness:0:12 #c9b8ff "Exploding Dwarven Bolt of Shock"} 1
 tag arrow = minecraft:arrow 1
 
 # Potions and poisons
@@ -408,7 +783,8 @@ tag soulgem tag filled name grand = skycraft:filled_soul_gem 1
 tag soulgem tag filled name black = skycraft:filled_soul_gem 1
 tag soulgem = keep
 
-# Bows from anywhere become Minecraft bows
+# Bows from anywhere become Minecraft bows, but the Bound Bow stays: every cast would make a bow
+tag weapon name bound name bow = keep
 tag weapon name crossbow = minecraft:crossbow 1
 tag weapon name bow = minecraft:bow 1
 
@@ -418,7 +794,113 @@ tag weapon name woodcutter's name axe = minecraft:iron_axe 1
 tag weapon name fishing name rod = minecraft:fishing_rod 1
 
 # Gear bought in a Skyrim shop becomes the matching SkyCraft gear (looted gear salvages instead).
-# Gauntlets fill the greaves slot, since Minecraft has no glove slot.
+# Gauntlets fill the greaves slot, since Minecraft has no glove slot. Gear of a material Skyrim names
+# but SkyCraft has no set for takes the nearest tier: Nordic, Skyforge, Blades, Dawnguard, Falmer and
+# Forsworn are orcish, Ancient Nord and Imperial steel, Stalhrim ebony, Dark glass, Golden elven, Amber,
+# Madness and dragonbone daedric; silver is Skyrim Iron with Smite.
+tag weapon name ebony name scimitar from bought = skycraft:ebony_sword 1
+tag weapon name wooden name sword = minecraft:wooden_sword 1
+tag weapon name nordic name axe from bought = skycraft:orcish_war_axe 1
+tag weapon name nordic name mace from bought = skycraft:orcish_war_axe 1
+tag weapon name nordic name battleaxe from bought = skycraft:orcish_war_axe 1
+tag weapon name nordic name warhammer from bought = skycraft:orcish_war_axe 1
+tag weapon name nordic from bought = skycraft:orcish_sword 1
+tag weapon name stalhrim name axe from bought = skycraft:ebony_war_axe 1
+tag weapon name stalhrim name mace from bought = skycraft:ebony_war_axe 1
+tag weapon name stalhrim name battleaxe from bought = skycraft:ebony_war_axe 1
+tag weapon name stalhrim name warhammer from bought = skycraft:ebony_war_axe 1
+tag weapon name stalhrim from bought = skycraft:ebony_sword 1
+tag weapon name amber name axe from bought = skycraft:daedric_war_axe 1
+tag weapon name amber name mace from bought = skycraft:daedric_war_axe 1
+tag weapon name amber name battleaxe from bought = skycraft:daedric_war_axe 1
+tag weapon name amber name warhammer from bought = skycraft:daedric_war_axe 1
+tag weapon name amber from bought = skycraft:daedric_sword 1
+tag weapon name madness name warhammer from bought = skycraft:daedric_war_axe 1
+tag weapon name madness from bought = skycraft:daedric_sword 1
+tag weapon name dark name axe from bought = skycraft:glass_war_axe 1
+tag weapon name dark name mace from bought = skycraft:glass_war_axe 1
+tag weapon name dark name battleaxe from bought = skycraft:glass_war_axe 1
+tag weapon name dark name warhammer from bought = skycraft:glass_war_axe 1
+tag weapon name dark from bought = skycraft:glass_sword 1
+tag weapon name golden name battleaxe from bought = skycraft:elven_war_axe 1
+tag weapon name golden name warhammer from bought = skycraft:elven_war_axe 1
+tag weapon name golden from bought = skycraft:elven_sword 1
+tag weapon name forsworn name axe from bought = skycraft:orcish_war_axe 1
+tag weapon name honed name greatswo from bought = skycraft:steel_sword 1
+tag weapon name honed name draugr name axe from bought = skycraft:steel_war_axe 1
+tag weapon name ancient name nord name sword from bought = skycraft:steel_sword 1
+tag weapon name ancient name nord name greatsword from bought = skycraft:steel_sword 1
+tag weapon name ancient name nord name war from bought = skycraft:steel_war_axe 1
+tag weapon name ancient name nord name battle from bought = skycraft:steel_war_axe 1
+tag weapon name nord name hero name sword from looted from bought = skycraft:steel_sword 1
+tag weapon name nord name hero name greatsword from looted from bought = skycraft:steel_sword 1
+tag weapon name nord name hero name war from looted from bought = skycraft:steel_war_axe 1
+tag weapon name nord name hero name battle from looted from bought = skycraft:steel_war_axe 1
+tag weapon name dragonbone name sword from bought = skycraft:daedric_sword 1
+tag weapon name dragonbone name dagger from bought = skycraft:daedric_sword 1
+tag weapon name dragonbone name greatsword from bought = skycraft:daedric_sword 1
+tag weapon name dragonbone name axe from bought = skycraft:daedric_war_axe 1
+tag weapon name dragonbone name mace from bought = skycraft:daedric_war_axe 1
+tag weapon name dragonbone name battleaxe from bought = skycraft:daedric_war_axe 1
+tag weapon name dragonbone name warhammer from bought = skycraft:daedric_war_axe 1
+tag weapon name falmer name sword from bought = skycraft:orcish_sword 1
+tag weapon name falmer name axe from bought = skycraft:orcish_war_axe 1
+tag weapon name silver name sword from bought = skycraft:iron_sword{smite:2} 1
+tag weapon name silver name greatsword from bought = skycraft:iron_sword{smite:2} 1
+tag weapon name imperial name sword from bought = skycraft:steel_sword 1
+tag weapon name skyforge name sword from bought = skycraft:orcish_sword 1
+tag weapon name skyforge name dagger from bought = skycraft:orcish_sword 1
+tag weapon name skyforge name greatsword from bought = skycraft:orcish_sword 1
+tag weapon name skyforge name axe from bought = skycraft:orcish_war_axe 1
+tag weapon name skyforge name battleaxe from bought = skycraft:orcish_war_axe 1
+tag weapon name blades name sword from bought = skycraft:orcish_sword 1
+tag weapon name scimitar from bought = skycraft:orcish_sword 1
+tag weapon name dawnguard name war from bought = skycraft:orcish_war_axe 1
+tag weapon name dawnguard name warhammer from bought = skycraft:orcish_war_axe 1
+tag armor name imperial name light name armor from bought = minecraft:chainmail_chestplate 1
+tag armor name imperial name light name helmet from bought = minecraft:chainmail_helmet 1
+tag armor name imperial name light name boots from bought = minecraft:chainmail_boots 1
+tag armor name imperial name light name bracers from bought = minecraft:chainmail_leggings 1
+tag armor name studded name imperial name armor from bought = minecraft:chainmail_chestplate 1
+tag armor name imperial name armor from bought = skycraft:steel_cuirass 1
+tag armor name imperial name helmet from bought = skycraft:steel_helmet 1
+tag armor name imperial name boots from bought = skycraft:steel_boots 1
+tag armor name imperial name bracers from bought = skycraft:steel_greaves 1
+tag armor name ancient name nord name armor from bought = skycraft:steel_cuirass 1
+tag armor name ancient name nord name helmet from bought = skycraft:steel_helmet 1
+tag armor name ancient name nord name boots from bought = skycraft:steel_boots 1
+tag armor name ancient name nord name gauntlets from bought = skycraft:steel_greaves 1
+tag armor name daedric name mail name boots from bought = skycraft:daedric_boots 1
+tag armor name daedric name mail name gauntlets from bought = skycraft:daedric_greaves 1
+tag armor name daedric name mail from bought = skycraft:daedric_cuirass 1
+tag armor name dwarven name mail name boots from bought = skycraft:dwarven_boots 1
+tag armor name dwarven name mail name gauntlets from bought = skycraft:dwarven_greaves 1
+tag armor name dwarven name mail name helmet from bought = skycraft:dwarven_helmet 1
+tag armor name dwarven name mail from bought = skycraft:dwarven_cuirass 1
+tag armor name stalhrim name armor from bought = skycraft:ebony_cuirass 1
+tag armor name stalhrim name helmet from bought = skycraft:ebony_helmet 1
+tag armor name stalhrim name boots from bought = skycraft:ebony_boots 1
+tag armor name stalhrim name gauntlets from bought = skycraft:ebony_greaves 1
+tag armor name nordic name carved name armor from bought = skycraft:orcish_cuirass 1
+tag armor name nordic name carved name helmet from bought = skycraft:orcish_helmet 1
+tag armor name nordic name carved name boots from bought = skycraft:orcish_boots 1
+tag armor name nordic name carved name gauntlets from bought = skycraft:orcish_greaves 1
+tag armor name amber name armor from bought = skycraft:glass_cuirass 1
+tag armor name amber name helmet from bought = skycraft:glass_helmet 1
+tag armor name amber name boots from bought = skycraft:glass_boots 1
+tag armor name amber name gauntlets from bought = skycraft:glass_greaves 1
+tag armor name madness name armor from bought = skycraft:daedric_cuirass 1
+tag armor name madness name helmet from bought = skycraft:daedric_helmet 1
+tag armor name madness name boots from bought = skycraft:daedric_boots 1
+tag armor name madness name gauntlets from bought = skycraft:daedric_greaves 1
+tag armor name dark name seducer name armor from bought = skycraft:glass_cuirass 1
+tag armor name dark name seducer name helmet from bought = skycraft:glass_helmet 1
+tag armor name dark name seducer name boots from bought = skycraft:glass_boots 1
+tag armor name dark name seducer name gauntlets from bought = skycraft:glass_greaves 1
+tag armor name golden name saint name armor from bought = skycraft:ebony_cuirass 1
+tag armor name golden name saint name helmet from bought = skycraft:ebony_helmet 1
+tag armor name golden name saint name boots from bought = skycraft:ebony_boots 1
+tag armor name golden name saint name gauntlets from bought = skycraft:ebony_greaves 1
 tag armor name shield from bought = minecraft:shield 1
 tag weapon material iron name sword from bought = skycraft:iron_sword 1
 tag weapon material iron name greatsword from bought = skycraft:iron_sword 1
@@ -520,7 +1002,20 @@ tag armor material daedric name boots from bought = skycraft:daedric_boots 1
 # Looted gear salvages into its smithing material: one for a weapon, two for armor. Materials without
 # a SkyCraft ingot take the nearest: Imperial and Ancient Nord (draugr) gear is steel, Falmer gear is
 # chaurus chitin (turtle scute), silver melts to iron nuggets, dragonbone and dragonscale give ebony
-# and bone. Every Daedric piece is forged with a Daedra heart and gives it back.
+# and bone. Every Daedric piece is forged with a Daedra heart and gives it back. Nordic and Forsworn
+# weapons are steel, Stalhrim blue ice, Amber resin, Madness crying obsidian, Dark obsidian, Golden gold.
+tag weapon name nordic from looted = skycraft:steel_ingot 1
+tag weapon name stalhrim from looted = minecraft:blue_ice 1
+tag weapon name amber from looted = minecraft:resin_brick 2
+tag weapon name dark from looted = minecraft:obsidian 1
+tag weapon name golden from looted = minecraft:gold_ingot 1
+tag weapon name forsworn from looted = skycraft:steel_ingot 1
+tag armor name stalhrim from looted = minecraft:blue_ice 2
+tag armor name nordic name carved from looted = skycraft:steel_ingot 2
+tag armor name amber from looted = minecraft:resin_brick 4
+tag armor name madness from looted = minecraft:crying_obsidian 2
+tag armor name dark name seducer from looted = minecraft:obsidian 2
+tag armor name golden name saint from looted = minecraft:gold_ingot 2
 tag weapon material iron from looted = minecraft:iron_ingot 1
 tag weapon material steel from looted = skycraft:steel_ingot 1
 tag weapon material imperial from looted = skycraft:steel_ingot 1
@@ -592,7 +1087,6 @@ tag armor = keep
 tag clothing = keep
 tag jewelry = keep
 tag potion = keep
-tag poison = keep
 tag ingredient = keep
 tag foodraw = keep
 # Keepsakes and quest pieces stay too: the Thieves Guild's jeweled displays, Ysgramor's Soup Spoon,
@@ -614,6 +1108,11 @@ tag clutter name dwemer name urn = skycraft:dwarven_metal_ingot 2
 name centurion name dynamo name core = minecraft:redstone_block 1
 
 # Light, tools and household goods
+name basket = minecraft:bundle 1
+name bellows = minecraft:leather 1 + minecraft:oak_planks 2
+name embalming name tool = minecraft:iron_nugget 2
+name wooden name plate = minecraft:bowl 1
+name ladle = minecraft:bowl 1
 name torch = minecraft:torch 4
 name lantern = minecraft:lantern 1
 name glazed name candles = minecraft:candle 2

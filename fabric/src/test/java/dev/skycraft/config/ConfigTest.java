@@ -87,7 +87,7 @@ class ConfigTest {
 
 	@Test
 	void itemRulesKnowTheirOldDefaultsButNotTheCurrentOne() {
-		assertEquals(10, ItemRules.OLD_DEFAULTS.size());
+		assertEquals(11, ItemRules.OLD_DEFAULTS.size());
 		for (String old : ItemRules.OLD_DEFAULTS) {
 			assertTrue(old.matches("sha256:[0-9a-f]{64}"), old);
 		}
