@@ -2,6 +2,7 @@
 #include "Breach.h"
 #include "Loot.h"
 #include "Party.h"
+#include "Towns.h"
 #include "Travel.h"
 #include "WorldState.h"
 #include "WorldSync.h"
@@ -860,6 +861,7 @@ namespace skycraft
 			if (puppet) {
 				NpcBlocks::PushActorsOut(a_player, a_delta);
 			}
+			Towns::Update(a_player, puppet, a_delta);  // switches and Dwemer doors to Minecraft; NPCs up its ladders
 
 			// Interpolate Minecraft's 20 Hz physics ticks on our own clock (what MC's renderer does
 			// with partial ticks). Sampling MC's per-frame position instead judders, because the two
@@ -1205,6 +1207,7 @@ namespace skycraft
 			sky.aim = Farming::Aim();  // a plant to harvest under the crosshair: a right click harvests it, a hoe doesn't till there
 			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
 			Party::Fill(a_player, sky);                     // who shouted last (shared world events)
+			Towns::FillSkyState(a_player, sky);           // doors and ladders read here; the Hearthfire plot underfoot
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

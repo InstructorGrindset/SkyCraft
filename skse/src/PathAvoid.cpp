@@ -1,9 +1,12 @@
 #include "Game.h"
+#include "Towns.h"
 
 // NPCs path around Minecraft's blocks. Skyrim builds an NPC's path request in one function (AE ID
 // 41642: actor, request, goal, goal radius, avoid nodes); its avoid nodes are spheres and
 // cylinders the pathfinder routes around. We hook its seven callers and add a cylinder for each
 // column of solid Minecraft blocks near the NPC's route, on top of any Skyrim put there itself.
+// Minecraft doors NPCs may open get none: paths go through them, and the NPC asks for the door
+// to open when it walks into it (Passages.cpp).
 namespace skycraft
 {
 	namespace
@@ -63,7 +66,8 @@ namespace skycraft
 				for (int z = z0; z <= z1; ++z) {
 					int low = INT_MAX, high = INT_MIN;
 					for (int y = y0; y <= y1; ++y) {
-						if (NpcBlocks::SolidAt(x, y, z)) {
+						// A Minecraft door NPCs may open is a way through, not a wall (npc_doors_ladders).
+						if (NpcBlocks::SolidAt(x, y, z) && !Passages::NpcDoorAt(x, y, z)) {
 							low = std::min(low, y);
 							high = std::max(high, y);
 						}

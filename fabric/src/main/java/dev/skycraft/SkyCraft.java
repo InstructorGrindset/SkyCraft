@@ -40,6 +40,7 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.config.FeatureCondition.init(); // data pack files that load only with a feature on (Skooma brewing)
 		dev.skycraft.party.GuestParity.init(); // a guest's own Skyrim through this server: stand-ins, loot, skills
 		dev.skycraft.party.SharedWorldEvents.init(); // dragons, dungeons and shouts told to everyone; /skyparty
+		dev.skycraft.town.SkyTown.init(); // NPCs and Minecraft doors, town crime, guards, Hearthfire plots, Dwemer redstone
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

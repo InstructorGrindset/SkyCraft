@@ -91,3 +91,12 @@ data/minecraft/recipe/copper_nugget_from_blasting.json
 -c net.minecraft.world.entity.Entity isPickable
 -c net.minecraft.world.entity.Entity distanceToSqr
 -c net.minecraft.sounds.SoundEvents ENDER_DRAGON
+# Towns and building (npc_doors_ladders, town_crime, hearthfire_blocks, dwemer_redstone)
+-c net.minecraft.world.level.block.DoorBlock setOpen
+-c net.minecraft.world.level.block.DoorBlock FACING
+-c net.minecraft.world.level.block.LadderBlock FACING
+-c net.minecraft.world.level.SignalGetter hasNeighborSignal
+-c net.minecraft.world.level.Level hasNeighborSignal
+-c net.minecraft.core.Direction get2DDataValue
+-c net.minecraft.sounds.SoundEvents PLAYER_LEVELUP
+-c net.minecraft.world.entity.Entity isSpectator

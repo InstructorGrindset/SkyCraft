@@ -7,6 +7,7 @@
 #include "WorldState.h"
 #include "Spawn.h"
 #include "Stealth.h"
+#include "Towns.h"
 #include "Travel.h"
 
 #include <cctype>
@@ -205,7 +206,8 @@ namespace skycraft
 				r.formId = actor->GetFormID();
 				r.flags = (actor->IsHostileToActor(a_player) ? proto::kActorHostile : 0u) | (actor->IsDead() ? proto::kActorDead : 0u) |
 				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u) |
-				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u) | Companion::Flags(actor, a_player);
+				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u) | Companion::Flags(actor, a_player) |
+				          Towns::ActorFlags(actor);
 				r.flags |= Party::ActorFlags(actor);  // a dragon (shared world events)
 				Party::WatchActor(actor);             // the frame it starts a shout
 				const auto mc = SkyToMc(pos);
@@ -1010,9 +1012,12 @@ namespace skycraft
 						Economy::OnEvent(a_player, ev);  // a sale Minecraft made just before: its goods are already taken
 					} else if (ev.type == proto::kEvPartyShake) {
 						Party::Shake(a_player, ev);  // Skyrim's own camera shake while it drives the camera
+					} else if (ev.type == proto::kEvRedstoneDoor || ev.type == proto::kEvHearthfireStage) {
+						Towns::OnEvent(a_player, ev);  // (redstone from a lever pulled in Skyrim's own animation reaches its door meanwhile)
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
-					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
+					// So is kEvActivate: a click from before Skyrim took the player activates nothing; and so are
+					// kEvTownCrime and kEvTownBuild, about what the player did in Minecraft before Skyrim took them.
 				}
 				pendingExplosions.clear();
 				pendingFlings.clear();
@@ -1077,6 +1082,12 @@ namespace skycraft
 					break;
 				case proto::kEvPartyShake:
 					Party::Shake(a_player, ev);
+					break;
+				case proto::kEvTownCrime:
+				case proto::kEvTownBuild:
+				case proto::kEvHearthfireStage:
+				case proto::kEvRedstoneDoor:
+					Towns::OnEvent(a_player, ev);
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

@@ -271,6 +271,10 @@ public final class SkyLink {
 		public int shoutFlags;
 		/** Who shouted last: an actor's FormID, 0x14 for the player. */
 		public int shoutActor;
+		/** Proto.TOWN_* bits (0 from a plugin that predates them). */
+		public int townFlags;
+		/** With TOWN_HEARTHFIRE_PLOT: the Hearthfire house (its BGSLocation FormID) whose land the player stands on, else 0. */
+		public int hearthPlot;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -372,6 +376,8 @@ public final class SkyLink {
 			int shoutWords = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_WORDS));
 			int shoutFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_FLAGS));
 			int shoutActor = s.get(JAVA_INT, b + SS_SHOUT_ACTOR);
+			int townFlags = s.get(JAVA_INT, b + SS_TOWN_FLAGS);
+			int hearthPlot = s.get(JAVA_INT, b + SS_HEARTH_PLOT);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -404,6 +410,8 @@ public final class SkyLink {
 				out.shoutWords = shoutWords;
 				out.shoutFlags = shoutFlags;
 				out.shoutActor = shoutActor;
+				out.townFlags = townFlags;
+				out.hearthPlot = hearthPlot;
 				return true;
 			}
 		}
@@ -510,6 +518,8 @@ public final class SkyLink {
 		long weather = dev.skycraft.weather.SkyWeather.request(); // the server's open weather request (weather sync)
 		s.set(JAVA_INT, b + MS_WEATHER_SEQ, (int) weather);
 		s.set(JAVA_BYTE, b + MS_WEATHER_WANT, (byte) (weather >>> 32));
+		s.set(JAVA_INT, b + MS_HEARTH_PLOT, dev.skycraft.town.SkyHearthfire.shownPlot());
+		s.set(JAVA_INT, b + MS_HEARTH_BLOCKS, dev.skycraft.town.SkyHearthfire.shownBlocks());
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

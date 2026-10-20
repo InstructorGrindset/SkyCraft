@@ -1,10 +1,12 @@
 #include "BlockWalk.h"
 #include "Game.h"
 #include "Stealth.h"
+#include "Towns.h"
 
 // Skyrim's NPCs don't walk through Minecraft's blocks: Minecraft sends which blocks of each section
 // have a collision shape (proto::kRenSolids), and every frame any NPC overlapping one is pushed
-// back out sideways, so they stop at walls and slide along them.
+// back out sideways, so they stop at walls and slide along them. One pushed back by a closed
+// Minecraft door it may open asks Minecraft to open it and waits there instead (Passages.cpp).
 namespace skycraft
 {
 	namespace
@@ -204,6 +206,8 @@ namespace skycraft
 				const int y0 = int(std::floor(mc.y + 0.3)), y1 = int(std::floor(mc.y + h - 0.1));
 				double    cx = mc.x, cz = mc.z;
 				bool      moved = false;
+				bool      door = false;  // pushed back by a closed Minecraft door it may open
+				int       doorX = 0, doorY = 0, doorZ = 0;
 				for (int pass = 0; pass < 3; ++pass) {
 					double pushX = 0.0, pushZ = 0.0;
 					for (int bx = int(std::floor(cx - r)); bx <= int(std::floor(cx + r)); ++bx) {
@@ -211,6 +215,10 @@ namespace skycraft
 							bool hit = false;
 							for (int by = y0; by <= y1 && !hit; ++by) {
 								hit = SolidAt(bx, by, bz);
+								if (hit && !door && Passages::ClosedDoorAt(bx, by, bz)) {
+									door = true;
+									doorX = bx, doorY = by, doorZ = bz;
+								}
 							}
 							if (!hit) {
 								continue;
@@ -260,7 +268,12 @@ namespace skycraft
 							gx = std::sin(heading), gz = -std::cos(heading);
 						}
 						const double gl = std::sqrt(gx * gx + gz * gz);
-						if (gl > 1e-3 && (gx * -nx + gz * -nz) / gl > 0.2) {
+						const bool   intoIt = gl > 1e-3 && (gx * -nx + gz * -nz) / gl > 0.2;
+						if (intoIt && door && actor->IsMoving()) {
+							// Walking into a closed Minecraft door it may open: Minecraft opens it, and the NPC waits
+							// at it rather than walking round (one just standing by a door never opens it).
+							Passages::RequestOpen(doorX, doorY, doorZ);
+						} else if (intoIt) {
 							const double tx = -nz, tz = nx;  // along the wall
 							if (detour.time <= 0.0f || detour.side == 0) {
 								const double endA = WallEnd(cx, cz, tx, tz, nx, nz, y0, y1, 12.0);

@@ -76,6 +76,7 @@ public final class InputBridge {
 			case Proto.IN_BLESSING -> blessing(minecraft, code, a / 1000.0F, b / 1000.0F);
 			case Proto.IN_SKYRIM_FOOD -> skyrimFood(minecraft, code, a / 1000.0F, b, c);
 			case Proto.IN_MERCHANT_GOLD -> merchantGold(minecraft, a, b, c);
+			case Proto.IN_OPEN_DOOR, Proto.IN_REDSTONE_PULSE, Proto.IN_DWEMER_DOOR -> TownInput.accept(minecraft, type, code, a, b, c);
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();

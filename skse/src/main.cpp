@@ -6,6 +6,7 @@
 #include "Loot.h"
 #include "Game.h"
 #include "Spawn.h"
+#include "Towns.h"
 #include "Travel.h"
 #include "WorldState.h"
 
@@ -44,6 +45,7 @@ namespace
 			skycraft::Dig::Install();
 			skycraft::Loot::Install();
 			skycraft::Economy::Install();  // Skyrim food fills Minecraft's hunger
+			skycraft::Towns::Install();
 			skycraft::CrashLog::Install();
 			break;
 		case SKSE::MessagingInterface::kPostLoadGame:
@@ -54,6 +56,7 @@ namespace
 			skycraft::Breach::Reset();
 			skycraft::Travel::Reset();  // portal network
 			skycraft::WorldState::SkillsReloaded();  // the new game's skills, under a new skillsLoad
+			skycraft::Towns::Reset();
 			break;
 		default:
 			break;
