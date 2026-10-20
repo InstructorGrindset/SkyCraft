@@ -126,8 +126,9 @@ public final class SkyBridge {
 		}
 		Holder<Potion> potion = null;
 		if (out.potion() != null) {
-			// ItemRules only lets vanilla potion ids through, so this finds it.
-			potion = BuiltInRegistries.POTION.get(Identifier.withDefaultNamespace(out.potion())).orElse(null);
+			// ItemRules only lets vanilla potion ids and SkyCraft's (skycraft:skooma, with their namespace) through, so this finds it.
+			Identifier potionId = out.potion().indexOf(':') >= 0 ? Identifier.parse(out.potion()) : Identifier.withDefaultNamespace(out.potion());
+			potion = BuiltInRegistries.POTION.get(potionId).orElse(null);
 			if (potion == null) {
 				SkyCraft.LOG.warn("SkyCraft-loot: unknown potion '{}' in {}, {} stays in Skyrim", out.potion(), FILE, skyrimName);
 				return null;

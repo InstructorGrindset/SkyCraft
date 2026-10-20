@@ -2,6 +2,7 @@
 #include "CoSave.h"
 #include "Companion.h"
 #include "Dig.h"
+#include "Economy.h"
 #include "Loot.h"
 #include "Game.h"
 #include "Spawn.h"
@@ -42,6 +43,7 @@ namespace
 			skycraft::Stealth::Install();
 			skycraft::Dig::Install();
 			skycraft::Loot::Install();
+			skycraft::Economy::Install();  // Skyrim food fills Minecraft's hunger
 			skycraft::CrashLog::Install();
 			break;
 		case SKSE::MessagingInterface::kPostLoadGame:

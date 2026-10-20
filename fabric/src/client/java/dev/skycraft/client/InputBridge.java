@@ -74,6 +74,8 @@ public final class InputBridge {
 			case Proto.IN_HURT -> hurt(minecraft, code, a / 100.0F, b, c);
 			case Proto.IN_ARROW_BLOCKED -> arrowBlocked(minecraft, code, a / 1024.0, b / 1024.0, c / 1024.0);
 			case Proto.IN_BLESSING -> blessing(minecraft, code, a / 1000.0F, b / 1000.0F);
+			case Proto.IN_SKYRIM_FOOD -> skyrimFood(minecraft, code, a / 1000.0F, b, c);
+			case Proto.IN_MERCHANT_GOLD -> merchantGold(minecraft, a, b, c);
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();
@@ -105,6 +107,36 @@ public final class InputBridge {
 				SkyCombat.hurtPlayer(player, kind, skyrimDamage, attacker, flags);
 			}
 		});
+	}
+
+	/** The Skyrim player ate a food in Skyrim: fill the Minecraft player's hunger on the integrated server (or the host's). */
+	private static void skyrimFood(Minecraft minecraft, int nutrition, float saturation, int formId, int kind) {
+		var server = minecraft.getSingleplayerServer();
+		if (minecraft.player == null) {
+			return;
+		}
+		if (server == null) {
+			// A guest in a friend's world: the host's server fills it.
+			if (net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.canSend(dev.skycraft.net.SkyNet.SkyrimFood.TYPE)) {
+				net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new dev.skycraft.net.SkyNet.SkyrimFood(nutrition, saturation, formId, kind));
+			}
+			return;
+		}
+		var uuid = minecraft.player.getUUID();
+		server.execute(() -> {
+			ServerPlayer player = server.getPlayerList().getPlayer(uuid);
+			if (player != null) {
+				dev.skycraft.food.SkyFood.eat(player, nutrition, saturation, formId, kind);
+			}
+		});
+	}
+
+	/** Skyrim says how much gold a merchant has, for a sale to it the host's server is waiting on (trade.SkySell). */
+	private static void merchantGold(Minecraft minecraft, int merchant, int gold, int request) {
+		var server = minecraft.getSingleplayerServer();
+		if (server != null) {
+			server.execute(() -> dev.skycraft.trade.SkySell.answer(merchant, gold, request));
+		}
 	}
 
 	/** A Skyrim arrow stopped at a Minecraft block: one of Minecraft's sticks in the block there (the integrated server's). */

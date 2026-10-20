@@ -1,5 +1,6 @@
 #include "Breach.h"
 #include "Companion.h"
+#include "Economy.h"
 #include "Game.h"
 #include "Loot.h"
 #include "WorldState.h"
@@ -1002,6 +1003,8 @@ namespace skycraft
 						Travel::Request(a_player, ev);  // checks the player's state itself
 					} else if (ev.type == proto::kEvCompanion) {
 						Companion::OnEvent(a_player, ev);  // a taming or an order sent just before Skyrim took the player
+					} else if (ev.type == proto::kEvMerchantGold || ev.type == proto::kEvSellToMerchant) {
+						Economy::OnEvent(a_player, ev);  // a sale Minecraft made just before: its goods are already taken
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
@@ -1062,6 +1065,10 @@ namespace skycraft
 					break;
 				case proto::kEvCompanion:
 					Companion::OnEvent(a_player, ev);
+					break;
+				case proto::kEvMerchantGold:
+				case proto::kEvSellToMerchant:
+					Economy::OnEvent(a_player, ev);
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

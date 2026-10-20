@@ -40,6 +40,26 @@ public final class SkyNet {
 		}
 	}
 
+	/**
+	 * Guest -> server: the guest ate a food in their Skyrim (as proto::InputEvent kInSkyrimFood): fill their hunger
+	 * (food.SkyFood). The server clamps it to a full bar.
+	 */
+	public record SkyrimFood(int nutrition, float saturation, int formId, int kind) implements CustomPacketPayload {
+		public static final Type<SkyrimFood> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "skyrim_food"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, SkyrimFood> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, SkyrimFood::nutrition,
+			ByteBufCodecs.FLOAT, SkyrimFood::saturation,
+			ByteBufCodecs.INT, SkyrimFood::formId,
+			ByteBufCodecs.VAR_INT, SkyrimFood::kind,
+			SkyrimFood::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
 	/** Server -> guest: the guest died in Minecraft, so their Skyrim player dies too. */
 	public record Died(int attackerFormId) implements CustomPacketPayload {
 		public static final Type<Died> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "died"));
@@ -192,6 +212,11 @@ public final class SkyNet {
 			}
 		});
 		PayloadTypeRegistry.serverboundPlay().register(Hurt.TYPE, Hurt.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(SkyrimFood.TYPE, SkyrimFood.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(SkyrimFood.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.food.SkyFood.eat(player, payload.nutrition(), payload.saturation(), payload.formId(), payload.kind()));
+		});
 		PayloadTypeRegistry.serverboundPlay().register(DigOpen.TYPE, DigOpen.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(DigReveal.TYPE, DigReveal.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(DigOpen.TYPE, (payload, context) -> {

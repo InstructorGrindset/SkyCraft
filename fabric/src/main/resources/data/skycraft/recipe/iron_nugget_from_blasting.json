@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:blasting",
+  "cookingtime": 200,
+  "experience": 0.1,
+  "ingredient": [
+    "skycraft:iron_sword",
+    "skycraft:iron_war_axe",
+    "skycraft:iron_helmet",
+    "skycraft:iron_cuirass",
+    "skycraft:iron_greaves",
+    "skycraft:iron_boots",
+    "skycraft:steel_sword",
+    "skycraft:steel_war_axe",
+    "skycraft:steel_helmet",
+    "skycraft:steel_cuirass",
+    "skycraft:steel_greaves",
+    "skycraft:steel_boots",
+    "skycraft:orcish_sword",
+    "skycraft:orcish_war_axe",
+    "skycraft:orcish_helmet",
+    "skycraft:orcish_cuirass",
+    "skycraft:orcish_greaves",
+    "skycraft:orcish_boots"
+  ],
+  "result": {
+    "id": "minecraft:iron_nugget"
+  }
+}

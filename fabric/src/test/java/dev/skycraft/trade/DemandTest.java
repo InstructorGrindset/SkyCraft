@@ -74,4 +74,19 @@ class DemandTest {
 		assertEquals(1.0, d.factor("Whiterun", BREAD), 1e-9);
 		assertTrue(d.isEmpty());
 	}
+
+	@Test
+	void factorAfterLooksAheadWithoutChangingAnything() {
+		Demand d = new Demand();
+		d.bought("Whiterun", BREAD);
+		assertEquals(1.05, d.factorAfter("Whiterun", BREAD, 0), 1e-9);
+		assertEquals(0.95, d.factorAfter("Whiterun", BREAD, 2), 1e-9);
+		assertEquals(Demand.MIN_FACTOR, d.factorAfter("Whiterun", BREAD, 100), 1e-9);
+		assertEquals(0.9, d.factorAfter("Riften", BREAD, 2), 1e-9);
+		assertEquals(1.05, d.factor("Whiterun", BREAD), 1e-9);
+		// The sales it looks ahead are what sold() would do.
+		d.sold("Whiterun", BREAD);
+		d.sold("Whiterun", BREAD);
+		assertEquals(0.95, d.factor("Whiterun", BREAD), 1e-9);
+	}
 }

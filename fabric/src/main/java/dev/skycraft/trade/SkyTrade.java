@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -24,6 +26,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.Merchant;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -36,7 +40,9 @@ import org.jspecify.annotations.Nullable;
  * {@code config/skycraft-trades.txt} and {@code config/skycraft-towns.txt} (see {@link TradeRules}),
  * picked by the merchant's form id and priced for the town Skyrim reports and for recent trading
  * there (see {@link Demand}). Each trade can be made 8 times; a use comes back every two minutes.
- * Trading trains Skyrim's Speech skill for the host.
+ * Trading trains Skyrim's Speech skill for the host. A Khajiit caravan's dealer line adds its Skooma
+ * and moon sugar; a dealer Skyrim doesn't make a merchant gets a shop of those alone ({@link #vendorOf}).
+ * Selling to a merchant for Skyrim gold is {@link SkySell}'s.
  */
 public final class SkyTrade implements Merchant {
 	private static final String TRADES_FILE = "skycraft-trades.txt";
@@ -47,7 +53,8 @@ public final class SkyTrade implements Merchant {
 	private static final double MAX_DISTANCE_SQR = 8.0 * 8.0;
 
 	private static final Map<Integer, SkyTrade> BY_ACTOR = new HashMap<>();
-	private static final Demand DEMAND = new Demand();
+	/** Supply and demand per town, shared with sales for gold (SkySell). */
+	static final Demand DEMAND = new Demand();
 	private static final Set<String> WARNED = new HashSet<>();
 	private static TradeRules rules;
 
@@ -81,7 +88,7 @@ public final class SkyTrade implements Merchant {
 			return;
 		}
 		trade.town = town;
-		List<TradeRules.Offer> list = rules().offersFor(actor.getVendor(), town, actor.formId(), DEMAND);
+		List<TradeRules.Offer> list = rules().offersFor(actor.getVendor(), actor.skyrimName(), town, actor.formId(), DEMAND);
 		trade.rebuild(list, rules().town(town));
 		if (trade.offers.isEmpty()) {
 			player.sendSystemMessage(Component.literal(name + " has nothing to trade with you."));
@@ -97,6 +104,7 @@ public final class SkyTrade implements Merchant {
 
 	/** Called every server tick. */
 	public static void tick(int serverTick) {
+		SkySell.tick(serverTick);
 		if (serverTick % DECAY_TICKS != 0) {
 			return;
 		}
@@ -106,15 +114,69 @@ public final class SkyTrade implements Merchant {
 		}
 	}
 
-	private static TradeRules rules() {
+	/** The trades and towns files, read once (an unedited trades file from an earlier build gets the new defaults). */
+	static TradeRules rules() {
 		if (rules != null) {
 			return rules;
 		}
 		List<String> problems = new ArrayList<>();
-		rules = TradeRules.parse(Config.read(TRADES_FILE, TradeRules.DEFAULT_TRADES), Config.read(TOWNS_FILE, TradeRules.DEFAULT_TOWNS), problems);
+		rules = TradeRules.parse(Config.read(TRADES_FILE, TradeRules.DEFAULT_TRADES, TradeRules.OLD_TRADES), Config.read(TOWNS_FILE, TradeRules.DEFAULT_TOWNS),
+			problems);
 		problems.forEach(p -> SkyCraft.LOG.warn("SkyCraft-trade: {}", p));
-		SkyCraft.LOG.info("SkyCraft-trade: {} trades and {} towns loaded", rules.trades().size(), rules.towns().size());
+		SkyCraft.LOG.info("SkyCraft-trade: {} trades, {} gold prices and {} towns loaded", rules.trades().size(), rules.gold().size(), rules.towns().size());
 		return rules;
+	}
+
+	/**
+	 * The vendor mask a Skyrim actor's stand-in gets: Skyrim's own (ActorRecord.vendor), or for an actor Skyrim doesn't make
+	 * a merchant but the trades file names as a dealer (Kharjo, who guards Ahkari's caravan), TradeRules.DEALER_ONLY, so
+	 * an empty-hand click opens its dealer shop. Server thread, for every actor in the table.
+	 */
+	public static int vendorOf(SkyLink.Actor actor) {
+		if (actor.vendor() != 0 || !dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.MERCHANTS)) {
+			return actor.vendor();
+		}
+		return rules().dealerCategories(actor.name()).isEmpty() ? 0 : TradeRules.DEALER_ONLY;
+	}
+
+	/**
+	 * A stack as the trades file names it ({@code minecraft:bread}, {@code minecraft:potion[skycraft:skooma]}), or null
+	 * (and a warning, once) for an item or potion this game doesn't have.
+	 */
+	static @Nullable ItemStack stack(String id, int count) {
+		Item item = item(TradeRules.baseItem(id));
+		if (item == null) {
+			return null;
+		}
+		ItemStack stack = new ItemStack(item, count);
+		String potionId = TradeRules.potionOf(id);
+		if (potionId != null) {
+			Holder<Potion> potion = BuiltInRegistries.POTION.get(Identifier.parse(potionId)).orElse(null);
+			if (potion == null) {
+				if (WARNED.add(id)) {
+					SkyCraft.LOG.warn("SkyCraft-trade: unknown potion '{}' in {}, trade skipped", potionId, TRADES_FILE);
+				}
+				return null;
+			}
+			stack.set(DataComponents.POTION_CONTENTS, new PotionContents(Optional.of(potion), Optional.empty(), List.of(), Optional.empty()));
+		}
+		return stack;
+	}
+
+	/**
+	 * A held stack as the trades file names its item: {@code minecraft:iron_ingot}, or with the potion it holds,
+	 * {@code minecraft:potion[skycraft:skooma]}.
+	 */
+	static String idOf(ItemStack stack) {
+		String id = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+		PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
+		if (contents != null && TradeRules.POTION_ITEMS.contains(id) && contents.potion().isPresent()) {
+			Identifier potion = BuiltInRegistries.POTION.getKey(contents.potion().get().value());
+			if (potion != null) {
+				return id + "[" + potion + "]";
+			}
+		}
+		return id;
 	}
 
 	private static String useKey(TradeRules.Offer o) {
@@ -158,10 +220,11 @@ public final class SkyTrade implements Merchant {
 	}
 
 	private static @Nullable MerchantOffer toMerchantOffer(TradeRules.Offer o, TradeRules.Town where, int used) {
-		Item goods = item(o.item());
-		if (goods == null) {
+		ItemStack goodsStack = stack(o.item(), 1);
+		if (goodsStack == null) {
 			return null;
 		}
+		Item goods = goodsStack.getItem();
 		// A trade can't take or give more than one stack; the price shrinks with the count.
 		int count = Math.min(o.count(), new ItemStack(goods).getMaxStackSize());
 		int price = TradeRules.priceFor(o, count);
@@ -189,7 +252,7 @@ public final class SkyTrade implements Merchant {
 				}
 				second = Optional.of(new ItemCost(change, pay.get(1).count()));
 			}
-			return new MerchantOffer(new ItemCost(first, pay.getFirst().count()), second, new ItemStack(goods, count), used, MAX_USES, 0, 0.0F);
+			return new MerchantOffer(new ItemCost(first, pay.getFirst().count()), second, stack(o.item(), count), used, MAX_USES, 0, 0.0F);
 		}
 		Currency.Pay pay = Currency.payout(price, money);
 		Item coin = item(pay.item());

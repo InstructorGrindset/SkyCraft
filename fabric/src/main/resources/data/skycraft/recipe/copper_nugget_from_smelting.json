@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smelting",
+  "cookingtime": 200,
+  "experience": 0.1,
+  "ingredient": [
+    "skycraft:dwarven_sword",
+    "skycraft:dwarven_war_axe",
+    "skycraft:dwarven_helmet",
+    "skycraft:dwarven_cuirass",
+    "skycraft:dwarven_greaves",
+    "skycraft:dwarven_boots"
+  ],
+  "result": {
+    "id": "minecraft:copper_nugget"
+  }
+}
