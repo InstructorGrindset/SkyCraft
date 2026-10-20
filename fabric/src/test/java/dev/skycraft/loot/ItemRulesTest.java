@@ -568,7 +568,7 @@ class ItemRulesTest {
 		assertEquals("minecraft:iron_shovel 1", item(rules, "", "none", "Shovel"));
 		assertEquals("minecraft:iron_hoe 1", item(rules, "", "none", "Pitchfork"));
 		assertEquals("minecraft:iron_pickaxe 1", item(rules, "weapon", "iron", "Pickaxe"));
-		assertEquals("minecraft:iron_pickaxe 1", convert(rules, tags("weapon"), material("iron"), CORPSE, "Notched Pickaxe"));
+		assertEquals("minecraft:iron_pickaxe{unbreaking:3} 1", convert(rules, tags("weapon"), material("iron"), CORPSE, "Notched Pickaxe"));
 		assertEquals("minecraft:iron_axe 1", convert(rules, tags("weapon"), material("iron"), BOUGHT, "Woodcutter's Axe"));
 		assertEquals("minecraft:fishing_rod 1", item(rules, "weapon", "none", "Fishing Rod"));
 		assertEquals("minecraft:bone 2", item(rules, "ingredient", "none", "Large Antlers"));
@@ -738,6 +738,33 @@ class ItemRulesTest {
 		// Plain gear of the same name still salvages or is bought as before.
 		assertEquals("skycraft:ebony_ingot 1", convert(rules, tags("weapon"), material("ebony"), CORPSE, "Ebony Sword"));
 		assertEquals("skycraft:ebony_sword 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, "Ebony Sword"));
+	}
+
+	@Test
+	void namedArtifactsAreNamedMinecraftGear() {
+		ItemRules rules = defaults();
+		ItemRules.Result dawnbreaker = rules.match(new ItemRules.Item(tags("weapon"), 0, WORLD, "Dawnbreaker"));
+		assertEquals("skycraft:glass_sword{fire_aspect:2+smite:3} 1", dawnbreaker.describe());
+		assertEquals("Dawnbreaker", dawnbreaker.name());
+		assertEquals("minecraft:mace{breach:3} 1", convert(rules, tags("weapon"), 0, CORPSE, "Mace of Molag Bal"));
+		assertEquals("minecraft:bow{power:3+flame:1} 1", convert(rules, tags("weapon"), material("elven"), WORLD, "Auriel's Bow"));
+		assertEquals("Zephyr", rules.match(new ItemRules.Item(tags("weapon"), material("dwarven"), CONTAINER, "Zephyr")).name());
+		assertEquals("skycraft:steel_sword{sharpness:2+mending:1} 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Gauldur Blackblade"));
+		assertEquals("skycraft:ebony_cuirass{thorns:3} 1", convert(rules, tags("armor"), material("ebony"), WORLD, "Ebony Mail"));
+		assertEquals("minecraft:shield{unbreaking:3} 1", convert(rules, tags("armor"), 0, WORLD, "Spellbreaker"));
+		assertEquals("skycraft:daedric_helmet{protection:4+thorns:2} 1", convert(rules, tags("armor"), 0, CORPSE, "Konahrik"));
+		ItemRules.Result cowl = rules.match(new ItemRules.Item(tags("armor"), 0, WORLD, "Gray Cowl of Nocturnal"));
+		assertEquals("Gray Cowl of Nocturnal", cowl.name());
+		assertEquals(0x4A4A4F, cowl.color());
+		assertEquals("skycraft:ebony_boots{feather_falling:3} 1", convert(rules, tags("armor"), 0, CONTAINER, "Nightingale Boots"));
+		// The guards' shields aren't the Shield of Solitude, and the Reforged Crusader pieces aren't the relics.
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), 0, CORPSE, "Solitude Guard's Shield"));
+		assertEquals("minecraft:chainmail_chestplate 1", convert(rules, tags("armor"), 0, WORLD, sent("Reforged Cuirass of the Crusader")));
+		// Staffs and the other spell casters stay: nothing in Minecraft casts their spells.
+		for (String staff : List.of("Wabbajack", "Sanguine Rose", "Skull of Corruption", "Staff of Magnus", "Miraak's Staff", "Staff of Fireballs")) {
+			assertEquals("keep", convert(rules, tags("weapon"), 0, WORLD, staff), staff);
+		}
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, WORLD, "Azura's Star"));
 	}
 
 	@Test

@@ -48,6 +48,12 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   gives Skyrim's death camera with your Minecraft body ragdolling.
 - **Skyrim's own animations:** chairs, crafting stations, beds, pull levers, horses and scripted
   scenes hand control to Skyrim until they finish.
+- **Skyrim loot becomes Minecraft items:** food, drinks, potions, ores, gems, hides, ingredients,
+  scrolls and household goods you loot or buy in Skyrim turn into their Minecraft counterparts.
+  Gear salvages into its smithing material or, bought, becomes SkyCraft gear; enchanted gear keeps
+  its enchantment, and Daedric artifacts become named Minecraft gear (Dawnbreaker is a glass sword
+  with Fire Aspect and Smite). Clothing is dyed leather armor, plain rings and necklaces melt into
+  nuggets and gems. The full list is in [docs/CONVERSIONS.md](docs/CONVERSIONS.md).
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
 

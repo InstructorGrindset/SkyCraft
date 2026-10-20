@@ -399,6 +399,156 @@ tag ingredient name pygmy name sunfish = minecraft:tropical_fish 1
 tag ingredient name spadefish = minecraft:tropical_fish 1
 tag ingredient name glassfish = minecraft:tropical_fish 1
 
+# Named weapons and armor, from anywhere: Daedric artifacts and unique gear become Minecraft gear
+# of the nearest tier with its Skyrim name and the enchantments closest to its own (see
+# "Enchanted weapons and armor" below). Staffs, Azura's Star, the Black Star and the other pure
+# magic items stay in Skyrim: nothing in Minecraft casts their spells.
+# Weapons
+tag weapon name dawnbreaker = skycraft:glass_sword{fire_aspect:2 + smite:3 "Dawnbreaker"} 1
+tag weapon name chillrend = skycraft:glass_sword{knockback:2 "Chillrend"} 1
+tag weapon name ebony name blade = skycraft:ebony_sword{sharpness:3 + mending:1 "Ebony Blade"} 1
+tag weapon name mehrunes' name razor = skycraft:daedric_sword{sharpness:3 "Mehrunes' Razor"} 1
+tag weapon name blade name woe = skycraft:ebony_sword{sharpness:2 "Blade of Woe"} 1
+tag weapon name keening = skycraft:elven_sword{sharpness:2 "Keening"} 1
+tag weapon name mace name molag name bal = minecraft:mace{breach:3 "Mace of Molag Bal"} 1
+tag weapon name volendrung = minecraft:mace{density:3 + mending:1 "Volendrung"} 1
+tag weapon name wuuthrad = skycraft:ebony_war_axe{sharpness:3 "Wuuthrad"} 1
+tag weapon name rueful = skycraft:ebony_war_axe{unbreaking:2 "Rueful Axe"} 1
+tag weapon name dragonbane = skycraft:glass_sword{sharpness:3 "Dragonbane"} 1
+tag weapon name oathblade = skycraft:orcish_sword{knockback:2 "Bolar's Oathblade"} 1
+tag weapon name ghostblade = skycraft:glass_sword{sharpness:3 "Ghostblade"} 1
+tag weapon name nightingale name blade = skycraft:ebony_sword{sharpness:2 + mending:1 "Nightingale Blade"} 1
+tag weapon name windshear = skycraft:orcish_sword{knockback:2 "Windshear"} 1
+tag weapon name blackblade = skycraft:steel_sword{sharpness:2 + mending:1 "Gauldur Blackblade"} 1
+tag weapon name pale name blade = skycraft:steel_sword{knockback:2 "The Pale Blade"} 1
+tag weapon name eagle's name fury = skycraft:steel_sword{"Red Eagle's Fury"} 1
+tag weapon name eagle's name bane = skycraft:steel_sword{fire_aspect:1 + smite:2 "Red Eagle's Bane"} 1
+tag weapon name eduj = skycraft:steel_sword{"Eduj"} 1
+tag weapon name okin = skycraft:steel_war_axe{"Okin"} 1
+tag weapon name grimsever = skycraft:glass_sword{knockback:1 "Grimsever"} 1
+tag weapon name harkon's = skycraft:steel_sword{sharpness:2 + mending:1 "Harkon's Sword"} 1
+tag weapon name freydis's = skycraft:steel_sword{"Queen Freydis's Sword"} 1
+tag weapon name herebane's = skycraft:elven_sword{"Herebane's Courage"} 1
+tag weapon name miraak's name sword = skycraft:daedric_sword{mending:1 "Miraak's Sword"} 1
+tag weapon name bloodskal = skycraft:glass_sword{sweeping_edge:3 "Bloodskal Blade"} 1
+tag weapon name stormfang = skycraft:steel_sword{"Stormfang"} 1
+tag weapon name drainheart = skycraft:orcish_sword{sharpness:1 + mending:1 "Drainheart Sword"} 1
+tag weapon name drainblood = skycraft:orcish_war_axe{sharpness:1 + mending:1 "Drainblood Battleaxe"} 1
+tag weapon name soulrender = skycraft:ebony_sword{"Soulrender"} 1
+tag weapon name bloodscythe = skycraft:ebony_sword{"Bloodscythe"} 1
+tag weapon name bloodthorn = skycraft:steel_sword{looting:2 "Bloodthorn"} 1
+tag weapon name borvir's = skycraft:elven_sword{"Borvir's Dagger"} 1
+tag weapon name blade name sacrifice = skycraft:ebony_sword{"Blade of Sacrifice"} 1
+tag weapon name kahvozein's = skycraft:steel_sword{"Kahvozein's Fang"} 1
+tag weapon name nettlebane = skycraft:orcish_sword{bane_of_arthropods:3 "Nettlebane"} 1
+tag weapon name rundi's = skycraft:steel_sword{"Rundi's Dagger"} 1
+tag weapon name valdr's = skycraft:steel_sword{looting:2 "Valdr's Lucky Dagger"} 1
+tag weapon name shiv = skycraft:iron_sword{"Shiv"} 1
+tag weapon name ghorbash's = skycraft:iron_war_axe{"Ghorbash's Ancestral Axe"} 1
+tag weapon name ulfric's name axe = skycraft:steel_war_axe{"Ulfric's War Axe"} 1
+tag weapon name headsman's = skycraft:steel_war_axe{"Headsman's Axe"} 1
+tag weapon name woodsman's = skycraft:steel_war_axe{efficiency:3 "The Woodsman's Friend"} 1
+tag weapon name fiery name battleaxe = skycraft:steel_war_axe{sharpness:1 + fortune:1 "Steel Battleaxe of Fiery Souls"} 1
+tag weapon name aegisbane = skycraft:iron_war_axe{"Aegisbane"} 1
+tag weapon name trollsbane = skycraft:steel_war_axe{"Trollsbane"} 1
+tag weapon name longhammer = skycraft:orcish_war_axe{"The Longhammer"} 1
+tag weapon name prelate's = skycraft:elven_war_axe{"Prelate's Mace"} 1
+tag weapon name horksbane = skycraft:steel_war_axe{"Horksbane"} 1
+tag weapon name champion's name cudgel = skycraft:glass_war_axe{"Champion's Cudgel"} 1
+tag weapon name umbra = skycraft:daedric_sword{looting:3 + sharpness:2 + mending:1 "Umbra"} 1
+tag weapon name goldbrand = skycraft:ebony_sword{fire_aspect:2 "Goldbrand"} 1
+tag weapon name chrysamere = skycraft:ebony_sword{mending:1 "Chrysamere"} 1
+tag weapon name sunder = minecraft:mace{fire_aspect:1 + breach:2 "Sunder"} 1
+tag weapon name nerveshatter = skycraft:daedric_war_axe{sharpness:3 "Nerveshatter"} 1
+tag weapon name jyggalag = skycraft:glass_sword{"Sword of Jyggalag"} 1
+tag weapon name trueflame = skycraft:ebony_sword{fire_aspect:2 "Trueflame"} 1
+tag weapon name hopesfire = skycraft:ebony_sword{"Hopesfire"} 1
+tag weapon name light name day = skycraft:glass_sword{smite:3 "Light of Day"} 1
+tag weapon name skull name crusher = skycraft:ebony_war_axe{"Skull Crusher"} 1
+tag weapon name cleaver name felms = skycraft:glass_war_axe{"Cleaver of St. Felms"} 1
+# Bows
+tag weapon name auriel's name bow = minecraft:bow{power:3 + flame:1 "Auriel's Bow"} 1
+tag weapon name zephyr = minecraft:bow{"Zephyr"} 1
+tag weapon name nightingale name bow = minecraft:bow{power:2 + punch:1 "Nightingale Bow"} 1
+tag weapon name blackbow = minecraft:bow{power:1 + mending:1 "Gauldur Blackbow"} 1
+tag weapon name drainspell = minecraft:bow{mending:1 "Drainspell Bow"} 1
+tag weapon name bow name hunt = minecraft:bow{power:2 "Bow of the Hunt"} 1
+tag weapon name firiniel's = minecraft:bow{"Firiniel's End"} 1
+tag weapon name froki's = minecraft:bow{"Froki's Bow"} 1
+tag weapon name angi's = minecraft:bow{"Angi's Bow"} 1
+tag weapon name glass name stag = minecraft:bow{"Glass Bow of the Stag Prince"} 1
+tag weapon name black name fate = minecraft:bow{"Dwarven Black Bow of Fate"} 1
+tag weapon name bow name shadows = minecraft:bow{"Bow of Shadows"} 1
+tag weapon name ruin's name edge = minecraft:bow{"Ruin's Edge"} 1
+# More swords
+tag weapon name dawnfang = skycraft:ebony_sword{fire_aspect:2 "Dawnfang"} 1
+tag weapon name duskfang = skycraft:ebony_sword{knockback:2 "Duskfang"} 1
+# Tools
+tag weapon name notched name pickaxe = minecraft:iron_pickaxe{unbreaking:3 "Notched Pickaxe"} 1
+tag weapon name ancient name nordic name pickaxe = minecraft:diamond_pickaxe{"Ancient Nordic Pickaxe"} 1
+tag weapon name poacher's = minecraft:iron_axe{"Poacher's Axe"} 1
+# Armor and shields
+tag armor name reforged name cuirass = minecraft:chainmail_chestplate{"Reforged Cuirass of the Crusader"} 1
+tag armor name reforged name boots = minecraft:chainmail_boots{"Reforged Boots of the Crusader"} 1
+tag armor name reforged name gauntlets = minecraft:chainmail_leggings{"Reforged Gauntlets of the Crusader"} 1
+tag armor name ebony name mail = skycraft:ebony_cuirass{thorns:3 "Ebony Mail"} 1
+tag armor name savior's name hide = minecraft:leather_chestplate{protection:2 "Savior's Hide"} 1
+tag armor name spellbreaker = minecraft:shield{unbreaking:3 "Spellbreaker"} 1
+tag armor name masque name clavicus = minecraft:golden_helmet{unbreaking:2 + mending:1 "Masque of Clavicus Vile"} 1
+tag armor name jagged name crown = minecraft:golden_helmet{protection:2 "Jagged Crown"} 1
+tag armor name helm name yngol = skycraft:steel_helmet{protection:1 "Helm of Yngol"} 1
+tag armor name helmet name unbur = skycraft:steel_helmet{fire_protection:3 "Ancient Helmet of the Unburned"} 1
+tag armor name shield name ysgramor = minecraft:shield{unbreaking:3 "Shield of Ysgramor"} 1
+tag armor name targe name blooded = minecraft:shield{unbreaking:1 "Targe of the Blooded"} 1
+tag armor name shield name of name solitude = minecraft:shield{unbreaking:2 "Shield of Solitude"} 1
+tag armor name predator's name grace = minecraft:leather_boots{feather_falling:2 "Predator's Grace"} 1
+tag armor name tumblerbane = minecraft:leather_leggings{unbreaking:2 "Tumblerbane Gloves"} 1
+tag armor name gray name cowl = minecraft:leather_helmet{protection:1 #4a4a4f "Gray Cowl of Nocturnal"} 1
+tag armor name wraithguard = skycraft:dwarven_greaves{protection:3 "Wraithguard"} 1
+tag armor name blinding name speed = minecraft:leather_boots{feather_falling:1 "Boots of Blinding Speed"} 1
+tag armor name visage name mzund = skycraft:dwarven_helmet{mending:1 "Visage of Mzund"} 1
+tag armor name auriel's name shield = minecraft:shield{unbreaking:3 "Auriel's Shield"} 1
+tag armor name wooden name mask = minecraft:carved_pumpkin{"Wooden Mask"} 1
+tag armor name tullius' = skycraft:steel_cuirass{"General Tullius' Armor"} 1
+# Dragon Priest masks
+tag armor name konahrik = skycraft:daedric_helmet{protection:4 + thorns:2 "Konahrik"} 1
+tag armor name hevnoraak = skycraft:daedric_helmet{protection:2 "Hevnoraak"} 1
+tag armor name krosis = skycraft:elven_helmet{projectile_protection:2 + unbreaking:2 "Krosis"} 1
+tag armor name morokei = skycraft:glass_helmet{mending:1 "Morokei"} 1
+tag armor name nahkriin = skycraft:ebony_helmet{mending:1 "Nahkriin"} 1
+tag armor name otar = skycraft:dwarven_helmet{protection:3 "Otar"} 1
+tag armor name rahgot = skycraft:orcish_helmet{unbreaking:3 "Rahgot"} 1
+tag armor name vokun = skycraft:ebony_helmet{mending:1 "Vokun"} 1
+tag armor name volsung = minecraft:golden_helmet{respiration:3 + aqua_affinity:1 + unbreaking:2 "Volsung"} 1
+tag armor name ahzidal = skycraft:daedric_helmet{protection:2 "Ahzidal"} 1
+tag armor name dukaan = minecraft:diamond_helmet{protection:2 "Dukaan"} 1
+tag armor name zahkriisos = skycraft:glass_helmet{blast_protection:2 "Zahkriisos"} 1
+tag armor name miraak = skycraft:glass_helmet{protection:2 + mending:1 "Miraak"} 1
+# Unique sets
+tag armor name ahzidal's name armor = skycraft:steel_cuirass{thorns:2 "Ahzidal's Armor of Retribution"} 1
+tag armor name ahzidal's name helm = skycraft:steel_helmet{protection:1 "Ahzidal's Helm of Vision"} 1
+tag armor name ahzidal's name boots = skycraft:steel_boots{frost_walker:2 "Ahzidal's Boots of Waterwalking"} 1
+tag armor name ahzidal's name gauntlets = skycraft:steel_greaves{protection:1 "Ahzidal's Gauntlets of Warding"} 1
+tag armor name deathbrand name armor = skycraft:ebony_cuirass{protection:2 "Deathbrand Armor"} 1
+tag armor name deathbrand name helm = skycraft:ebony_helmet{respiration:3 "Deathbrand Helm"} 1
+tag armor name deathbrand name boots = skycraft:ebony_boots{feather_falling:2 "Deathbrand Boots"} 1
+tag armor name deathbrand name gauntlets = skycraft:ebony_greaves{thorns:2 "Deathbrand Gauntlets"} 1
+tag armor name nightingale name armor = skycraft:ebony_cuirass{protection:2 + unbreaking:2 "Nightingale Armor"} 1
+tag armor name nightingale name hood = skycraft:ebony_helmet{protection:1 + mending:1 "Nightingale Hood"} 1
+tag armor name nightingale name boots = skycraft:ebony_boots{feather_falling:3 "Nightingale Boots"} 1
+tag armor name nightingale name gloves = skycraft:ebony_greaves{thorns:2 + unbreaking:2 "Nightingale Gloves"} 1
+tag armor name ancient name shrouded name armor = skycraft:ebony_cuirass{protection:2 "Ancient Shrouded Armor"} 1
+tag armor name ancient name shrouded name cowl = skycraft:ebony_helmet{projectile_protection:2 "Ancient Shrouded Cowl"} 1
+tag armor name ancient name shrouded name boots = skycraft:ebony_boots{feather_falling:3 "Ancient Shrouded Boots"} 1
+tag armor name ancient name shrouded name gloves = skycraft:ebony_greaves{thorns:2 "Ancient Shrouded Gloves"} 1
+tag armor name miraak's name boots = minecraft:leather_boots{protection:1 #3d3324 "Miraak's Boots"} 1
+tag armor name miraak's name gloves = minecraft:leather_leggings{mending:1 #3d3324 "Miraak's Gloves"} 1
+tag armor name cuirass name crusader = minecraft:diamond_chestplate{protection:2 "Cuirass of the Crusader"} 1
+tag armor name helm name crusader = minecraft:diamond_helmet{protection:1 "Helm of the Crusader"} 1
+tag armor name boots name crusader = minecraft:diamond_boots{protection:1 "Boots of the Crusader"} 1
+tag armor name gauntlets name crusader = minecraft:diamond_leggings{thorns:2 "Gauntlets of the Crusader"} 1
+tag armor name shield name crusader = minecraft:shield{unbreaking:2 "Shield of the Crusader"} 1
+
 # Enchanted weapons and armor keep their enchantment, from anywhere: the gear of their material's
 # tier (Imperial and Ancient Nord are steel, Falmer orcish, silver iron, dragon daedric, hide and
 # leather Minecraft leather, Nordic orcish, Stalhrim ebony) with the nearest Minecraft enchantment,

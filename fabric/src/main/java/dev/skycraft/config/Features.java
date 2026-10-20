@@ -15,7 +15,7 @@ public final class Features {
 	public enum Feature {
 		KILL_DROPS("kill_drops", "Skyrim creatures you kill drop Minecraft items as their Minecraft counterparts would, Looting included (skycraft-loot.txt)"),
 		KILL_XP("kill_xp", "Skyrim kills drop Minecraft XP orbs"),
-		ITEM_CONVERSION("item_conversion", "loot picked up in Skyrim becomes Minecraft items (skycraft-items.txt)"),
+		ITEM_CONVERSION("item_conversion", "loot picked up, looted or bought in Skyrim becomes Minecraft items: enchanted gear keeps its enchantment, artifacts their name, clothing is dyed leather armor (skycraft-items.txt)"),
 		DUNGEON_CHESTS("dungeon_chests", "first loot of a dungeon chest also rolls a Minecraft chest (skycraft-dungeons.txt)"),
 		MERCHANTS("merchants", "right click a Skyrim vendor with an empty hand to trade (skycraft-trades.txt, skycraft-towns.txt)"),
 		TIME_SYNC("time_sync", "Minecraft's clock follows Skyrim's"),

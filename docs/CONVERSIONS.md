@@ -596,6 +596,155 @@ Bought, it's the gear of the nearest tier; looted, it salvages into what it's ma
 - 2: horse armor: taken over by the household rules
 <!-- /gen:left -->
 
+## Named artifacts and unique gear
+
+The Daedric artifacts and Skyrim's unique weapons and armor become unique Minecraft gear, from anywhere (a quest's reward arrives as picked up): the gear of the nearest tier, with their Skyrim name and the enchantments the tables below give their own. Dawnbreaker's fire and its undead-blasting flare are Fire Aspect and Smite on a glass sword; the Mace of Molag Bal and Volendrung are Minecraft maces; the Ebony Mail's poison cloak is Thorns; the Gray Cowl is a grey leather hood. A Minecraft shield takes only Unbreaking and Mending, so the artifact shields are Unbreaking shields. Nothing is netherite: Konahrik, the best of the Dragon Priest masks, is a daedric helmet.
+
+Staffs and the other pure magic items stay in Skyrim, since nothing in Minecraft casts their spells: the Wabbajack, the Sanguine Rose, the Skull of Corruption, the Staff of Magnus, Miraak's Staff and every other staff, Azura's Star and the Black Star (soul gems), the Oghma Infinium (a book), and the Daedric rings and amulets (unique jewelry).
+
+<!-- gen:named -->
+| Item | Becomes | Why |
+|---|---|---|
+| Dawnbreaker | SkyCraft glass_sword (Fire Aspect II, Smite III) "Dawnbreaker" | Meridia's sun blade (12 damage, the glass sword's): burns, and its undead-blasting flare is Smite |
+| Chillrend | SkyCraft glass_sword (Knockback II) "Chillrend" | Mercer Frey's glass sword: frost and paralysis both map to Knockback |
+| Ebony Blade | SkyCraft ebony_sword (Sharpness III, Mending) "Ebony Blade" | Mephala's ebony katana drinks its victims' health: Absorb Health is Sharpness, topped with Mending |
+| Mehrunes' Razor | SkyCraft daedric_sword (Sharpness III) "Mehrunes' Razor" | Mehrunes Dagon's daedric dagger (11 damage, a daedric dagger's) |
+| Blade of Woe | SkyCraft ebony_sword (Sharpness II) "Blade of Woe" | The Dark Brotherhood's black dagger (12 damage, above any ebony dagger) |
+| Keening | SkyCraft elven_sword (Sharpness II) "Keening" | Kagrenac's Dwemer-Falmer dagger (8 damage, an elven dagger's) |
+| Mace of Molag Bal | mace (Breach III) "Mace of Molag Bal" | Molag Bal's spiked mace is Minecraft's mace |
+| Volendrung | mace (Density III, Mending) "Volendrung" | Malacath's great hammer: the heavy smash weapon is Minecraft's mace |
+| Wuuthrad | SkyCraft ebony_war_axe (Sharpness III) "Wuuthrad" | Ysgramor's dark battleaxe (25 damage) |
+| Rueful Axe | SkyCraft ebony_war_axe (Unbreaking II) "Rueful Axe" | Clavicus Vile's two-handed axe (22 damage, improved with ebony) |
+| Dragonbane | SkyCraft glass_sword (Sharpness III) "Dragonbane" | The Blades' leveled katana (10 to 14 damage) |
+| Bolar's Oathblade | SkyCraft orcish_sword (Knockback II) "Bolar's Oathblade" | A cut above steel (11 damage, improved with quicksilver) |
+| Ghostblade | SkyCraft glass_sword (Sharpness III) "Ghostblade" | A weightless, translucent spirit blade that ignores armor, so it hits far above its listed 8 damage |
+| Nightingale Blade | SkyCraft ebony_sword (Sharpness II, Mending) "Nightingale Blade" | Nocturnal's agent's black sword (up to 14 damage, improved with ebony): absorbs health and stamina |
+| Windshear | SkyCraft orcish_sword (Knockback II) "Windshear" | A scimitar a cut above steel (11 damage) |
+| Gauldur Blackblade | SkyCraft steel_sword (Sharpness II, Mending) "Gauldur Blackblade" | Ancient Nord blade of the Gauldur sons (draugr gear is steel) |
+| The Pale Blade | SkyCraft steel_sword (Knockback II) "The Pale Blade" | Ancient Nord sword of the Forsworn Pact (draugr gear is steel) |
+| Red Eagle's Fury | SkyCraft steel_sword "Red Eagle's Fury" | Red Eagle's unenchanted Ancient Nord style sword (8 damage, a steel sword's) |
+| Red Eagle's Bane | SkyCraft steel_sword (Fire Aspect I, Smite II) "Red Eagle's Bane" | Red Eagle's sword reforged at the Sunderstone: burns and turns undead |
+| Eduj | SkyCraft steel_sword "Eduj" | Ancient Nord sword from Valthume (improved with steel) |
+| Okin | SkyCraft steel_war_axe "Okin" | Eduj's twin, an Ancient Nord war axe from Valthume (improved with steel) |
+| Grimsever | SkyCraft glass_sword (Knockback I) "Grimsever" | Mjoll's sword (12 damage, improved with refined malachite) |
+| Harkon's Sword | SkyCraft steel_sword (Sharpness II, Mending) "Harkon's Sword" | The vampire lord's sword (8 damage, steel) absorbs health, magicka and stamina |
+| Queen Freydis's Sword | SkyCraft steel_sword "Queen Freydis's Sword" | An old queen's plain steel sword (8 damage) |
+| Herebane's Courage | SkyCraft elven_sword "Herebane's Courage" | Unique sword improved with refined moonstone (11 damage, an elven sword's) |
+| Miraak's Sword | SkyCraft daedric_sword (Mending) "Miraak's Sword" | The First Dragonborn's tentacled blade (16 damage, forged with a Daedra heart) |
+| Bloodskal Blade | SkyCraft glass_sword (Sweeping Edge III) "Bloodskal Blade" | The Bloodskal greatsword (21 damage, a glass greatsword's): its power-attack energy wave is Sweeping Edge |
+| Stormfang | SkyCraft steel_sword "Stormfang" | Unique steel greatsword (17 damage, a steel greatsword's) |
+| Drainheart Sword | SkyCraft orcish_sword (Sharpness I, Mending) "Drainheart Sword" | A draining sword (11 damage, no smithing material) |
+| Drainblood Battleaxe | SkyCraft orcish_war_axe (Sharpness I, Mending) "Drainblood Battleaxe" | A draining battleaxe (21 damage, no smithing material) |
+| Soulrender | SkyCraft ebony_sword "Soulrender" | Unique daedric-style sword (13 damage, an ebony sword's, improved with ebony) |
+| Bloodscythe | SkyCraft ebony_sword "Bloodscythe" | Unique daedric-style sword (13 damage, an ebony sword's, improved with ebony) |
+| Bloodthorn | SkyCraft steel_sword (Looting II) "Bloodthorn" | A thorned steel dagger that soul traps: Soul Trap is Looting |
+| Borvir's Dagger | SkyCraft elven_sword "Borvir's Dagger" | Unique dagger improved with refined moonstone (8 damage, an elven dagger's) |
+| Blade of Sacrifice | SkyCraft ebony_sword "Blade of Sacrifice" | Ritual dagger improved with ebony (10 damage, an ebony dagger's) |
+| Kahvozein's Fang | SkyCraft steel_sword "Kahvozein's Fang" | The ancient dragon-priest dagger that harvests heartscales (Ancient Nord work is steel) |
+| Nettlebane | SkyCraft orcish_sword (Bane of Arthropods III) "Nettlebane" | A hooked dagger (6 damage, an orcish dagger's) made to cut down Spriggans and Hagravens: a bane weapon |
+| Rundi's Dagger | SkyCraft steel_sword "Rundi's Dagger" | A steel dagger left in a tomb (5 damage, a steel dagger's) |
+| Valdr's Lucky Dagger | SkyCraft steel_sword (Looting II) "Valdr's Lucky Dagger" | A lucky steel dagger: luck in Minecraft is Looting |
+| Shiv | SkyCraft iron_sword "Shiv" | The crude prison shank from Cidhna Mine |
+| Ghorbash's Ancestral Axe | SkyCraft iron_war_axe "Ghorbash's Ancestral Axe" | Ghorbash's family war axe (8 damage, improved with iron) |
+| Ulfric's War Axe | SkyCraft steel_war_axe "Ulfric's War Axe" | Ulfric Stormcloak's steel war axe, looted at the end of the war (it would salvage to a steel ingot) |
+| Headsman's Axe | SkyCraft steel_war_axe "Headsman's Axe" | Solitude's executioner's axe (17 damage, a steel battleaxe's) |
+| The Woodsman's Friend | SkyCraft steel_war_axe (Efficiency III) "The Woodsman's Friend" | A woodsman's battleaxe (17 damage): the axe that also fells trees fast |
+| Steel Battleaxe of Fiery Souls | SkyCraft steel_war_axe (Sharpness I, Fortune I) "Steel Battleaxe of Fiery Souls" | One-of-a-kind enchanted steel battleaxe |
+| Aegisbane | SkyCraft iron_war_axe "Aegisbane" | Unique warhammer improved with iron (18 damage, an iron warhammer's) |
+| Trollsbane | SkyCraft steel_war_axe "Trollsbane" | Unique steel warhammer (20 damage, a steel warhammer's) |
+| The Longhammer | SkyCraft orcish_war_axe "The Longhammer" | Light, fast warhammer improved with orichalcum (21 damage, an orcish warhammer's) |
+| Prelate's Mace | SkyCraft elven_war_axe "Prelate's Mace" | Unique mace improved with refined moonstone (13 damage, an elven mace's) |
+| Horksbane | SkyCraft steel_war_axe "Horksbane" | Unique steel mace from Solstheim (10 damage, a steel mace's) |
+| Champion's Cudgel | SkyCraft glass_war_axe "Champion's Cudgel" | Unique warhammer (24 damage, a glass warhammer's) |
+| Umbra | SkyCraft daedric_sword (Looting III, Sharpness II, Mending) "Umbra" | Clavicus Vile's soul-stealing blade: Soul Trap is Looting, absorbing health and stamina Sharpness and Mending |
+| Goldbrand | SkyCraft ebony_sword (Fire Aspect II) "Goldbrand" | Boethiah's fire katana, a step above Dawnbreaker |
+| Chrysamere | SkyCraft ebony_sword (Mending) "Chrysamere" | The Paladin's Blade, a legendary claymore |
+| Sunder | mace (Fire Aspect I, Breach II) "Sunder" | Kagrenac's hammer is Minecraft's mace: elemental hits and stamina/magicka damage are Fire Aspect and Breach |
+| Nerveshatter | SkyCraft daedric_war_axe (Sharpness III) "Nerveshatter" | Madness warhammer (29 damage) with heavy shock damage: shock is Sharpness |
+| Sword of Jyggalag | SkyCraft glass_sword "Sword of Jyggalag" | The Prince of Order's crystalline sword (unenchanted) |
+| Trueflame | SkyCraft ebony_sword (Fire Aspect II) "Trueflame" | Nerevar's flaming blade |
+| Hopesfire | SkyCraft ebony_sword "Hopesfire" | Nerevar's other legendary blade, a quest reward from the Tribunal Temple |
+| Light of Day | SkyCraft glass_sword (Smite III) "Light of Day" | The undead-burning blade from the Tribunal armory: Smite |
+| Skull Crusher | SkyCraft ebony_war_axe "Skull Crusher" | Great warhammer from the Tribunal armory |
+| Cleaver of St. Felms | SkyCraft glass_war_axe "Cleaver of St. Felms" | Saint Felms the Bold's axe from the Tribunal armory |
+| Auriel's Bow | bow (Power III, Flame) "Auriel's Bow" | Auriel's Elder Scroll bow: its sun damage burns (Flame) and hits hardest at the undead (Power) |
+| Zephyr | bow "Zephyr" | The fast-drawing Dwemer bow |
+| Nightingale Bow | bow (Power II, Punch I) "Nightingale Bow" | Nocturnal's bow of frost and shock: shock is Power, frost Punch |
+| Gauldur Blackbow | bow (Power I, Mending) "Gauldur Blackbow" | Gauldur's son's leveled bow: shock is Power, absorbing magicka Mending |
+| Drainspell Bow | bow (Mending) "Drainspell Bow" | A bow that drains magicka: absorbing is Mending |
+| Bow of the Hunt | bow (Power II) "Bow of the Hunt" | A hunter's bow with Huntsman's Prowess: Power |
+| Firiniel's End | bow "Firiniel's End" | The elven bow that killed Firiniel, keeping its name |
+| Froki's Bow | bow "Froki's Bow" | Old Froki's long bow, keeping its name |
+| Angi's Bow | bow "Angi's Bow" | Angi's reward bow for finishing her archery lessons, keeping its name |
+| Glass Bow of the Stag Prince | bow "Glass Bow of the Stag Prince" | Unique glass bow, keeping its name (given in full: Skyrim cuts it at 27 bytes) |
+| Dwarven Black Bow of Fate | bow "Dwarven Black Bow of Fate" | Unique Dwemer bow, keeping its name |
+| Bow of Shadows | bow "Bow of Shadows" | Unique bow that hides its wielder (no Minecraft bow enchantment does), keeping its name |
+| Ruin's Edge | bow "Ruin's Edge" | Unique Dark Seducer bow, keeping its name |
+| Dawnfang | SkyCraft ebony_sword (Fire Aspect II) "Dawnfang" | The day form of the shifting sword, burning by day |
+| Duskfang | SkyCraft ebony_sword (Knockback II) "Duskfang" | The night form of the shifting sword, freezing by night: frost is Knockback |
+| Notched Pickaxe | iron_pickaxe (Unbreaking III) "Notched Pickaxe" | Skyrim's nod to Notch, found atop the Throat of the World: Minecraft's diamond pickaxe |
+| Ancient Nordic Pickaxe | diamond_pickaxe "Ancient Nordic Pickaxe" | The only pick that mines Stalhrim, the way only diamond mines obsidian |
+| Poacher's Axe | iron_axe "Poacher's Axe" | A unique woodcutter's axe (5 damage): the Minecraft axe, like the Woodcutter's Axe |
+| Reforged Cuirass of the Crusader | chainmail_chestplate "Reforged Cuirass of the Crusader" |  |
+| Reforged Boots of the Crusader | chainmail_boots "Reforged Boots of the Crusader" |  |
+| Reforged Gauntlets of the Crusader | chainmail_leggings "Reforged Gauntlets of the Crusader" |  |
+| Ebony Mail | SkyCraft ebony_cuirass (Thorns III) "Ebony Mail" | Its poison cloak hurts whoever comes close |
+| Savior's Hide | leather_chestplate (Protection II) "Savior's Hide" | Resists magic and poison |
+| Spellbreaker | shield (Unbreaking III) "Spellbreaker" | Its blocking ward |
+| Masque of Clavicus Vile | golden_helmet (Unbreaking II, Mending) "Masque of Clavicus Vile" | Speech and prices, and magicka regeneration |
+| Jagged Crown | golden_helmet (Protection II) "Jagged Crown" | A heavy helmet of the old kings |
+| Helm of Yngol | SkyCraft steel_helmet (Protection I) "Helm of Yngol" | Resists frost |
+| Ancient Helmet of the Unburned | SkyCraft steel_helmet (Fire Protection III) "Ancient Helmet of the Unburned" |  |
+| Shield of Ysgramor | shield (Unbreaking III) "Shield of Ysgramor" | Resists magic, fortifies health |
+| Targe of the Blooded | shield (Unbreaking I) "Targe of the Blooded" | Its bash makes targets bleed |
+| Shield of Solitude | shield (Unbreaking II) "Shield of Solitude" | Fortifies blocking |
+| Predator's Grace | leather_boots (Feather Falling II) "Predator's Grace" | Fortifies sneak and archery |
+| Tumblerbane Gloves | leather_leggings (Unbreaking II) "Tumblerbane Gloves" | Fortifies lockpicking |
+| Gray Cowl of Nocturnal | leather_helmet (Protection I, dyed #4a4a4f) "Gray Cowl of Nocturnal" | The Gray Fox's hood, grey |
+| Wraithguard | SkyCraft dwarven_greaves (Protection III) "Wraithguard" | Kagrenac's gauntlet resists magic |
+| Boots of Blinding Speed | leather_boots (Feather Falling I) "Boots of Blinding Speed" |  |
+| Visage of Mzund | SkyCraft dwarven_helmet (Mending) "Visage of Mzund" |  |
+| Auriel's Shield | shield (Unbreaking III) "Auriel's Shield" | Stores the blows it blocks |
+| Wooden Mask | carved_pumpkin "Wooden Mask" | A mask over the face |
+| General Tullius' Armor | SkyCraft steel_cuirass "General Tullius' Armor" | The general's Imperial armor |
+| Konahrik | SkyCraft daedric_helmet (Protection IV, Thorns II) "Konahrik" | Dragon Priest mask |
+| Hevnoraak | SkyCraft daedric_helmet (Protection II) "Hevnoraak" | Dragon Priest mask |
+| Krosis | SkyCraft elven_helmet (Projectile Protection II, Unbreaking II) "Krosis" | Dragon Priest mask |
+| Morokei | SkyCraft glass_helmet (Mending) "Morokei" | Dragon Priest mask |
+| Nahkriin | SkyCraft ebony_helmet (Mending) "Nahkriin" | Dragon Priest mask |
+| Otar | SkyCraft dwarven_helmet (Protection III) "Otar" | Dragon Priest mask |
+| Rahgot | SkyCraft orcish_helmet (Unbreaking III) "Rahgot" | Dragon Priest mask |
+| Vokun | SkyCraft ebony_helmet (Mending) "Vokun" | Dragon Priest mask |
+| Volsung | golden_helmet (Respiration III, Aqua Affinity, Unbreaking II) "Volsung" | Dragon Priest mask |
+| Ahzidal | SkyCraft daedric_helmet (Protection II) "Ahzidal" | Dragon Priest mask |
+| Dukaan | diamond_helmet (Protection II) "Dukaan" | Dragon Priest mask |
+| Zahkriisos | SkyCraft glass_helmet (Blast Protection II) "Zahkriisos" | Dragon Priest mask |
+| Miraak | SkyCraft glass_helmet (Protection II, Mending) "Miraak" | Dragon Priest mask |
+| Ahzidal's Armor of Retribution | SkyCraft steel_cuirass (Thorns II) "Ahzidal's Armor of Retribution" |  |
+| Ahzidal's Helm of Vision | SkyCraft steel_helmet (Protection I) "Ahzidal's Helm of Vision" |  |
+| Ahzidal's Boots of Waterwalking | SkyCraft steel_boots (Frost Walker II) "Ahzidal's Boots of Waterwalking" |  |
+| Ahzidal's Gauntlets of Warding | SkyCraft steel_greaves (Protection I) "Ahzidal's Gauntlets of Warding" |  |
+| Deathbrand Armor | SkyCraft ebony_cuirass (Protection II) "Deathbrand Armor" |  |
+| Deathbrand Helm | SkyCraft ebony_helmet (Respiration III) "Deathbrand Helm" |  |
+| Deathbrand Boots | SkyCraft ebony_boots (Feather Falling II) "Deathbrand Boots" |  |
+| Deathbrand Gauntlets | SkyCraft ebony_greaves (Thorns II) "Deathbrand Gauntlets" |  |
+| Nightingale Armor | SkyCraft ebony_cuirass (Protection II, Unbreaking II) "Nightingale Armor" |  |
+| Nightingale Hood | SkyCraft ebony_helmet (Protection I, Mending) "Nightingale Hood" |  |
+| Nightingale Boots | SkyCraft ebony_boots (Feather Falling III) "Nightingale Boots" |  |
+| Nightingale Gloves | SkyCraft ebony_greaves (Thorns II, Unbreaking II) "Nightingale Gloves" |  |
+| Ancient Shrouded Armor | SkyCraft ebony_cuirass (Protection II) "Ancient Shrouded Armor" |  |
+| Ancient Shrouded Cowl | SkyCraft ebony_helmet (Projectile Protection II) "Ancient Shrouded Cowl" |  |
+| Ancient Shrouded Boots | SkyCraft ebony_boots (Feather Falling III) "Ancient Shrouded Boots" |  |
+| Ancient Shrouded Gloves | SkyCraft ebony_greaves (Thorns II) "Ancient Shrouded Gloves" |  |
+| Miraak's Boots | leather_boots (Protection I, dyed #3d3324) "Miraak's Boots" |  |
+| Miraak's Gloves | leather_leggings (Mending, dyed #3d3324) "Miraak's Gloves" |  |
+| Cuirass of the Crusader | diamond_chestplate (Protection II) "Cuirass of the Crusader" |  |
+| Helm of the Crusader | diamond_helmet (Protection I) "Helm of the Crusader" |  |
+| Boots of the Crusader | diamond_boots (Protection I) "Boots of the Crusader" |  |
+| Gauntlets of the Crusader | diamond_leggings (Thorns II) "Gauntlets of the Crusader" |  |
+| Shield of the Crusader | shield (Unbreaking II) "Shield of the Crusader" |  |
+<!-- /gen:named -->
+
 ## Enchanted weapons and armor
 
 Skyrim's leveled enchanted gear ("Ebony Sword of the Inferno", "Glass Helmet of Eminent Alchemy") keeps its enchantment: it becomes the gear of its material's tier with the nearest Minecraft enchantment, whether looted, bought or picked up, instead of salvaging into ingots. Tiers are the gear drops': Imperial and Ancient Nord are steel, Falmer orcish, silver Skyrim Iron, dragon daedric, hide, leather, studded and fur Minecraft leather, Nordic orcish and Stalhrim ebony. A rule names the gear's material, its type word and the enchantment's word (`tag weapon material ebony name sword name inferno = skycraft:ebony_sword{fire_aspect:2} 1`), so plain gear of the same name still salvages or is bought as before.
