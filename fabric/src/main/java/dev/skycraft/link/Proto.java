@@ -132,6 +132,18 @@ public final class Proto {
 	public static final int COMPANION_WAIT = 3;
 	/** Fed: restore a share of its health. */
 	public static final int COMPANION_HEAL = 4;
+	/**
+	 * Selling to merchants (trade.SkySell): how much Skyrim gold can this merchant pay? formId = the merchant actor, flags =
+	 * a request number Skyrim answers with in IN_MERCHANT_GOLD. Added within protocol 13; an older Skyrim plugin ignores it
+	 * (no answer comes, and the sale is called off).
+	 */
+	public static final int EV_MERCHANT_GOLD = 19;
+	/**
+	 * Selling to merchants: Minecraft took goods the merchant bought. formId = the merchant actor, a = the Skyrim gold it pays,
+	 * b = how many items (for the log), flags = the request number. Skyrim moves that much gold from the merchant's chest (or
+	 * its own purse) into the player's inventory, never more than the merchant has. Added within protocol 13.
+	 */
+	public static final int EV_SELL_TO_MERCHANT = 20;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;
@@ -358,6 +370,8 @@ public final class Proto {
 	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
 	public static final long MS_FEATURES = 0xD8;
 	public static final int FEATURES_VALID = 1 << 31;
+	/** FeatureBits kFeatSkyrimFood: Skyrim food eaten in Skyrim fills Minecraft's hunger (Skyrim sends IN_SKYRIM_FOOD). */
+	public static final int FEATURE_SKYRIM_FOOD = 1 << 8;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -408,6 +422,19 @@ public final class Proto {
 	 * the Skyrim world's terms), code = which way it flew ({@link #arrowFlight}). Minecraft sticks an arrow of its own there.
 	 */
 	public static final int IN_ARROW_BLOCKED = 10;
+	/**
+	 * The Skyrim player ate a food in Skyrim (food.SkyFood): code = food points to add (nutrition), a = the saturation modifier
+	 * x 1000, b = the food's FormID, c = its kind (FOOD_KINDS). Sent only while FEATURE_SKYRIM_FOOD is on. Added within protocol 13.
+	 */
+	public static final int IN_SKYRIM_FOOD = 15;
+	/**
+	 * Skyrim's answer to EV_MERCHANT_GOLD: a = the merchant's FormID, b = the gold it can pay now (-1: no merchant Skyrim can
+	 * trade with here), c = the request number. Added within protocol 13.
+	 */
+	public static final int IN_MERCHANT_GOLD = 16;
+	/** FoodKind (IN_SKYRIM_FOOD's c), by value: what kind of food Skyrim's FoodValues.h took it for. */
+	public static final java.util.List<String> FOOD_KINDS = java.util.List.of("food", "drink", "stew", "soup", "pie", "sweet", "bread", "cheese",
+		"dairy", "cooked meat", "raw meat", "cooked fish", "raw fish", "fruit", "vegetable", "cooked vegetable");
 
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn

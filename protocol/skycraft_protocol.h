@@ -230,6 +230,10 @@ namespace skycraft::proto
 	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
 	enum FeatureBits : std::uint32_t
 	{
+		// Economy (added within version 13): Skyrim food eaten in Skyrim fills Minecraft's hunger. Skyrim
+		// sends kInSkyrimFood only while this is set.
+		kFeatSkyrimFood = 1u << 8,
+
 		kFeaturesValid = 1u << 31,
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
@@ -289,6 +293,35 @@ namespace skycraft::proto
 		                       // where it reached the block (MC coords x 1024), code = which way it flew: yaw in the high
 		                       // byte (256ths of a turn from +z toward +x), pitch in the low byte (0 straight down, 255
 		                       // straight up). Minecraft sticks an arrow of its own there. Added within version 13
+		// (11 to 14 are other features'.)
+		kInSkyrimFood = 15,    // the Skyrim player ate a food in Skyrim (FoodValues.h): code = Minecraft food points to add
+		                       // (nutrition, 0-20), a = Minecraft's saturation modifier x 1000 (saturation gained is
+		                       // nutrition x modifier x 2), b = the food's FormID, c = FoodKind. Minecraft fills its player's
+		                       // hunger. Sent only while McState::features has kFeatSkyrimFood. Added within version 13
+		kInMerchantGold = 16,  // Skyrim's answer to kEvMerchantGold: a = the merchant's FormID, b = the Skyrim gold it can pay
+		                       // now (its merchant chest's, else its own purse; -1: no merchant Skyrim can trade with here:
+		                       // gone, dead, unloaded or too far), c = the request number. Added within version 13
+	};
+
+	// What kind of food kInSkyrimFood's food was (its c), from its name and VendorItemFoodRaw keyword (FoodValues.h).
+	enum FoodKind : std::uint32_t
+	{
+		kFoodOther = 0,
+		kFoodDrink = 1,           // ale, mead, wine, brandy, milk
+		kFoodStew = 2,            // stews
+		kFoodSoup = 3,            // soups, chowder, fondue
+		kFoodPie = 4,             // pies and crostatas
+		kFoodSweet = 5,           // sweet rolls, treats, cakes
+		kFoodBread = 6,           // breads and dumplings
+		kFoodCheese = 7,          // cheese wheels, wedges and slices
+		kFoodDairy = 8,           // butter, honey
+		kFoodCookedMeat = 9,
+		kFoodRawMeat = 10,
+		kFoodCookedFish = 11,     // fish and seafood
+		kFoodRawFish = 12,
+		kFoodFruit = 13,
+		kFoodVegetable = 14,
+		kFoodCookedVegetable = 15,
 	};
 
 	enum HurtKind : std::uint16_t
@@ -424,6 +457,15 @@ namespace skycraft::proto
 		                       // maximum health to restore (0..1). Skyrim checks the actor is alive, near the player and
 		                       // (for every action but kCompanionTame) the player's companion. Added within version 13 (an
 		                       // older plugin ignores the type)
+		// (15 to 18 are other features'.)
+		kEvMerchantGold = 19,  // Selling to merchants: how much Skyrim gold can this merchant pay? formId = the merchant actor,
+		                       // flags = a request number. Skyrim answers with kInMerchantGold. Added within version 13 (an
+		                       // older plugin ignores it, so Minecraft, getting no answer, calls the sale off)
+		kEvSellToMerchant = 20,  // Selling to merchants: Minecraft took goods the merchant bought. formId = the merchant actor,
+		                         // a = the Skyrim gold it pays, b = how many items it bought (for the log), flags = the request
+		                         // number kEvMerchantGold asked with. Skyrim moves that much gold (Gold001, 0x0000000F) from
+		                         // the merchant's chest (its vendor faction's merchant container; its own purse if it has
+		                         // none) into the player's inventory, never more than the merchant has. Added within version 13
 	};
 
 	enum PortalTravelFlags : std::uint32_t
