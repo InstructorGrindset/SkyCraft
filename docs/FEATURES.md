@@ -40,6 +40,11 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| NPC doors and ladders | `npc_doors_ladders` | Skyrim's NPCs use Minecraft's doors: one walking into a closed door (any but iron) has Minecraft open it, walks through, and Minecraft closes it again once its doorway has been empty 3 seconds; NPC paths go through doors instead of round them, and open doors and ladders are no longer walls for NPCs. Skyrim's NPCs can't climb, so one standing in a ladder column whose path goes up is lifted up it and stepped onto the block the ladder leans on (it rises in whatever pose it was in; with nowhere to step off, or after 10 s, it's let back down, never dropped). See [Towns and building](#towns-and-building) | `town/SkyTown` (`npcOpensDoor`, doors closing), `town/DoorTimers`, client `render/WorldExporter` (doors and ladders per section, open doors and ladders out of the NPC walls), client `TownInput` | `Passages.cpp` (doors and ladders, the climb), `NpcBlocks.cpp` (asks at a closed door), `PathAvoid.cpp` (paths through doors), `WorldRender.cpp` (`kRenPassages`) | `skycraft-town-rules.txt` (`door_close_after`) | `SkyCraft-town` | Written |
+| Town crime | `town_crime` | Griefing a Skyrim town is a crime in Skyrim if anyone sees it: digging out its ground, roads, rocks, buildings or other objects, breaking a block of its ground that digging revealed, or breaking a block someone else placed there. Minecraft adds up a few seconds of it into one crime with a value in gold; Skyrim looks for a witness with its own detection (the nearest person with a crime faction who notices the player, guards first) and raises Skyrim's own steal alarm for the witness's crime faction, so the bounty, the witnesses and the guards behave as for a theft of that value. Only the host's play counts (the town is the host's Skyrim's); your own blocks are never a crime | `town/SkyTown`, `town/TownRules`, `town/CrimeTally`, `town/TownBlocks` (who placed each block in a town, kept with the chunk), hook in `world/SkyDig.open` | `Towns.cpp` (`OnCrime`: witness, scene, `Actor::StealAlarm`) | `skycraft-town-rules.txt` (`crime_ground`, `crime_object`, `crime_block`, `crime_batch`) | `SkyCraft-town` | Written |
+| Guard comments | `guard_comments` | A guard within 16 blocks who sees you build, break blocks or dig in town now and then says something about it, in Skyrim's corner with their name ("Whiterun Guard: Watch it."): never more than once a minute per guard, at most one guard every 20 seconds. A notification, not speech: no CommonLib function makes an NPC say a line of ours | `town/SkyTown` (`EV_TOWN_BUILD`, only with a guard's stand-in near) | `Towns.cpp` (`OnBuild`), `TownKinds.h` (the lines), `Combat.cpp` (`kActorGuard` in the actor table) | none | `SkyCraft-town` | Written |
+| Hearthfire blocks | `hearthfire_blocks` | Minecraft blocks placed while you stand on a Hearthfire house's land (Lakeview Manor, Windstad Manor, Heljarchen Hall, as Skyrim reckons it) count for that plot while they stand: 80 make a small house, 320 a main hall, 720 the wings (you're told on the action bar, and in chat with a level-up sound when a stage is reached). Partial: Skyrim's own house parts aren't built or its quest moved by this (see [Towns and building](#towns-and-building)) | `town/SkyHearthfire`, `town/PlotTally` | `Towns.cpp` (the plot underfoot: a HearthFires.esm house location, `SkyState.hearthPlot`; stage events logged) | `skycraft-town-rules.txt` (`small_house`, `main_hall`, `wings`), `skycraft-hearthfire.txt` in the world's save folder | `SkyCraft-town` | Written (partial) |
+| Dwemer redstone | `dwemer_redstone` | A Skyrim lever, pull chain, button or pressure plate used gives a Minecraft redstone pulse at its block (a redstone block for 1 to 1.5 s, only in an empty cell; your own Skyrim doesn't draw it). Redstone power at the foot of a Dwemer door near you (24 blocks) opens it with Skyrim's own activation; when the power goes the door closes. Locked doors and doors it would be a crime to open stay shut | `town/SkyRedstone`, `town/PulseTimers`, `town/RedstoneDoors`, client `TownInput`, client `render/WorldExporter` (leaves the pulse's block out) | `Redstone.cpp` (activate events, Dwemer doors, `kEvRedstoneDoor`), `TownKinds.h` (switches and Dwemer doors by model path) | none | `SkyCraft-town` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -410,6 +415,93 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
 
+## Towns and building
+
+Skyrim's towns, its Hearthfire plots and its Dwemer machinery meet Minecraft's blocks. Minecraft decides when something
+happened in its world; Skyrim decides who saw it and answers with its own systems. Settings are in
+`skycraft-town-rules.txt`; `/skytown` (any player, read only) says what Minecraft sees now: the town, griefing waiting to
+be told, doors NPCs opened, the Hearthfire plot and its count, the Dwemer doors near you and their power. Both logs say
+`SkyCraft-town`.
+
+**Doors and ladders** (`npc_doors_ladders`). Minecraft sends each section's doors and ladders to Skyrim
+(`kRenPassages`). With a plugin that reads them (`kTownPassages`), open doors and ladders aren't NPC walls any more;
+closed doors are. An NPC that walks into a closed door it may open (wooden, copper: any but iron) asks Minecraft to open
+it (`kInOpenDoor`, at most once a second a door) and waits at it rather than walking round; Minecraft opens it the way a
+villager does (`DoorBlock.setOpen`) and closes it again once nobody (a player, an NPC's stand-in, a mob) has been in the
+doorway for `door_close_after` seconds. NPC paths go through such doors rather than round them. A door you opened
+yourself is left alone. Ladders: Skyrim's engine has no climbing for NPCs, so an NPC standing in a ladder column whose
+latest path goal is at least 1.5 blocks above it is lifted up the column (2.4 blocks a second, its position set each
+frame, as the push out of blocks does) and, over the top, stepped onto the block the ladder leans on if there's room to
+stand there; otherwise, or after 10 seconds, it's let back down to where it started. It plays no climbing animation.
+Going down a ladder isn't helped.
+
+**Town crime** (`town_crime`). In a town (Skyrim's `kPlaceTown`: a city, town or settlement, or a building in one), the
+host's griefing is a crime: digging Skyrim's geometry out of a cell (`crime_object` gold a block if anything but its land
+was there, else `crime_ground`), breaking a block of its ground that digging revealed (`crime_ground`), or breaking a
+block someone else placed there (`crime_block`). Who placed a block is kept with the chunk for blocks placed in a town
+since this build; blocks placed before, and your own, are never a crime. Griefing within `crime_batch` seconds of the
+first is one crime (`kEvTownCrime`, its values added up). Skyrim then looks for a witness: the nearest person within 30
+blocks with a crime faction, not your follower, not a summon, not already fighting you, whom Skyrim's own detection says
+notices you (`RequestDetectionLevel`), guards first. With one, it raises Skyrim's steal alarm (`Actor::StealAlarm`) for
+the witness's crime faction, worth the value, reported at the nearest container or object of Skyrim's (the alarm wants a
+reference, and a hole in the ground has none), without the "give it back" warning. Nobody sees it, nothing happens. The
+log says who saw it and the faction's bounty before and after.
+
+**Guard comments** (`guard_comments`). When the host places, breaks or digs blocks in town with a guard's stand-in within
+16 blocks (`kActorGuard`), Minecraft tells Skyrim (`kEvTownBuild`, at most every 2 seconds). Skyrim takes 45% of those
+chances, and only if it's been 20 seconds since any guard spoke: the nearest guard within 16 blocks who sees you and
+hasn't spoken in the last minute says a line for what you did (`TownKinds.h`: building, breaking or digging), as
+Skyrim's corner notification with the guard's name. It's a notification because CommonLib has no function that makes an
+NPC speak a line of ours (`Say` needs a dialogue topic in a plugin file).
+
+**Hearthfire plots** (`hearthfire_blocks`). Skyrim says when you stand outdoors on a Hearthfire house's land: your
+location, or a parent of it, is defined in HearthFires.esm and has `LocTypePlayerHouse` or `LocTypeHouse` (no FormIDs,
+no names, so it works in any language). Every block placed there by the host (or a guest within 48 blocks of them)
+counts for that plot while it stands; a broken one stops counting. Stages: `small_house` (80), `main_hall` (320),
+`wings` (720) blocks standing; each is reached once, with a chat line and Minecraft's level-up sound, and Skyrim gets
+`kEvHearthfireStage` (logged) and the live count (`McState.hearthBlocks`, logged as it changes). What remains: Skyrim's
+own house parts aren't built and its Hearthfire quest isn't moved. Hearthfire builds the house from plans crafted at its
+drafting table and carpenter's workbench, through its own scripts; driving them would mean setting quest stages or adding
+plan items whose stage numbers and FormIDs can't be found without guessing, and CommonLib wraps no quest SetStage. The
+plot's area is Skyrim's location boundary (its cells), not the house's footprint, and the plot needn't be bought.
+
+**Dwemer redstone** (`dwemer_redstone`). Skyrim's own activate event (`TESActivateEvent`) for an activator whose model is
+a lever, pull bar, pull chain, button or pressure plate (by its model path, `TownKinds.h`), used by the player or anyone
+else, or a pressure plate setting off what it's linked to, sends `kInRedstonePulse` with the block its origin is in.
+Minecraft puts a redstone block there for 30 ticks (a lever) or 20 (a button or plate), only if that cell is empty and
+nobody stands in it, and takes it away again (and on server stop). Vanilla has no invisible power source, so the host's
+exporter leaves that block out of what Skyrim draws; a guest's Skyrim shows it for that moment. Every 2 seconds Skyrim
+names the Dwemer doors within 24 blocks (doors, not load doors, whose model is Dwemer: `kInDwemerDoor`, the block at the
+door's foot, the cell its origin is in). Minecraft watches redstone power there and in the block above, as an iron door
+would feel it (`hasNeighborSignal`); when power comes it sends `kEvRedstoneDoor` and Skyrim opens the door with its own
+activation (`ActivateRef`, as the G key does), when it goes Skyrim closes it. A door found already powered isn't worked;
+locked doors and doors it would be a crime to open stay shut. Dwemer gates that are activators, not doors, aren't worked.
+
+**Try it** (cheats on; the host):
+
+1. Doors: in Whiterun, build a small room with an oak door between a guard's patrol and the street, or stand inside a
+   closed room and let a hostile NPC come for you (anger a bandit, or click one in the console and `startcombat player`).
+   When one walks into the door, `SkyCraft.log` says `asked Minecraft to open it`, the door opens, the NPC comes through, and three seconds after
+   the doorway is empty `latest.log` says `closed the door ... behind the NPCs`. An iron door stays shut.
+2. Ladders: a 4-high pillar of blocks with ladders up one side and the player on top; an enemy that comes for you and
+   stands in the ladder column rises up it and steps onto the pillar (`climbs the Minecraft ladder`, `is up the ladder`).
+3. Crime: in Whiterun in daylight, near people, dig the road (`/give @s minecraft:diamond_shovel`). After a few seconds
+   `latest.log` says `told Skyrim of griefing`, and `SkyCraft.log` either `seen by <name> ... bounty a -> b` (guards come for
+   you as for a theft) or `nobody saw it`. Sneak somewhere unseen and dig: nobody saw it. Break your own blocks: no crime.
+4. Guards: build next to a guard: now and then `Whiterun Guard: Never seen stone cut that square.` in the top left
+   corner; never the same guard twice in a minute.
+5. Hearthfire: go to Lakeview Manor's plot (by Lake Ilinalta, near Falkreath); `/skytown` says `on Lakeview Manor`.
+   Place blocks: the action bar counts them toward the small house; at 80, the chat says it stands. Break some: the count
+   goes down, the stage stays. Set `small_house = 5` in `skycraft-town-rules.txt` for a quicker test.
+6. Redstone: in a Dwemer ruin (Mzinchaleft, Nchuand-Zel), pull a lever or press a button: `a redstone pulse at x y z`, and
+   redstone dust you placed beside it lights for a moment. Lay dust from a lever (or place a redstone torch) to the foot of a
+   Dwemer door that isn't a load door (`/skytown` lists the ones Skyrim named): it opens; break the torch: it closes.
+
+Not played yet: all of it. In particular whether `Actor::StealAlarm` with an object of Skyrim's as the scene behaves as a
+theft from a container does, what `RequestDetectionLevel` returns for an NPC who plainly sees the player (anything above 0
+counts as seen), whether the lifted NPC stays where it's put each frame, whether pressure plates send activate events,
+and which model paths the switches and Dwemer doors really have (the log names each one used).
+
 ## Planned
 
 | Feature | Notes |
@@ -477,6 +569,25 @@ plugin Skyrim's arrows go through blocks as before):
 | Addition | Direction | Used by |
 |---|---|---|
 | `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
+Towns and building added these within 13, without a version bump (an older half ignores them: an older plugin skips the
+render type and the event types and never sets the fields and bits; an older Minecraft skips the input types and ignores
+the fields and the actor bit):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `SkyState.townFlags` (0x90, `TownFlags`: `kTownPassages` bit 0, `kTownHearthfirePlot` bit 1), `SkyState.hearthPlot` (0x94; was `reservedTown`) | Skyrim to Minecraft | `kTownPassages`: this plugin reads `kRenPassages`, so Minecraft leaves ladders and open doors out of `kRenSolids` (with an older plugin they stay solid, as before). `kTownHearthfirePlot`: the player is outdoors on a Hearthfire house's land, `hearthPlot` its BGSLocation FormID |
+| `McState.hearthPlot` (0xEC), `McState.hearthBlocks` (0xF0; was `reservedBuild`) | Minecraft to Skyrim | The plot Minecraft counts for and the blocks standing on it (Skyrim logs them) |
+| `FeatureBits` `kFeatNpcDoorsLadders` (16), `kFeatDwemerRedstone` (17), `kFeatHearthfire` (18) | Minecraft to Skyrim | The switches whose Skyrim side Skyrim runs itself. 19 to 21 are set aside for towns |
+| `ActorFlags` `kActorGuard` (bit 16) | Skyrim to Minecraft | Guard comments: Minecraft sends `kEvTownBuild` only with a guard near. Bit 17 is set aside for towns |
+| `kRenPassages` (14): `RenPassages {sx, sy, sz, count}` + `RenPassage {u8 x, y, z, flags}[count]`, `PassageFlags` (bits 0-1 kind: 1 door, 2 iron door, 3 ladder; bit 2 open; bits 3-4 facing, Minecraft's 2D value; bit 5 a door's upper half) | Minecraft to Skyrim | NPC doors and ladders: each section's, after its `kRenSolids`. 15 is set aside for towns |
+| `kInOpenDoor` (19): a, b, c = the door's block | Skyrim to Minecraft | An NPC walked into a closed door: Minecraft opens it (not iron) and closes it once the doorway is empty |
+| `kInRedstonePulse` (20): a, b, c = the switch's block, code = ticks | Skyrim to Minecraft | Dwemer redstone: a lever, button or plate was used |
+| `kInDwemerDoor` (21): a, b, c = the block at the door's foot, code = 1 open | Skyrim to Minecraft | Dwemer redstone: resent every 2 s per door within 24 blocks; forgotten after 6 s. 22 is set aside for towns |
+| `kEvTownCrime` (23): formId = `TownCrimeKind` (1 ground, 2 object, 3 block), a/b/c = where, d = gold, flags = blocks | Minecraft to Skyrim | Town crime: Skyrim finds a witness and raises a steal alarm |
+| `kEvTownBuild` (24): a/b/c = where, flags = `TownBuildKind` (1 place, 2 break, 3 dig) | Minecraft to Skyrim | Guard comments |
+| `kEvHearthfireStage` (25): formId = the plot, flags = `HearthfireStage` (1 small house, 2 main hall, 3 wings), a = blocks | Minecraft to Skyrim | Hearthfire blocks: a stage reached (logged) |
+| `kEvRedstoneDoor` (26): a/b/c = the door block's centre, flags = 1 powered | Minecraft to Skyrim | Dwemer redstone: open the door on power, close it when the power goes |
 
 ## Testing a build
 

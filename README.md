@@ -39,6 +39,12 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   - NPCs collide with blocks and path around them, and their arrows and bolts stop at blocks
     (a Minecraft arrow sticks where one hits, and you can pick it up).
   - Lava and fire hurt NPCs, and NPCs press pressure plates.
+- **Towns (new, not played yet):** Skyrim's NPCs open your Minecraft doors (not iron ones) and walk through open ones,
+  and are helped up ladders their path climbs. Digging up a town or breaking someone else's blocks there is a theft in
+  Skyrim if anyone sees it: a bounty, and the guards come. A guard who sees you build now and then says something about it.
+- **Building (new, not played yet):** blocks you place on a Hearthfire plot (Lakeview Manor, Windstad Manor, Heljarchen
+  Hall) count toward a small house, a main hall and wings (Skyrim's own house parts aren't built by them yet). Skyrim's
+  levers, buttons and pressure plates give a redstone pulse, and redstone opens Dwemer doors.
 - **Skyrim progression:**
   - Your Skyrim skills level up from Minecraft play. Swords, maces and tools train
     One-Handed; axes and spears train Two-Handed; bows and anything thrown train Archery.
