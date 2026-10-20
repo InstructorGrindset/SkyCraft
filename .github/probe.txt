@@ -9,3 +9,8 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+# Combat and stealth: power attacks read the swing at Player.attack's head; the stand-in reads crouching and sprinting.
+-c net.minecraft.world.entity.player.Player attack
+-c net.minecraft.world.entity.player.Player getAttackStrengthScale
+-c net.minecraft.world.entity.Entity isSprinting
+-c net.minecraft.world.entity.Entity isCrouching
