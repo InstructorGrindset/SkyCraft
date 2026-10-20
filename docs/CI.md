@@ -63,8 +63,9 @@ So a typical agent push went from about 44 minutes to 3, and only pushes that ch
 cost about 40. 2,000 minutes used to last about 45 pushes. Now they last about 650 Java pushes, or about
 50 plugin pushes.
 
-Build test release (every push to `dev`) is unchanged: changes 1 + fabric 2 + skse 36 (only when the
-push changed `skse/` or `protocol/`) + release 1, so 4 or 40 minutes. With the self-hosted runner it's 4.
+Build test release (every push to `dev`) costs what it did: changes 1 + fabric 2 + skse 36 (only when
+the push changed `skse/` or `protocol/`) + release 1, so 4 or 40 minutes. With the self-hosted runner
+it's 4.
 
 To see what was used: your profile picture > **Settings** > **Billing and licensing** > **Usage**, and
 filter by Actions. Each run's page also has a **Usage** link.
