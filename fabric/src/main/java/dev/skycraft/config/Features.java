@@ -233,7 +233,9 @@ public final class Features {
 	 * (SkyCraft.configureServer). A feature that reads its switch only once (at start, or to register something)
 	 * belongs here, so the settings screen says so.
 	 */
-	private static final java.util.Set<Feature> AT_RESTART = java.util.EnumSet.of(Feature.MINECRAFT_VIEW, Feature.NATURAL_SPAWNS);
+	// The brewing switches decide which recipes load with the world's data (config.FeatureCondition), so they wait too.
+	private static final java.util.Set<Feature> AT_RESTART = java.util.EnumSet.of(Feature.MINECRAFT_VIEW, Feature.NATURAL_SPAWNS,
+		Feature.SKOOMA_BREWING, Feature.ALCHEMY_BREWING);
 
 	/** What skycraft-features.txt says since a change in game: {@link #on}'s switches plus changes waiting for a restart. */
 	private static volatile Map<Feature, Boolean> saved;
