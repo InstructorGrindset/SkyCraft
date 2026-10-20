@@ -96,7 +96,6 @@ name scroll name repel name undead = minecraft:splash_potion{instant_health:1:0 
 name scroll name circle name protect = minecraft:lingering_potion{instant_health:0:0 #f5e6a8} 1
 name scroll name guardian name circle = minecraft:lingering_potion{instant_health:1:0 + regeneration:1:20 #f5e6a8} 1
 name scroll name bane = minecraft:lingering_potion{instant_health:1:0 #f5e6a8} 1
-
 tag book = keep
 
 # Skooma is SkyCraft's Skooma: a high of speed, higher jumps and quick, quiet sneaking, and an addiction
@@ -3790,6 +3789,7 @@ tag armor name dawnguard name shield from looted from bought = minecraft:shield 
 tag armor name vampire name armor from looted from bought = minecraft:leather_chestplate 1
 tag armor name vampire name boots from looted from bought = minecraft:leather_boots 1
 tag armor name vampire name gauntlets from looted from bought = minecraft:leather_leggings 1
+tag clothing name vampire name leather name hood from looted from bought = minecraft:leather_helmet{#3a1a24} 1
 tag armor name falmer name heavy name armor from looted from bought = skycraft:ebony_cuirass 1
 tag armor name falmer name heavy name helm from looted from bought = skycraft:ebony_helmet 1
 tag armor name falmer name heavy name boots from looted from bought = skycraft:ebony_boots 1
@@ -3855,7 +3855,6 @@ tag armor name vigil name armor from looted from bought = skycraft:steel_cuirass
 tag armor name vigil name helmet from looted from bought = skycraft:steel_helmet 1
 tag armor name vigil name boots from looted from bought = skycraft:steel_boots 1
 tag armor name vigil name gauntlets from looted from bought = skycraft:steel_greaves 1
-tag clothing name vampire name leather name hood from looted from bought = minecraft:leather_helmet{#3a1a24} 1
 
 # Leather armor bought in a Skyrim shop becomes Minecraft leather armor
 tag armor material hide name helmet from bought = minecraft:leather_helmet 1
@@ -4630,7 +4629,7 @@ tag clutter name dwemer name pot = skycraft:dwarven_metal_ingot 2
 tag clutter name dwemer name urn = skycraft:dwarven_metal_ingot 2
 name centurion name dynamo name core = minecraft:redstone_block 1
 
-# Light, tools and household goods
+# Light, tools and household goods, skulls, and horse armor (Minecraft has its own)
 name statue name dibella = minecraft:gold_nugget 6
 name human name skull = minecraft:skeleton_skull 1
 name troll name skull = minecraft:bone 4

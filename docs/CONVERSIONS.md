@@ -10,7 +10,7 @@ First match wins, so every rule has to be reachable: `ItemRulesTest.everyDefault
 
 ## Items
 
-163 new rules. Each one takes an item that used to stay in Skyrim (191 real item names in all). They sit where no earlier rule can take their items and they can't take an earlier rule's items: tagged rules join their sections, and the household rules come last, after a block of `keep` rules for gear, clothing, jewelry, potions, raw food and ingredients.
+The household, Dwemer, Hearthfire, animal, plant, fish and gem rules below (163, for 191 real item names) each took an item that used to stay in Skyrim. They sit where no earlier rule can take their items and they can't take an earlier rule's items: tagged rules join their sections, and the household rules come last, after a block of `keep` rules for gear, clothing, jewelry, potions, raw food and ingredients.
 
 ### Light, tools and household goods
 
@@ -168,6 +168,15 @@ First match wins, so every rule has to be reachable: `ItemRulesTest.everyDefault
 | Woodcutter's Axe, bought | iron war axe | iron_axe | It's a tool |
 | Pickaxes and Woodcutter's Axe, looted | iron_ingot | the tool | The tool is worth more than its ingot |
 | Orcish, Dwarven, Elven, Glass, Ebony, Daedric, Imperial, Ancient Nord, Falmer, Silver and Dragon weapons and armor, looted | stayed in Skyrim | their smithing material | See [Looted gear](#looted-gear) |
+| Enchanted weapons and armor ("... of the Inferno"), looted | their smithing material | the gear with its enchantment | See [Enchanted weapons and armor](#enchanted-weapons-and-armor) |
+| Unique gear of a SkyCraft material (Chillrend, Windshear, the Gauldur Blackblade, Zephyr, ...), looted | their smithing material | the named gear | See [Named artifacts](#named-artifacts-and-unique-gear) |
+| Wine, ale, mead | stayed in Skyrim | potions named after them | See [Drinks](#drinks) |
+| Bear, Cave Bear and Snow Bear Pelt; Sabre Cat pelts, Cow and Horse Hide | leather | 3 leather; 2 leather | Big pelts give more |
+| Soups and stews (Vegetable Soup, Clam Chowder, ...) | a raw vegetable, bread or mushroom stew | beetroot_soup, mushroom_stew | The dish, not one of its ingredients |
+| Silver Sword, Silver Greatsword, bought | stayed in Skyrim | iron_sword with Smite II | Silver's bane of the undead |
+| Netch Leather armor, looted or bought | leather | the leather piece | It's leather armor |
+| Falmer Helmet, looted or bought | 2 turtle_scute | turtle_helmet | Chitin is turtle scute here, and this is a helmet of it |
+| Notched Pickaxe | iron_pickaxe | iron_pickaxe with Unbreaking III, named | It fortifies Smithing |
 
 ### Stays in Skyrim on purpose
 
@@ -579,7 +588,9 @@ Bought, it's the gear of the nearest tier; looted, it salvages into what it's ma
 | Silver Bowl, Silver Plate | 3 iron_nugget | like the Silver Goblet (3) and Silver Jug (4) it should melt into nuggets |
 <!-- /gen:household -->
 
-### Proposals left out
+### Proposals not taken as written
+
+How many proposals, and why: most were replaced by the decisions above (clothing, jewelry, drinks, dragon gear) or by the named and enchanted gear sections below; the staffs and small soul gems stay in Skyrim.
 
 <!-- gen:left -->
 - 167: clothing: replaced by the clothing rules (dyed leather armor by slot, without the extra items)
