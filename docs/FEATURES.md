@@ -41,6 +41,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
 | Paired backups | `paired_backups` | Each time Skyrim loads a save with Minecraft connected, both are backed up as a pair under one stamp (the time of the load): Skyrim copies the save (its `.ess` and `.skse` co-save) to `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>`, Minecraft zips its world to `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder. The newest 5 pairs are kept. Minecraft saves its world first and holds its autosaves while the zip is written; both copies run on threads of their own, so neither game waits. A save loaded before Minecraft is connected is backed up once it is; a guest's world is backed up when they're back in their own. Death reloads and quickloads make pairs too. See [Paired backups](#paired-backups) | `backup/` (SkyBackups, BackupRequest, BackupNames, WorldZip, BackupRules), client `InputBridge` (`IN_PAIRED_BACKUP`) | `Backups.cpp`, `BackupNames.h`, `main.cpp` (kPreLoadGame, kPostLoadGame), `Combat.cpp` (`kEvPairedBackup`), bit `kFeatPairedBackups` | `skycraft-backups.txt` | `SkyCraft-backup`; `paired backups` in SkyCraft.log | Written |
+| Far block detail | `far_block_detail` (off by default) | Block sections more than 64 blocks from the camera aren't drawn into the sun's shadow map, so each is drawn once less a frame: they cast no sun shadows (on Skyrim's ground or on other blocks) and aren't shaded by other far blocks; Skyrim's own shadows still fall on them, and everything nearer is as before. With it on or off, SkyCraft.log's perf line (every minute) has the block drawing time and how many sections and triangles were drawn, and latest.log what meshing them cost Minecraft. See [Far block detail and profiling](#far-block-detail-and-profiling) | client `render/WorldExporter` (meshing stats) | `WorldRender.cpp` (`RenderPasses`), `Perf.h` (`kBlocks`, block amounts), bit `kFeatFarBlockDetail` | none | `perf:` and `far block detail` in SkyCraft.log; `SkyCraft-render` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -450,6 +451,48 @@ Load a save from the main menu before Minecraft is ready: the pair is made when 
 Not tried in a game yet: the save folder under Mod Organizer's profile-specific saves (the copy reads through MO2's virtual
 folder, which should work), and how long a big world's zip takes.
 
+### Far block detail and profiling
+
+**Where the frame time goes.** SkyCraft.log has a `perf:` line every minute (every 10 seconds with `bDiagnostics = 1`):
+Skyrim's frame rate and frame times, then each part of SkyCraft's work per frame. For the blocks:
+
+| In the perf line | What it is |
+|---|---|
+| `block drawing 1.84 ms/frame (worst call 6.2 ms, 1.0 calls/frame)` | The CPU time of drawing Minecraft's blocks, entities and their shadows into Skyrim's frame (`RenderPasses`), averaged over every frame; the worst call is the worst frame |
+| `in-frame draw` | The same plus setting it up inside Skyrim's frame |
+| `block sections drawn 212 a frame (most 240)` | 16x16x16 sections drawn into the scene, over the frames that drew blocks |
+| `block triangles 1200000 a frame (most ...)` | Triangles sent to the graphics card for blocks in all passes: sun shadows, the scene, water and glass, and Skyrim's depth copies (each solid section goes into each copy) |
+| `shadow-casting sections` | Sections drawn into the sun's shadow map |
+| `far sections without shadows` | With far_block_detail on: sections left out of the shadow map for being far |
+
+The GPU time of each pass is logged too (`SkyCraft's drawing per frame: GPU ...`), with `bDiagnostics = 1` only. Minecraft's side,
+every minute in latest.log: `SkyCraft-render: last minute, n block sections meshed for Skyrim (t triangles): a ms a frame on
+average, worst frame b ms, over f frames; w sections waiting, s in Skyrim`. Meshing happens when blocks change or come into
+range, at most 12 sections and 3 ms a frame.
+
+**The switch.** `far_block_detail` (off by default; Skyrim's side reads it as `kFeatFarBlockDetail`). Every solid section is drawn
+two to five times a frame: into the sun's shadow map, into the scene, and into each of the depth copies Skyrim's post-processing
+reads (up to three). The shadow pass took every section within its reach, about 250 blocks round the camera, though the shadow
+map covers only 64 blocks either side of the camera across the sun's path. With the switch on, a section whose nearest corner is
+more than 64 blocks away is left out of it. The trade-off:
+
+- Kept: everything within 64 blocks; far blocks are still drawn whole, lit, fogged, in Skyrim's depth (so Skyrim's fog, depth of
+  field and light shafts treat them as before) and darkened by Skyrim's own shadows (trees, buildings, mountains).
+- Lost: far blocks' sun shadows, on Skyrim's ground and on each other (a far wall no longer shades the far blocks behind it), and
+  the shadow a far, tall build casts toward you along a low sun.
+- Saved: one of a far section's two to five draws a frame, its triangles in the shadow pass, and the draw calls. Most where
+  much is built far away; nothing where everything built is near. The perf line's `shadow-casting sections` and
+  `far sections without shadows` show how much.
+
+Not chosen: leaving far sections out of Skyrim's depth copies (more saved, but Skyrim's fog, depth of field and light shafts
+would see through far blocks), and leaving small decorative blocks out far away (Minecraft's meshes don't tell them apart
+from leaves and glass, which would vanish too).
+
+**Try it**: build or find a big area of blocks, play a minute, and read the perf line. Set `far_block_detail = on`, restart
+Minecraft: SkyCraft.log says `far block detail on: block sections more than 64 blocks away cast no sun shadows`; the next perf
+lines show fewer shadow-casting sections and triangles, and `block drawing` should be lower. Far blocks' shadows go; near ones
+stay.
+
 ## Planned
 
 | Feature | Notes |
@@ -526,6 +569,12 @@ Skyrim side stays off; an older plugin ignores the event type and an older Minec
 | `FeatureBits` `kFeatPairedBackups` (bit 28) in `McState.features` | Minecraft to Skyrim | `paired_backups` is on: Skyrim copies each save it loads |
 | `kInPairedBackup` (28) in the input ring | Skyrim to Minecraft | One text in a run of events: code 0 with a = the request id, b = the text's length in bytes (1 to `kPairedBackupTextMax`, 512), then code 1, 2, ... each with the next 12 bytes in a, b, c (little endian). The text is UTF-8 `<stamp>\|<save name>` |
 | `kEvPairedBackup` (32) | Minecraft to Skyrim | The world backup for a request is done: formId = the request id, flags = 1 if it was written, a = the pairs to keep (0 all), b = its size in MB |
+
+Far block detail added this within 13 (an older Minecraft never sets the bit, so the shadows stay as they were):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatFarBlockDetail` (bit 29) in `McState.features` | Minecraft to Skyrim | `far_block_detail` is on: block sections more than 64 blocks away cast no sun shadows |
 
 ## Testing a build
 

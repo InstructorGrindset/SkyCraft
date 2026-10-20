@@ -82,7 +82,8 @@ public final class Features {
 		// Tooling
 		PAIRED_BACKUPS("paired_backups", "loading a Skyrim save backs it up together with the Minecraft world, under one time stamp; the newest few pairs are kept (skycraft-backups.txt)", true,
 			dev.skycraft.link.Proto.FEATURE_PAIRED_BACKUPS),
-		FAR_BLOCK_DETAIL("far_block_detail", "far Minecraft blocks are drawn with less detail, for a higher frame rate", false, 0);
+		FAR_BLOCK_DETAIL("far_block_detail", "Minecraft blocks more than 64 blocks away cast no sun shadows, for a higher frame rate where much is built (Skyrim's own shadows still fall on them)", false,
+			dev.skycraft.link.Proto.FEATURE_FAR_BLOCK_DETAIL);
 
 		public final String key;
 		public final String about;

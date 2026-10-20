@@ -97,6 +97,10 @@ public final class WorldExporter {
 	private static final java.util.Map<Item, float[]> ICONS = new java.util.HashMap<>();
 	private static final java.util.Map<BlockState, float[]> CUBE_FACES = new java.util.HashMap<>();
 	private static final RandomSource RANDOM = RandomSource.create();
+	// What meshing Skyrim's blocks costs this client, logged once a minute (SkyCraft.log has the drawing side's "block
+	// drawing" and block counts): time in meshDirtySections, the worst frame, sections and triangles sent.
+	private static final long STATS_EVERY = 60_000_000_000L;
+	private static long statsSince, statsNanos, statsWorstNanos, statsFrames, statsSections, statsTriangles;
 
 	private WorldExporter() {
 	}
@@ -131,7 +135,9 @@ public final class WorldExporter {
 			SkyCraft.LOG.info("SkyCraft: Skyrim's world is in space {} now (was {}); its blocks start over", space, sentSpace);
 			resendWorld(minecraft, level, space);
 		}
+		long meshStart = System.nanoTime();
 		meshDirtySections(level);
+		noteMeshing(meshStart, System.nanoTime());
 		// Animated textures (water, lava, fire, ...): the frame for this game tick.
 		atlas.animate(level.getGameTime(), region -> {
 			ByteBuffer header = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN).putInt(region.x()).putInt(region.y()).putInt(region.w()).putInt(region.h()).flip();
@@ -212,6 +218,31 @@ public final class WorldExporter {
 				meshed++;
 			}
 		}
+	}
+
+	/** This frame's meshing took from {@code start} to {@code end} (System.nanoTime); once a minute, the totals in the log. */
+	private static void noteMeshing(long start, long end) {
+		long spent = end - start;
+		statsNanos += spent;
+		statsWorstNanos = Math.max(statsWorstNanos, spent);
+		statsFrames++;
+		if (statsSince == 0) {
+			statsSince = end;
+		}
+		if (end - statsSince < STATS_EVERY) {
+			return;
+		}
+		if (statsSections > 0) {
+			int waiting;
+			synchronized (DIRTY) {
+				waiting = DIRTY.size();
+			}
+			SkyCraft.LOG.info("SkyCraft-render: last minute, {} block sections meshed for Skyrim ({} triangles): {} ms a frame on average, worst frame {} ms, "
+				+ "over {} frames; {} sections waiting, {} in Skyrim", statsSections, statsTriangles, String.format("%.2f", statsNanos / 1e6 / statsFrames),
+				String.format("%.1f", statsWorstNanos / 1e6), statsFrames, waiting, SENT.size());
+		}
+		statsSince = end;
+		statsNanos = statsWorstNanos = statsFrames = statsSections = statsTriangles = 0;
 	}
 
 	private static LevelChunkSection sectionAt(ClientLevel level, LevelChunk chunk, int sy) {
@@ -300,6 +331,8 @@ public final class WorldExporter {
 		}
 		ByteBuffer header = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN).putInt(lx).putInt(sy).putInt(lz).putInt(MESH.vertexCount()).flip();
 		if (SkyLink.writeRender(Proto.REN_SECTION, header, MESH.bytes())) {
+			statsSections++;
+			statsTriangles += MESH.vertexCount() / 3;
 			if (MESH.vertexCount() > 0) {
 				SENT.add(key);
 			} else {

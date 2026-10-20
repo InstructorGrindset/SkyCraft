@@ -23,7 +23,8 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   Minecraft's own collision. Crouching stops you at edges, Skyrim's as well as blocks'.
 - **Blocks:** place and break blocks anywhere in Skyrim. They're drawn inside Skyrim's frame
   with its sun, shadows, fog and weather. Minecraft lights (torches, lava, glowstone and so on)
-  light up Skyrim.
+  light up Skyrim. If a lot of building slows the frame rate, `far_block_detail = on` in
+  `config/skycraft-features.txt` drops the sun shadows of blocks more than 64 blocks away.
 - **Digging into Skyrim:** mine Skyrim's ground, rocks, roads and objects like Minecraft blocks.
   What you dig out drops as the block it's made of (dirt under grass, then stone with ores, then
   bedrock), and the hole is real for you, NPCs and items. TNT, creepers and other explosions blow

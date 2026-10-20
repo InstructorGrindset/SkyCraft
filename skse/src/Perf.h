@@ -2,7 +2,8 @@
 
 // Where the time goes: QueryPerformanceCounter timers around SkyCraft's per-frame work (and the
 // Havok hooks, which run on Skyrim's physics threads), summed and logged as one line every minute
-// (every 10 seconds with bDiagnostics), with Skyrim's own frame times for comparison.
+// (every 10 seconds with bDiagnostics), with Skyrim's own frame times for comparison, and how many
+// blocks were drawn (Amount).
 namespace skycraft::Perf
 {
 	enum Slot : int
@@ -22,11 +23,26 @@ namespace skycraft::Perf
 		kHookContacts,
 		kHookPlanes,
 		kHookLand,
+		kBlocks,  // WorldRender's passes: Minecraft's blocks, entities and shadows into Skyrim's frame (CPU side)
 		kCount
 	};
 
 	inline constexpr const char* kNames[kCount] = { "frame", "update", "collision", "dig meshes", "dig changed", "lights", "water", "draw",
-		"in-frame draw", "grass", "readbacks", "havok char contacts", "havok contacts", "havok planes", "land height" };
+		"in-frame draw", "grass", "readbacks", "havok char contacts", "havok contacts", "havok planes", "land height", "block drawing" };
+
+	// Amounts counted once per frame that draws blocks, logged with the timers: the average over those frames and the
+	// most in one. Together with "block drawing" they say whether a slow frame is many blocks or something else.
+	enum Amount : int
+	{
+		kSectionsDrawn,   // 16x16x16 block sections drawn into the scene
+		kTriangles,       // block triangles sent to the GPU, every pass (sun shadows, scene, water and glass, depth copies)
+		kShadowSections,  // sections drawn into the sun's shadow map
+		kFarSections,     // far_block_detail: sections left out of the sun's shadow map for being far
+		kAmountCount
+	};
+
+	inline constexpr const char* kAmountNames[kAmountCount] = { "block sections drawn", "block triangles", "shadow-casting sections",
+		"far sections without shadows" };
 
 	struct Stat
 	{
@@ -35,6 +51,7 @@ namespace skycraft::Perf
 		std::atomic<std::int64_t> calls{ 0 };
 	};
 	inline Stat stats[kCount];
+	inline Stat amounts[kAmountCount];
 
 	inline std::int64_t Now()
 	{
@@ -53,15 +70,19 @@ namespace skycraft::Perf
 		return f;
 	}
 
-	inline void Add(Slot a_slot, std::int64_t a_ticks)
+	inline void Note(Stat& a_stat, std::int64_t a_value)
 	{
-		auto& s = stats[a_slot];
-		s.ticks.fetch_add(a_ticks, std::memory_order_relaxed);
-		s.calls.fetch_add(1, std::memory_order_relaxed);
-		auto m = s.max.load(std::memory_order_relaxed);
-		while (a_ticks > m && !s.max.compare_exchange_weak(m, a_ticks, std::memory_order_relaxed)) {
+		a_stat.ticks.fetch_add(a_value, std::memory_order_relaxed);
+		a_stat.calls.fetch_add(1, std::memory_order_relaxed);
+		auto m = a_stat.max.load(std::memory_order_relaxed);
+		while (a_value > m && !a_stat.max.compare_exchange_weak(m, a_value, std::memory_order_relaxed)) {
 		}
 	}
+
+	inline void Add(Slot a_slot, std::int64_t a_ticks) { Note(stats[a_slot], a_ticks); }
+
+	// This frame's a_amount (once per frame that draws blocks).
+	inline void Count(Amount a_amount, std::int64_t a_value) { Note(amounts[a_amount], a_value); }
 
 	struct Scope
 	{
@@ -105,6 +126,14 @@ namespace skycraft::Perf
 			if (calls) {
 				line += std::format(" | {} {:.2f} ms/frame (worst call {:.1f} ms, {:.1f} calls/frame)", kNames[i], double(ticks) / TicksPerMs() / double(frames),
 					double(max) / TicksPerMs(), double(calls) / double(frames));
+			}
+		}
+		for (int i = 0; i < kAmountCount; ++i) {
+			const auto calls = amounts[i].calls.exchange(0);
+			const auto sum = amounts[i].ticks.exchange(0);
+			const auto max = amounts[i].max.exchange(0);
+			if (calls) {
+				line += std::format(" | {} {:.0f} a frame (most {})", kAmountNames[i], double(sum) / double(calls), max);
 			}
 		}
 		logger::info("{}", line);
