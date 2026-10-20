@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Backups.h"
 #include "Breach.h"
 #include "Horses.h"
 #include "Loot.h"
@@ -858,6 +859,7 @@ namespace skycraft
 			Combat::PerFrame(a_player, puppet, a_delta);
 			Stealth::PerFrame(a_player, haveMc ? &mc : nullptr, puppet);
 			Arrows::PerFrame();
+			Backups::Update();  // paired backups: a loaded save waiting for Minecraft
 			WorldRender::UpdateRagdoll(a_player, haveMc && st.mcInWorld);
 			if (puppet) {
 				NpcBlocks::PushActorsOut(a_player, a_delta);

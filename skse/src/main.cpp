@@ -1,3 +1,4 @@
+#include "Backups.h"
 #include "Breach.h"
 #include "CoSave.h"
 #include "Companion.h"
@@ -50,8 +51,13 @@ namespace
 			skycraft::Towns::Install();
 			skycraft::CrashLog::Install();
 			break;
+		case SKSE::MessagingInterface::kPreLoadGame:
+			skycraft::Backups::OnPreLoad(static_cast<const char*>(a_msg->data), a_msg->dataLen);  // paired backups: the save's name
+			break;
 		case SKSE::MessagingInterface::kPostLoadGame:
 		case SKSE::MessagingInterface::kNewGame:
+			// kPostLoadGame's data is whether the load worked (a bool in the pointer).
+			skycraft::Backups::OnGameLoaded(a_msg->type == SKSE::MessagingInterface::kPostLoadGame && reinterpret_cast<std::uintptr_t>(a_msg->data) != 0);
 			skycraft::Game::OnGameLoaded();
 			skycraft::Spawn::Reset();
 			skycraft::Companion::Reset();

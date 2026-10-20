@@ -78,6 +78,8 @@ public final class InputBridge {
 			case Proto.IN_MERCHANT_GOLD -> merchantGold(minecraft, a, b, c);
 			case Proto.IN_OPEN_DOOR, Proto.IN_REDSTONE_PULSE, Proto.IN_DWEMER_DOOR -> TownInput.accept(minecraft, type, code, a, b, c);
 			case Proto.IN_MOB_HIT -> mobHit(minecraft, a, b, c);
+			// Paired backups: Skyrim copied the save it loaded; the integrated server's world is backed up with it.
+			case Proto.IN_PAIRED_BACKUP -> dev.skycraft.backup.SkyBackups.onInput(code, a, b, c, minecraft.getSingleplayerServer());
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();

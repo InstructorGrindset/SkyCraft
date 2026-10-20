@@ -368,6 +368,10 @@ namespace skycraft::proto
 		kFeatWolvesFightSkyrim = 1u << 23,  // wolves_fight_skyrim: the player's enemies next to the player's tamed Minecraft wolf swing at it
 		kFeatCreaturesAndLight = 1u << 24,  // creatures_and_light: light-shy creatures (kActorLightShy) are pushed out of strong Minecraft light
 		kFeatHorsesCarryOver = 1u << 25,    // horses_carry_over: Skyrim reports the player's horse (SkyState::horse) and answers kEvHorse
+		// Tooling (added within version 13: an older Minecraft never sets them, so these stay off).
+		kFeatPairedBackups = 1u << 28,   // paired_backups: a loaded save is copied, and Minecraft is told (kInPairedBackup)
+		kFeatFarBlockDetail = 1u << 29,  // far_block_detail: far block sections cast no sun shadows (WorldRender.cpp)
+
 		kFeaturesValid = 1u << 31,
 
 		// Towns and building (added within version 13):
@@ -461,6 +465,12 @@ namespace skycraft::proto
 		                       // a = the creature's Minecraft entity id, b = Minecraft damage x 100, c = the actor's FormID, code =
 		                       // HitWeapon. Minecraft hurts the creature as from the actor's stand-in. Added within version 13 (an older
 		                       // Minecraft ignores the type)
+		kInPairedBackup = 28,  // Paired backups (kFeatPairedBackups): Skyrim copied the save it just loaded into its backup
+		                       // folder; Minecraft backs its world up under the same stamp. One text in a run of events: the
+		                       // first has code 0, a = request id (answered by kEvPairedBackup), b = the text's length in bytes
+		                       // (1 to kPairedBackupTextMax); then code 1, 2, ... each carry the next 12 bytes in a, b, c (little
+		                       // endian, byte 0 lowest in a). The text is UTF-8 "<stamp>|<save name>", the stamp Skyrim's local
+		                       // time as "YYYY-MM-DD_hh-mm-ss". Added within version 13 (an older Minecraft ignores the type)
 	};
 
 	// Which shrine's blessing kInBlessing is, by the god the spell names. Added within version 13.
@@ -500,6 +510,8 @@ namespace skycraft::proto
 		kFoodVegetable = 14,
 		kFoodCookedVegetable = 15,
 	};
+
+	inline constexpr std::uint32_t kPairedBackupTextMax = 512;
 
 	enum HurtKind : std::uint16_t
 	{
@@ -684,6 +696,10 @@ namespace skycraft::proto
 		kEvHorse = 28,         // Horses carry over (added within version 13: an older plugin ignores the type): flags = HorseAction,
 		                       // formId = the Skyrim horse Minecraft has it as (0: none yet), a/b/c = kHorseArrive: where it is (its feet,
 		                       // MC coords), d = its yaw (MC degrees), weapon = kHorseArrive: the Minecraft horse's HorseStats
+		kEvPairedBackup = 32,  // Paired backups: Minecraft is done with kInPairedBackup's request: formId = its id, flags = 1
+		                       // if Minecraft's world backup was written (0 failed), a = how many pairs to keep (0: all;
+		                       // Skyrim deletes its older copies past that), b = the world backup's size in MB. Added within
+		                       // version 13 (an older plugin ignores the type)
 	};
 
 	// What kEvMob says (its flags bits 0-7).

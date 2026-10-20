@@ -77,6 +77,8 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Night monsters | `night_monsters` (off at first) | At Skyrim's night (20 to 5 o'clock), outdoors, out of towns and where Minecraft's block light is 0, now and then (a try every 60 to 120 s, 40% each) a skeever or skeleton comes out on Skyrim's ground 16 to 32 blocks from you where nobody can see it; draugr and skeletons within 64 blocks of a Nordic barrow's entrance. Through the deep creatures' spawn: they count with them (one cap, never past `skycraft-deep.txt`'s `max_alive`) and are taken away the same way. Never in interiors | `creatures/NightMonsters`, `creatures/NightRules`, `deep/SkyDeep` (shared count) | `Spawn.cpp` (`kSpawnAtNight`: on the ground, not under the land) | `skycraft-night.txt` | `SkyCraft-night` (both halves) | Written |
 | Horses carry over | `horses_carry_over` | Your tamed Minecraft horse and your Skyrim horse are one animal. Ride (or lead) a tamed horse into the Skyrim world, outdoors, and it becomes your Skyrim horse there (the one it was before, or a new horse you own) with its speed (SpeedMult 50 to 150%) and health; the Minecraft horse goes once Skyrim has it. Leave the Skyrim world (a portal, `/skyview`) with your Skyrim horse within 16 blocks and it comes along as a tamed, saddled Minecraft horse with its kept stats; Skyrim's is disabled until it comes back. Its death in Minecraft is its death. See [Creatures](#creatures) | `creatures/SkyHorses`, `creatures/HorseRules`, `link/SkyLink` (SkyState `horse`) | `Horses.cpp`, `CoSave.cpp` (record `HRSE`), `Game.cpp` (SkyState) | none | `SkyCraft-horse` (both halves) | Written |
 | Creatures and light | `creatures_and_light` | Skeevers and Falmer keep out of strong Minecraft light: within a torch's 6 blocks (a lantern's or glowstone's 7, light level 8 or more as Minecraft's light falls off) they're pushed back the way NPCs are pushed out of blocks. Skyrim's undead (draugr, skeletons, vampires; not essential ones) outdoors in Skyrim's daylight (6 to 19:30) under open sky, not wet, catch fire the way zombies do; the fire's damage reaches Skyrim credited to no one, with flames on the body. Which actors are light-shy or undead comes from the race (`CreatureKinds.h`) | `creatures/SkyCreatures` (`sunlight`), `combat/SkyrimActorEntity` (sun fire) | `Creatures.cpp` (`ShyFromLight`), `CreatureKinds.h`, `BlockLights.cpp` (`LightAt`), `Combat.cpp` (actor table bits) | none | `SkyCraft-creatures` | Written |
+| Paired backups | `paired_backups` | Each time Skyrim loads a save with Minecraft connected, both are backed up as a pair under one stamp (the time of the load): Skyrim copies the save (its `.ess` and `.skse` co-save) to `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>`, Minecraft zips its world to `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder. The newest 5 pairs are kept. Minecraft saves its world first and holds its autosaves while the zip is written; both copies run on threads of their own, so neither game waits. A save loaded before Minecraft is connected is backed up once it is; a guest's world is backed up when they're back in their own. Death reloads and quickloads make pairs too. See [Paired backups](#paired-backups) | `backup/` (SkyBackups, BackupRequest, BackupNames, WorldZip, BackupRules), client `InputBridge` (`IN_PAIRED_BACKUP`) | `Backups.cpp`, `BackupNames.h`, `main.cpp` (kPreLoadGame, kPostLoadGame), `Combat.cpp` (`kEvPairedBackup`), bit `kFeatPairedBackups` | `skycraft-backups.txt` | `SkyCraft-backup`; `paired backups` in SkyCraft.log | Written |
+| Far block detail | `far_block_detail` (off by default) | Block sections more than 64 blocks from the camera aren't drawn into the sun's shadow map, so each is drawn once less a frame: they cast no sun shadows (on Skyrim's ground or on other blocks) and aren't shaded by other far blocks; Skyrim's own shadows still fall on them, and everything nearer is as before. With it on or off, SkyCraft.log's perf line (every minute) has the block drawing time and how many sections and triangles were drawn, and latest.log what meshing them cost Minecraft. See [Far block detail and profiling](#far-block-detail-and-profiling) | client `render/WorldExporter` (meshing stats) | `WorldRender.cpp` (`RenderPasses`), `Perf.h` (`kBlocks`, block amounts), bit `kFeatFarBlockDetail` | none | `perf:` and `far block detail` in SkyCraft.log; `SkyCraft-render` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -1312,6 +1314,87 @@ on the body for the flames.
 Not played yet: everything here; in particular how Skyrim's actors take the injected attacks, how often Minecraft's monsters
 switch back to the player, and the night monsters' and horses' numbers.
 
+## Tooling
+
+### Paired backups
+
+Switch `paired_backups` (on by default; Skyrim's side needs a Minecraft that sends the switch, `kFeatPairedBackups`). Every
+time Skyrim loads a save (from the menu, a quickload, the reload after dying) while Minecraft is connected, the save and
+Minecraft's world are backed up together, as a pair named by one stamp, the local time of the load (`YYYY-MM-DD_hh-mm-ss`):
+
+| Half | Where | What |
+|---|---|---|
+| Skyrim | `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>\` (beside the `Saves` folder, or beside the folder `sLocalSavePath` in Skyrim.ini names) | The loaded save's `.ess` and its SKSE co-save `.skse` |
+| Minecraft | `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder (the bundled one: `%LOCALAPPDATA%\SkyCraft\Prism\instances\SkyCraft\.minecraft`) | The whole world folder (every dimension), laid out like Minecraft's own backups, without `session.lock`. The zip's comment names the Skyrim save |
+
+How it goes: the plugin notes the save's name when SKSE says a load starts (`kPreLoadGame`). Once the load is done and Minecraft
+is connected with the switch on, it picks the stamp, sends Minecraft `kInPairedBackup` (the stamp and the save's name) and copies
+the save on a thread of its own (into `<stamp>.partial`, renamed to `<stamp>` when done, so a copy cut short never looks like a
+backup). Minecraft, on its integrated server: saves the players and every chunk to disk, holds autosaves off (as `/save-off` does),
+and zips the world on a thread of its own (into `<name>.zip.part`, renamed when done); then autosaves come back, the zips past the
+newest `keep` are deleted, and it answers `kEvPairedBackup` with `keep`, so Skyrim deletes its older copies too. A save loaded
+before Minecraft has connected (Minecraft still starting) is copied once it connects. A request that comes while Minecraft has no
+world of its own open (the title screen, or a guest in a friend's world) waits until one opens, and a newer load replaces it.
+
+**`skycraft-backups.txt`**: `keep = 5`, the pairs to keep (0 keeps all). The Minecraft world can be hundreds of MB once Tamriel
+Wilds, Home or the Nether have been explored, so mind the disk.
+
+**Going back to a pair** (close both games first): copy the two files from `SkyCraft Backups\<stamp>` into Skyrim's `Saves`
+folder (with Mod Organizer's profile-specific saves, the profile's `saves` folder), and unzip `<stamp> SkyCraft.zip` into the
+instance's `.minecraft\saves` folder, replacing the `SkyCraft` folder. Load that save.
+
+**Try it**: start Skyrim with SkyCraft and load a save. SkyCraft.log says `paired backups: <save> was loaded: copying it as
+<stamp> ...`, then `copied to ...` and `Minecraft backed up its world for <stamp> (x MB); keeping the newest 5 pairs`.
+Minecraft's latest.log says `SkyCraft-backup: <stamp> SkyCraft.zip written for Skyrim's <save>: n files, x MB (saving a ms,
+zipping b ms)`. Both folders have the pair. Load six more times (a quickload is quickest): the oldest pair goes from both.
+Load a save from the main menu before Minecraft is ready: the pair is made when it connects. `paired_backups = off` in
+`skycraft-features.txt`, restart Minecraft: no more pairs.
+
+Not tried in a game yet: the save folder under Mod Organizer's profile-specific saves (the copy reads through MO2's virtual
+folder, which should work), and how long a big world's zip takes.
+
+### Far block detail and profiling
+
+**Where the frame time goes.** SkyCraft.log has a `perf:` line every minute (every 10 seconds with `bDiagnostics = 1`):
+Skyrim's frame rate and frame times, then each part of SkyCraft's work per frame. For the blocks:
+
+| In the perf line | What it is |
+|---|---|
+| `block drawing 1.84 ms/frame (worst call 6.2 ms, 1.0 calls/frame)` | The CPU time of drawing Minecraft's blocks, entities and their shadows into Skyrim's frame (`RenderPasses`), averaged over every frame; the worst call is the worst frame |
+| `in-frame draw` | The same plus setting it up inside Skyrim's frame |
+| `block sections drawn 212 a frame (most 240)` | 16x16x16 sections drawn into the scene, over the frames that drew blocks |
+| `block triangles 1200000 a frame (most ...)` | Triangles sent to the graphics card for blocks in all passes: sun shadows, the scene, water and glass, and Skyrim's depth copies (each solid section goes into each copy) |
+| `shadow-casting sections` | Sections drawn into the sun's shadow map |
+| `far sections without shadows` | With far_block_detail on: sections left out of the shadow map for being far |
+
+The GPU time of each pass is logged too (`SkyCraft's drawing per frame: GPU ...`), with `bDiagnostics = 1` only. Minecraft's side,
+every minute in latest.log: `SkyCraft-render: last minute, n block sections meshed for Skyrim (t triangles): a ms a frame on
+average, worst frame b ms, over f frames; w sections waiting, s in Skyrim`. Meshing happens when blocks change or come into
+range, at most 12 sections and 3 ms a frame.
+
+**The switch.** `far_block_detail` (off by default; Skyrim's side reads it as `kFeatFarBlockDetail`). Every solid section is drawn
+two to five times a frame: into the sun's shadow map, into the scene, and into each of the depth copies Skyrim's post-processing
+reads (up to three). The shadow pass took every section within its reach, about 250 blocks round the camera, though the shadow
+map covers only 64 blocks either side of the camera across the sun's path. With the switch on, a section whose nearest corner is
+more than 64 blocks away is left out of it. The trade-off:
+
+- Kept: everything within 64 blocks; far blocks are still drawn whole, lit, fogged, in Skyrim's depth (so Skyrim's fog, depth of
+  field and light shafts treat them as before) and darkened by Skyrim's own shadows (trees, buildings, mountains).
+- Lost: far blocks' sun shadows, on Skyrim's ground and on each other (a far wall no longer shades the far blocks behind it), and
+  the shadow a far, tall build casts toward you along a low sun.
+- Saved: one of a far section's two to five draws a frame, its triangles in the shadow pass, and the draw calls. Most where
+  much is built far away; nothing where everything built is near. The perf line's `shadow-casting sections` and
+  `far sections without shadows` show how much.
+
+Not chosen: leaving far sections out of Skyrim's depth copies (more saved, but Skyrim's fog, depth of field and light shafts
+would see through far blocks), and leaving small decorative blocks out far away (Minecraft's meshes don't tell them apart
+from leaves and glass, which would vanish too).
+
+**Try it**: build or find a big area of blocks, play a minute, and read the perf line. Set `far_block_detail = on`, restart
+Minecraft: SkyCraft.log says `far block detail on: block sections more than 64 blocks away cast no sun shadows`; the next perf
+lines show fewer shadow-casting sections and triangles, and `block drawing` should be lower. Far blocks' shadows go; near ones
+stay.
+
 ## Planned
 
 | Feature | Notes |
@@ -1466,6 +1549,21 @@ types; an older Minecraft ignores the bits, the fields and the input type):
 | `kEvHorse` (28), `HorseAction` `kHorseArrive` 1, `kHorseDepart` 2, `kHorseLost` 3 in flags | Minecraft to Skyrim | formId = the Skyrim horse (0: none yet), a/b/c = the arrival's spot, d = its yaw, weapon = the Minecraft horse's speed x 10000 (bits 0-11), maximum health (12-19), health (20-27) |
 | `kInMobHit` (23) in the input ring | Skyrim to Minecraft | An actor's blow on a Minecraft creature: a = its entity id, b = Minecraft damage x 100, c = the actor's FormID, code = `HitWeapon` |
 | `SpawnOrigin` in `kEvSpawnCreature`'s weapon: `kSpawnFromDark` 0, `kSpawnAtNight` 1 | Minecraft to Skyrim | Night monsters: on Skyrim's ground outdoors rather than in a dug tunnel. An older plugin checks for a dug tunnel and refuses the spot |
+
+Paired backups added these within 13, without a version bump (an older Minecraft never sets the bit, so an older plugin's
+Skyrim side stays off; an older plugin ignores the event type and an older Minecraft the input type):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatPairedBackups` (bit 28) in `McState.features` | Minecraft to Skyrim | `paired_backups` is on: Skyrim copies each save it loads |
+| `kInPairedBackup` (28) in the input ring | Skyrim to Minecraft | One text in a run of events: code 0 with a = the request id, b = the text's length in bytes (1 to `kPairedBackupTextMax`, 512), then code 1, 2, ... each with the next 12 bytes in a, b, c (little endian). The text is UTF-8 `<stamp>\|<save name>` |
+| `kEvPairedBackup` (32) | Minecraft to Skyrim | The world backup for a request is done: formId = the request id, flags = 1 if it was written, a = the pairs to keep (0 all), b = its size in MB |
+
+Far block detail added this within 13 (an older Minecraft never sets the bit, so the shadows stay as they were):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatFarBlockDetail` (bit 29) in `McState.features` | Minecraft to Skyrim | `far_block_detail` is on: block sections more than 64 blocks away cast no sun shadows |
 
 ## Testing a build
 

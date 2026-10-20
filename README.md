@@ -24,7 +24,8 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   Minecraft's own collision. Crouching stops you at edges, Skyrim's as well as blocks'.
 - **Blocks:** place and break blocks anywhere in Skyrim. They're drawn inside Skyrim's frame
   with its sun, shadows, fog and weather. Minecraft lights (torches, lava, glowstone and so on)
-  light up Skyrim.
+  light up Skyrim. If a lot of building slows the frame rate, `far_block_detail = on` in
+  `config/skycraft-features.txt` drops the sun shadows of blocks more than 64 blocks away.
 - **Digging into Skyrim:** mine Skyrim's ground, rocks, roads and objects like Minecraft blocks.
   What you dig out drops as the block it's made of (dirt under grass, then stone with ores, then
   bedrock), and the hole is real for you, NPCs and items. TNT, creepers and other explosions blow
@@ -101,6 +102,9 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
     everyone else: a title, a sound and a small shake of their camera.
   - `/skyparty` shows who's who; `guest_parity` and `shared_world_events` in
     `skycraft-features.txt` switch these off.
+- **Backups:** each time you load a Skyrim save, SkyCraft backs it up together with your Minecraft
+  world, so the two can be put back as a pair. The newest five pairs are kept (see
+  [Paired backups](docs/FEATURES.md#paired-backups)).
 
 ## Requirements
 
@@ -274,12 +278,15 @@ For development:
 
 ## Credits
 
-SkyCraft is by chasmlol. Contributors:
+SkyCraft is by chasmlol. Contributors (the full credits are in [CREDITS.md](CREDITS.md)):
 
 - **Higor Machado** ([waTools-br](https://github.com/waTools-br)): playtesting, and the loot fixes from
   [waTools-br/SkyCraft](https://github.com/waTools-br/SkyCraft/tree/dev-higor): loot and gear drop state
   that was never cleared (memory kept growing), drops lifted out of blocks and onto Skyrim's ground,
   and coin and odds-and-ends drops for bandits, guards, mages and other people.
+
+Want to help? [CONTRIBUTING.md](CONTRIBUTING.md) says how to build each half, where to send pull
+requests, and how contributions are credited.
 
 ## License
 

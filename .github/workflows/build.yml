@@ -67,33 +67,68 @@ jobs:
   skse:
     needs: changes
     if: needs.changes.outputs.skse == 'true'
-    runs-on: windows-2025
+    # The owner's own PC when the repository variable SKYCRAFT_WINDOWS_RUNNER is "self" (docs/CI.md).
+    runs-on: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' && fromJSON('["self-hosted", "windows"]') || 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # vcpkg's built packages, keyed by the port versions of the vcpkg the image comes with (see
+      # check.yml). The owner's own PC keeps its packages in its runner folder instead.
+      - name: Which vcpkg ports
+        id: vcpkg
+        if: vars.SKYCRAFT_WINDOWS_RUNNER != 'self'
+        shell: pwsh
+        run: |
+          $baseline = Join-Path "$env:VCPKG_INSTALLATION_ROOT" 'versions/baseline.json'
+          $ports = if (Test-Path $baseline) { (Get-FileHash $baseline -Algorithm SHA256).Hash.Substring(0, 16) } else { 'unknown' }
+          "ports=$ports" >> $env:GITHUB_OUTPUT
+
       - name: Cache vcpkg packages
+        if: vars.SKYCRAFT_WINDOWS_RUNNER != 'self'
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/vcpkg-cache
-          key: vcpkg-${{ hashFiles('skse/vcpkg.json') }}
-          restore-keys: vcpkg-
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('skse/vcpkg.json') }}-${{ steps.vcpkg.outputs.ports }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ hashFiles('skse/vcpkg.json') }}-
+            vcpkg-
 
       - name: Build the SKSE plugin
         shell: pwsh
         env:
-          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' && format('{0}\skycraft-vcpkg-cache', runner.tool_cache) || format('{0}\vcpkg-cache', github.workspace) }}
           # github.com commit .patch links often 504 from runners; retry them patiently.
           X_VCPKG_ASSET_SOURCES: "x-script,curl.exe -fsSL --retry 12 --retry-all-errors --retry-delay 20 --max-time 240 -o {dst} {url}"
         run: |
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
-          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          # vcpkg: GitHub's images have it at VCPKG_INSTALLATION_ROOT; a self-hosted PC points that (or
+          # VCPKG_ROOT) at its own bootstrapped clone.
+          $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { $env:VCPKG_ROOT }
+          if (-not $vcpkgRoot -or -not (Test-Path "$vcpkgRoot/scripts/buildsystems/vcpkg.cmake")) {
+            Write-Output "::error title=No vcpkg::Set VCPKG_INSTALLATION_ROOT (or VCPKG_ROOT) to a bootstrapped vcpkg clone on this runner (docs/CI.md)"
+            exit 1
+          }
+          $toolchain = "$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
           $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            Write-Output "::error title=No Visual Studio::Install Visual Studio 2022 or 2026 with Desktop development with C++ on this runner (docs/CI.md)"
+            exit 1
+          }
           $vsMajor = [int](& $vswhere -latest -products * -property installationVersion).Split('.')[0]
           $generator = switch ($vsMajor) { 18 { "Visual Studio 18 2026" } 17 { "Visual Studio 17 2022" } default { throw "Unexpected Visual Studio $vsMajor" } }
           Write-Output "Using $generator"
-          cmake -S skse -B skse/build -G $generator -A x64 `
+          # CMake from the PATH (GitHub's images), else the one Visual Studio comes with.
+          $cmake = (Get-Command cmake -ErrorAction SilentlyContinue).Source
+          if (-not $cmake) {
+            $cmake = & $vswhere -latest -products * -find 'Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe' | Select-Object -First 1
+          }
+          if (-not $cmake) {
+            Write-Output "::error title=No CMake::Install CMake, or Visual Studio's C++ CMake tools, on this runner (docs/CI.md)"
+            exit 1
+          }
+          & $cmake -S skse -B skse/build -G $generator -A x64 `
             "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md *>&1 | Tee-Object -FilePath configure.log
           if ($LASTEXITCODE -ne 0) {
             $msg = (Get-Content configure.log | Select-String -Pattern "error|Error|CMake Error" -Context 0,4 | Select-Object -First 30 | Out-String)
@@ -101,7 +136,7 @@ jobs:
             Write-Output "::error title=Configure failed::$msg"
             exit 1
           }
-          cmake --build skse/build --config RelWithDebInfo --target SkyCraft -- /m *>&1 | Tee-Object -FilePath build.log
+          & $cmake --build skse/build --config RelWithDebInfo --target SkyCraft -- /m *>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) {
             $msg = (Get-Content build.log | Select-String -Pattern ": error |: fatal error " | Select-Object -First 40 | Out-String)
             $msg = $msg -replace "%","%25" -replace "`r","" -replace "`n","%0A"
@@ -122,10 +157,31 @@ jobs:
     if: always() && needs.fabric.result == 'success' && (needs.skse.result == 'success' || needs.skse.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
+      # The history and tags, for the release notes (in a folder of its own, beside the downloads).
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          path: history
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v4
         with:
           path: out
           merge-multiple: true
+
+      # The commits since the previous release tag, grouped by area, and who to thank
+      # (tools/release_notes.py). If that fails, the notes are the first line alone and the release
+      # goes out all the same.
+      - name: Write the release notes
+        run: |
+          notes="$RUNNER_TEMP/release-notes.md"
+          echo "Test build from the dev branch, commit $GITHUB_SHA." > "$notes"
+          if (cd history && python3 tools/release_notes.py --head "$GITHUB_SHA") > "$RUNNER_TEMP/changes.md"; then
+            { echo; cat "$RUNNER_TEMP/changes.md"; } >> "$notes"
+          else
+            echo "::warning title=Release notes::tools/release_notes.py failed; the release has the first line only"
+          fi
+          cat "$notes"
 
       - name: Publish the test release
         uses: softprops/action-gh-release@v2
@@ -134,5 +190,5 @@ jobs:
           name: SkyCraft ${{ needs.fabric.outputs.version }} (build ${{ github.run_number }})
           prerelease: true
           target_commitish: ${{ github.sha }}
-          body: Test build from the dev branch, commit ${{ github.sha }}.
+          body_path: ${{ runner.temp }}/release-notes.md
           files: out/*

@@ -1,3 +1,4 @@
+#include "Backups.h"
 #include "Breach.h"
 #include "Companion.h"
 #include "Economy.h"
@@ -1037,6 +1038,8 @@ namespace skycraft
 						Towns::OnEvent(a_player, ev);  // (redstone from a lever pulled in Skyrim's own animation reaches its door meanwhile)
 					} else if (ev.type == proto::kEvHorse) {
 						Horses::OnEvent(a_player, ev);  // the player's horse goes along into another dimension (they're parked here)
+					} else if (ev.type == proto::kEvPairedBackup) {
+						Backups::OnEvent(ev);  // Minecraft's world backup is done (often while a load still holds the player)
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing; so are
@@ -1120,6 +1123,9 @@ namespace skycraft
 					break;
 				case proto::kEvHorse:
 					Horses::OnEvent(a_player, ev);
+					break;
+				case proto::kEvPairedBackup:
+					Backups::OnEvent(ev);
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

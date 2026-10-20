@@ -1,34 +1,127 @@
 name: Check branch
 
-# Agent and feature branches: build and test both halves without publishing a release, and print
-# the Minecraft 26.3 API asked for in .github/probe.txt (for writing code where Minecraft's jars
-# can't be downloaded).
+# Every branch but dev and main (dev has build.yml): build and test the Fabric mod on every push, and
+# only what a push needs on top of that, so a month of pushes fits in GitHub's free Actions minutes
+# (Windows minutes count double). docs/CI.md says what each job costs and when it runs:
+# - the Skyrim plugin's Windows build, when the push changed skse/ or protocol/;
+# - the Minecraft API probe (.github/probe.txt, for writing code where Minecraft's jars can't be
+#   downloaded), when the push changed probe.txt;
+# - the Windows smoke test (a real Fabric server with the mod), on integration branches, on a manual
+#   run, or when the head commit's message says [smoke].
+# A manual run (Actions > Check branch > Run workflow) runs everything. Windows jobs run on the
+# owner's own PC when the repository variable SKYCRAFT_WINDOWS_RUNNER is "self" (docs/CI.md).
 on:
   push:
-    branches: ['claude/**']
+    branches-ignore: [dev, main]
   workflow_dispatch:
+
+# A newer push to the same branch cancels the run still going for an older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read  # the branch's earlier runs, to tell what a push changed (the changes job)
 
 jobs:
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       skse: ${{ steps.diff.outputs.skse }}
+      probe: ${{ steps.diff.outputs.probe }}
+      smoke: ${{ steps.diff.outputs.smoke }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Does the branch change the Skyrim plugin or the protocol (against dev)?
+      # What this push changed: against the commit the branch was at before it, or (a new branch, or
+      # a force push whose old commit is gone) what the branch changes against dev. A push whose run a
+      # newer push cancelled (concurrency, above) never got its checks, so its changes count as this
+      # push's: the comparison goes back to the last run of this branch that finished.
+      - name: What does this push need?
         id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BRANCH: ${{ github.ref_name }}
+          HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          git fetch -q origin dev
-          if git diff --name-only origin/dev...HEAD | grep -qE '^(skse|protocol)/'; then
-            echo "skse=true" >> "$GITHUB_OUTPUT"
+          skse=false
+          probe=false
+          smoke=false
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "A manual run: everything."
+            skse=true
+            probe=true
+            smoke=true
           else
-            echo "skse=false" >> "$GITHUB_OUTPUT"
+            base=""
+            if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+              if git cat-file -e "$BEFORE^{commit}" 2>/dev/null || git fetch -q origin "$BEFORE" 2>/dev/null; then
+                base="$BEFORE"
+                echo "Comparing with the branch before this push, ${BEFORE:0:12}."
+              fi
+            fi
+            # The newest earlier run of this branch that finished (passed or failed, not cancelled). If
+            # none has, everything the branch changes against dev is still unchecked.
+            if runs=$(gh run list --workflow check.yml --branch "$BRANCH" --limit 30 --json headSha,status,conclusion 2>/dev/null); then
+              finished=$(jq -r '[.[] | select(.status == "completed" and .conclusion != "cancelled" and .conclusion != "skipped")][0].headSha // ""' <<< "$runs")
+              if [ -z "$finished" ]; then
+                if [ -n "$base" ]; then
+                  echo "No earlier run of this branch finished: comparing with dev."
+                fi
+                base=""
+              elif [ -n "$base" ] && [ "$finished" != "$base" ] && git cat-file -e "$finished^{commit}" 2>/dev/null \
+                && git merge-base --is-ancestor "$finished" "$base" 2>/dev/null; then
+                echo "The runs after ${finished:0:12} were cancelled before they finished: comparing with ${finished:0:12} instead."
+                base="$finished"
+              fi
+            fi
+            if [ -z "$base" ] && git fetch -q origin dev 2>/dev/null; then
+              base=$(git merge-base origin/dev HEAD 2>/dev/null || true)
+              if [ -n "$base" ]; then
+                echo "Comparing with where the branch left dev, ${base:0:12}."
+              fi
+            fi
+            if [ -z "$base" ]; then
+              echo "Nothing to compare with: the Skyrim build and the probe run."
+              skse=true
+              probe=true
+            else
+              changed=$(git diff --name-only "$base" HEAD)
+              echo "Changed files:"
+              echo "$changed"
+              if grep -qE '^(skse|protocol)/' <<< "$changed"; then
+                skse=true
+              fi
+              if grep -qxF '.github/probe.txt' <<< "$changed"; then
+                probe=true
+              fi
+            fi
+            if [[ "$BRANCH" == *integration* ]]; then
+              smoke=true
+            fi
+            if [[ "$HEAD_MESSAGE" == *"[smoke]"* ]]; then
+              smoke=true
+            fi
           fi
+          echo "Skyrim plugin build: $skse, Minecraft API probe: $probe, smoke test: $smoke"
+          {
+            echo "skse=$skse"
+            echo "probe=$probe"
+            echo "smoke=$smoke"
+          } >> "$GITHUB_OUTPUT"
 
   fabric:
+    needs: changes
+    # Even if telling what the push changed went wrong: then only the build and tests run.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +130,13 @@ jobs:
           distribution: temurin
           java-version: '25'
 
+      # Gradle's downloads (the wrapper, Minecraft, Fabric, Loom's processed jars) come from the cache.
+      # By default only runs on the repository's default branch may write it, and no run happens there,
+      # so every branch writes its own (its second push on is warm). With dev as the default branch,
+      # every branch also starts from dev's (docs/CI.md).
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
 
       - name: Build and test the Fabric mod
         working-directory: fabric
@@ -50,19 +149,80 @@ jobs:
             exit 1
           fi
 
+      # The Minecraft 26.3 API asked for in .github/probe.txt, from the jars the build just set up (also
+      # after a failed build: the probe is what fixes it). One line per entry: a class name (javap -p),
+      # "-c <class>" (with bytecode), "-c <class> <name>" (the bytecode of only the members whose
+      # declaration has <name> in it, for big classes), a resource path inside the Minecraft jar
+      # ("data/minecraft/...json") printed as text, or "list:<prefix>" for the jar's files under a path
+      # ("list:assets/minecraft/items/" is every item). "#" comments. An entry that isn't there says so
+      # and the rest still print; the probe never fails the check.
+      - name: Print the probed API
+        if: ${{ !cancelled() && needs.changes.outputs.probe == 'true' }}
+        continue-on-error: true
+        run: |
+          if ! (cd fabric && ./gradlew help --no-configuration-cache -q > /dev/null 2>&1); then
+            (cd fabric && ./gradlew help --no-configuration-cache)
+          fi
+          jars=$(find ~/.gradle fabric/.gradle -name '*.jar' 2>/dev/null | grep -i minecraft | grep -v -i -E 'sources|fabric-api|loader|mapping|intermediary' )
+          cp=""
+          for j in $jars; do
+            if unzip -l "$j" 2>/dev/null | grep -q -E 'net/minecraft/(world|client)/'; then cp="$cp:$j"; echo "jar: $j"; fi
+          done
+          cp="${cp#:}"
+          while IFS= read -r line || [ -n "$line" ]; do
+            line="${line%%#*}"; line="$(echo "$line" | xargs)"
+            [ -z "$line" ] && continue
+            echo; echo "======== $line"
+            # shellcheck disable=SC2086 # "-c <class> <name>": the class and the name, split apart
+            case "$line" in
+              -c\ *\ *) set -- ${line#-c }
+                javap -p -c -cp "$cp" "$1" 2>&1 | awk -v m="$2" '/^  [^ ]/ { p = index($0, m) > 0 } p' || true ;;
+              -c\ *) javap -p -c -cp "$cp" "${line#-c }" 2>&1 || true ;;
+              list:*) for j in ${cp//:/ }; do unzip -Z1 "$j" 2>/dev/null; done | grep "^${line#list:}" | sort -u || true ;;
+              */*) for j in ${cp//:/ }; do unzip -p "$j" "$line" 2>/dev/null && break; done || true ;;
+              *) javap -p -cp "$cp" "$line" 2>&1 || true ;;
+            esac
+          done < <(cat .github/probe.txt 2>/dev/null)
+          echo; echo "======== end of probe"
+
       - name: Keep the jar for the smoke test
+        if: needs.changes.outputs.smoke == 'true'
         run: cp "fabric/build/libs/skycraft-$(grep '^version=' fabric/gradle.properties | cut -d= -f2).jar" skycraft.jar
 
       - uses: actions/upload-artifact@v4
+        if: needs.changes.outputs.smoke == 'true'
         with:
           name: skycraft-jar
           path: skycraft.jar
+          retention-days: 3
+
+  # The Skyrim plugin's pure logic tests (skse/tests, no game) and the protocol header, with Linux's
+  # g++: a minute, against the Windows build's twenty, and it fails first.
+  skse-tests:
+    needs: changes
+    if: needs.changes.outputs.skse == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the plugin's pure logic tests
+        run: |
+          echo '#include "skycraft_protocol.h"' | g++ -std=c++20 -Wall -Wextra -fsyntax-only -I protocol -x c++ -
+          mkdir -p tests-out
+          for test in skse/tests/*Test.cpp; do
+            name=$(basename "$test" .cpp)
+            echo "== $name"
+            g++ -std=c++20 -Wall -Wextra -I skse/src -I protocol "$test" -o "tests-out/$name"
+            "tests-out/$name"
+          done
 
   # Boots a real Fabric dedicated server with the jar (tools/smoke_server.py): a broken mixin or data
   # pack fails here instead of in a player's game. Windows, since SkyLink binds kernel32.
   smoke:
-    needs: fabric
-    runs-on: windows-2025
+    needs: [changes, fabric]
+    if: needs.changes.outputs.smoke == 'true'
+    runs-on: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' && fromJSON('["self-hosted", "windows"]') || 'windows-latest' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -77,92 +237,94 @@ jobs:
           name: skycraft-jar
 
       - name: Run the server
-        shell: bash
+        shell: pwsh
         run: python tools/smoke_server.py skycraft.jar smoke
-
-  probe:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: Set up Minecraft
-        working-directory: fabric
-        run: |
-          chmod +x gradlew
-          ./gradlew help --no-configuration-cache -q > /dev/null 2>&1 || ./gradlew help --no-configuration-cache
-
-      # One line per entry: a class name (javap -p), "-c <class>" (with bytecode), "-c <class> <name>" (the
-      # bytecode of only the members whose declaration has <name> in it, for big classes), a resource path
-      # inside the Minecraft jar ("data/minecraft/...json") printed as text, or "list:<prefix>" for the jar's
-      # files under a path ("list:assets/minecraft/items/" is every item). "#" comments.
-      - name: Print the probed API
-        run: |
-          jars=$(find ~/.gradle fabric/.gradle -name '*.jar' 2>/dev/null | grep -i minecraft | grep -v -i -E 'sources|fabric-api|loader|mapping|intermediary' )
-          cp=""
-          for j in $jars; do
-            if unzip -l "$j" 2>/dev/null | grep -q -E 'net/minecraft/(world|client)/'; then cp="$cp:$j"; echo "jar: $j"; fi
-          done
-          cp="${cp#:}"
-          while IFS= read -r line || [ -n "$line" ]; do
-            line="${line%%#*}"; line="$(echo "$line" | xargs)"
-            [ -z "$line" ] && continue
-            echo; echo "======== $line"
-            case "$line" in
-              -c\ *\ *) set -- ${line#-c }
-                javap -p -c -cp "$cp" "$1" 2>&1 | awk -v m="$2" '/^  [^ ]/ { p = index($0, m) > 0 } p' ;;
-              -c\ *) javap -p -c -cp "$cp" "${line#-c }" 2>&1 ;;
-              list:*) for j in ${cp//:/ }; do unzip -Z1 "$j" 2>/dev/null; done | grep "^${line#list:}" | sort -u ;;
-              */*) for j in ${cp//:/ }; do unzip -p "$j" "$line" 2>/dev/null && break; done ;;
-              *) javap -p -cp "$cp" "$line" 2>&1 ;;
-            esac
-          done < <(cat .github/probe.txt 2>/dev/null)
-          echo; echo "======== end of probe"
 
   skse:
     needs: changes
     if: needs.changes.outputs.skse == 'true'
-    runs-on: windows-2025
+    runs-on: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' && fromJSON('["self-hosted", "windows"]') || 'windows-latest' }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      # vcpkg's built packages, keyed by the port versions of the vcpkg the image comes with (GitHub
+      # updates it about weekly): a cache keyed by vcpkg.json alone was never saved again, so after an
+      # update every run rebuilt the packages that changed. The owner's own PC keeps its packages in its
+      # runner folder instead (below).
+      - name: Which vcpkg ports
+        id: vcpkg
+        if: vars.SKYCRAFT_WINDOWS_RUNNER != 'self'
+        shell: pwsh
+        run: |
+          $baseline = Join-Path "$env:VCPKG_INSTALLATION_ROOT" 'versions/baseline.json'
+          $ports = if (Test-Path $baseline) { (Get-FileHash $baseline -Algorithm SHA256).Hash.Substring(0, 16) } else { 'unknown' }
+          "ports=$ports" >> $env:GITHUB_OUTPUT
+
       - name: Cache vcpkg packages
+        if: vars.SKYCRAFT_WINDOWS_RUNNER != 'self'
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/vcpkg-cache
-          key: vcpkg-${{ hashFiles('skse/vcpkg.json') }}
-          restore-keys: vcpkg-
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('skse/vcpkg.json') }}-${{ steps.vcpkg.outputs.ports }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ hashFiles('skse/vcpkg.json') }}-
+            vcpkg-
 
       - name: Build the SKSE plugin
         shell: pwsh
         env:
-          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+          SELF_HOSTED: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' }}
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ vars.SKYCRAFT_WINDOWS_RUNNER == 'self' && format('{0}\skycraft-vcpkg-cache', runner.tool_cache) || format('{0}\vcpkg-cache', github.workspace) }}
           # github.com commit .patch links often 504 from runners; retry them patiently.
           X_VCPKG_ASSET_SOURCES: "x-script,curl.exe -fsSL --retry 12 --retry-all-errors --retry-delay 20 --max-time 240 -o {dst} {url}"
         run: |
           New-Item -ItemType Directory -Force $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
-          $toolchain = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          $self = $env:SELF_HOSTED -eq 'true'
+          # vcpkg: GitHub's images have it at VCPKG_INSTALLATION_ROOT; a self-hosted PC points that (or
+          # VCPKG_ROOT) at its own bootstrapped clone.
+          $vcpkgRoot = if ($env:VCPKG_INSTALLATION_ROOT) { $env:VCPKG_INSTALLATION_ROOT } else { $env:VCPKG_ROOT }
+          if (-not $vcpkgRoot -or -not (Test-Path "$vcpkgRoot/scripts/buildsystems/vcpkg.cmake")) {
+            Write-Output "::error title=No vcpkg::Set VCPKG_INSTALLATION_ROOT (or VCPKG_ROOT) to a bootstrapped vcpkg clone on this runner (docs/CI.md)"
+            exit 1
+          }
+          $toolchain = "$vcpkgRoot/scripts/buildsystems/vcpkg.cmake"
           $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            Write-Output "::error title=No Visual Studio::Install Visual Studio 2022 or 2026 with Desktop development with C++ on this runner (docs/CI.md)"
+            exit 1
+          }
           $vsMajor = [int](& $vswhere -latest -products * -property installationVersion).Split('.')[0]
           $generator = switch ($vsMajor) { 18 { "Visual Studio 18 2026" } 17 { "Visual Studio 17 2022" } default { throw "Unexpected Visual Studio $vsMajor" } }
           Write-Output "Using $generator"
-          cmake -S skse -B skse/build -G $generator -A x64 `
-            "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -DVCPKG_TARGET_TRIPLET=x64-windows-static-md *>&1 | Tee-Object -FilePath configure.log
+          # CMake from the PATH (GitHub's images), else the one Visual Studio comes with.
+          $cmake = (Get-Command cmake -ErrorAction SilentlyContinue).Source
+          if (-not $cmake) {
+            $cmake = & $vswhere -latest -products * -find 'Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe' | Select-Object -First 1
+          }
+          if (-not $cmake) {
+            Write-Output "::error title=No CMake::Install CMake, or Visual Studio's C++ CMake tools, on this runner (docs/CI.md)"
+            exit 1
+          }
+          # The owner's PC keeps its build folder from run to run outside the checkout (which is cleaned
+          # every time), so only what changed is compiled again.
+          $build = if ($self) { Join-Path $env:RUNNER_TOOL_CACHE 'skycraft-skse-build' } else { 'skse/build' }
+          $configure = @('-S', 'skse', '-B', $build, '-G', $generator, '-A', 'x64', "-DCMAKE_TOOLCHAIN_FILE=$toolchain", '-DVCPKG_TARGET_TRIPLET=x64-windows-static-md')
+          & $cmake @configure *>&1 | Tee-Object -FilePath configure.log
+          if ($LASTEXITCODE -ne 0 -and $self -and (Test-Path $build)) {
+            Write-Output "Configuring failed in the kept build folder (a Visual Studio update?); starting it over"
+            Remove-Item -Recurse -Force $build
+            & $cmake @configure *>&1 | Tee-Object -FilePath configure.log
+          }
           if ($LASTEXITCODE -ne 0) {
             $msg = (Get-Content configure.log | Select-String -Pattern "error|Error|CMake Error" -Context 0,4 | Select-Object -First 30 | Out-String)
             $msg = $msg -replace "%","%25" -replace "`r","" -replace "`n","%0A"
             Write-Output "::error title=Configure failed::$msg"
             exit 1
           }
-          cmake --build skse/build --config RelWithDebInfo --target SkyCraft -- /m *>&1 | Tee-Object -FilePath build.log
+          & $cmake --build $build --config RelWithDebInfo --target SkyCraft -- /m *>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) {
             $msg = (Get-Content build.log | Select-String -Pattern ": error |: fatal error " | Select-Object -First 40 | Out-String)
             $msg = $msg -replace "%","%25" -replace "`r","" -replace "`n","%0A"

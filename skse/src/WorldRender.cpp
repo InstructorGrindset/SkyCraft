@@ -504,6 +504,16 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 		constexpr float kShadowRadius = 64.0f * 70.0f;
 		constexpr float kShadowDepth = 12000.0f;
 
+		// far_block_detail (proto::kFeatFarBlockDetail, off unless switched on): sections farther than this from the
+		// camera (blocks, to their nearest corner) aren't drawn into the sun's shadow map. Without it every section
+		// within the map's reach is, about 250 blocks round the camera, though the map covers only 64 blocks either
+		// side of the camera across the sun's path: a far section is drawn once less a frame (of two to five times:
+		// shadows, the scene, Skyrim's depth copies). What goes is the shadows of far blocks: on Skyrim's ground and on
+		// other far blocks, and a far, tall build's shadow reaching near along a low sun. Skyrim's own shadows on far
+		// blocks stay, and so does everything near.
+		constexpr double kFarShadowBlocks = 64.0;
+		constexpr double kSectionRadius = 13.86;  // half a section's diagonal: centre to corner
+
 		struct alignas(16) FrameConstants
 		{
 			float viewProj[4][4];
@@ -2602,7 +2612,16 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 
 		void RenderPasses(ID3D11DeviceContext* a_context, const Target& a_t, RE::NiCamera* a_camera, ID3D11ShaderResourceView* a_maskSrv)
 		{
+			Perf::Scope cpuTimer(Perf::kBlocks);
 			passTimer.Begin(a_context);
+			// What this frame draws, for the minute's perf line.
+			std::int64_t sectionsDrawn = 0, triangles = 0, shadowSections = 0, farSections = 0;
+			const bool   farDetail = Game::FeatureOn(proto::kFeatFarBlockDetail);
+			static bool  farDetailLogged = false;
+			if (farDetail != farDetailLogged) {
+				farDetailLogged = farDetail;
+				logger::info("far block detail {}", farDetail ? "on: block sections more than 64 blocks away cast no sun shadows" : "off");
+			}
 			// Camera: Skyrim's own world->clip matrix, re-based on the camera position so the GPU
 			// only ever sees small camera-relative coordinates.
 			const auto& w2c = a_camera->GetRuntimeData().worldToCam;
@@ -2739,11 +2758,19 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 				a_context->PSSetShader(shadowPs, nullptr, 0);
 				a_context->PSSetShaderResources(0, 1, &atlasSrv);
 				const double reach = (kShadowRadius + kShadowDepth) / 70.0 + 16.0;
+				const double farReach = kFarShadowBlocks + kSectionRadius;
 				for (auto& [key, s] : sections) {
 					const double dx = s.sx * 16.0 + 8.0 - camMc.x, dy = s.sy * 16.0 + 8.0 - camMc.y, dz = s.sz * 16.0 + 8.0 - camMc.z;
-					if (!s.opaque || dx * dx + dy * dy + dz * dz > reach * reach) {
+					const double d2 = dx * dx + dy * dy + dz * dz;
+					if (!s.opaque || d2 > reach * reach) {
 						continue;
 					}
+					if (farDetail && d2 > farReach * farReach) {
+						++farSections;
+						continue;
+					}
+					++shadowSections;
+					triangles += s.opaque / 3;
 					double origin[3];
 					McToSkyD(s.sx * 16.0, s.sy * 16.0, s.sz * 16.0, origin);
 					SetObjectOffset(a_context, origin, cam);
@@ -2824,6 +2851,8 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 				if (dx * dx + dy * dy + dz * dz > 320.0 * 320.0 || !s.opaque) {
 					continue;
 				}
+				++sectionsDrawn;
+				triangles += s.opaque / 3;
 				double origin[3];
 				McToSkyD(s.sx * 16.0, s.sy * 16.0, s.sz * 16.0, origin);
 				SetObjectOffset(a_context, origin, cam);
@@ -2851,6 +2880,11 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 				if (!s.translucent) {
 					continue;
 				}
+				const double dx = s.sx * 16.0 + 8.0 - camMc.x, dy = s.sy * 16.0 + 8.0 - camMc.y, dz = s.sz * 16.0 + 8.0 - camMc.z;
+				if (!s.opaque || dx * dx + dy * dy + dz * dz > 320.0 * 320.0) {
+					++sectionsDrawn;  // its water or glass alone (the rest were counted with the solid blocks)
+				}
+				triangles += s.translucent / 3;
 				double origin[3];
 				McToSkyD(s.sx * 16.0, s.sy * 16.0, s.sz * 16.0, origin);
 				SetObjectOffset(a_context, origin, cam);
@@ -2893,6 +2927,7 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 						if (dx * dx + dy * dy + dz * dz > 320.0 * 320.0 || !s.opaque) {
 							continue;
 						}
+						triangles += s.opaque / 3;
 						double origin[3];
 						McToSkyD(s.sx * 16.0, s.sy * 16.0, s.sz * 16.0, origin);
 						SetObjectOffset(a_context, origin, cam);
@@ -2911,6 +2946,12 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 			ID3D11ShaderResourceView* none[6] = {};
 			a_context->PSSetShaderResources(0, 6, none);
 			passTimer.Finish(a_context);
+			Perf::Count(Perf::kSectionsDrawn, sectionsDrawn);
+			Perf::Count(Perf::kTriangles, triangles);
+			Perf::Count(Perf::kShadowSections, shadowSections);
+			if (farDetail) {
+				Perf::Count(Perf::kFarSections, farSections);
+			}
 		}
 
 		// Right after Skyrim renders its 3D scene, before its post-processing: the blocks go into
