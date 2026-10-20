@@ -86,3 +86,8 @@ data/minecraft/recipe/brewing/potion_awkward_sugar.json
 data/minecraft/recipe/copper_nugget_from_blasting.json
 # Fabric API (not on this probe's class path; checked against fabric-api's 26.3 source):
 # net.fabricmc.fabric.api.resource.conditions.v1.ResourceConditions register, ResourceConditionType create
+# Party (guest parity, shared world events): picking a stand-in, distances, the dragon sounds
+-c net.minecraft.world.entity.LivingEntity isPickable
+-c net.minecraft.world.entity.Entity isPickable
+-c net.minecraft.world.entity.Entity distanceToSqr
+-c net.minecraft.sounds.SoundEvents ENDER_DRAGON

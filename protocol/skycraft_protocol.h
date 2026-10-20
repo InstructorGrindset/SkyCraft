@@ -131,10 +131,18 @@ namespace skycraft::proto
 		std::uint8_t reservedTown[8];  // 0x90
 		// creatures
 		std::uint8_t reservedCreatures[8];  // 0x98
-		// multiplayer
-		std::uint8_t reservedParty[8];  // 0xA0
+		// multiplayer: shared world events (the shared_world_events switch, kFeatSharedWorldEvents). Skyrim bumps
+		// shoutSeq each time the player, or an actor in the actor table, starts a shout (its voice recovery
+		// begins), with who it was; Minecraft tells the other players in the world. Added within version 13: zeros
+		// from an older plugin, and while the switch is off (the sequence never moves, so nothing is told).
+		std::uint16_t shoutSeq;    // 0xA0
+		std::uint8_t  shoutWords;  // 0xA2: words of power in the shout (1 to 3), 0 when Skyrim can't tell
+		std::uint8_t  shoutFlags;  // 0xA3: ShoutFlags
+		std::uint32_t shoutActor;  // 0xA4: who shouted: the actor's FormID (0x14 for the player)
 	};
 	static_assert(sizeof(SkyState) == 0xA8);
+	static_assert(offsetof(SkyState, shoutSeq) == 0xA0 && offsetof(SkyState, shoutWords) == 0xA2 && offsetof(SkyState, shoutFlags) == 0xA3 &&
+	              offsetof(SkyState, shoutActor) == 0xA4);  // Proto.SS_SHOUT_*
 	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
 	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
 	static_assert(offsetof(SkyState, skills) == 0x68 && offsetof(SkyState, dragonSouls) == 0x7A && offsetof(SkyState, skillsLoad) == 0x7C &&
@@ -186,6 +194,12 @@ namespace skycraft::proto
 		kCarryElderScroll = 1u << 0,  // an Elder Scroll (Skyrim.esm DA04ElderScroll 0x02D513 and its furled copy
 		                              // 0x048782; Dawnguard.esm DLC1ElderScrollDragon 0x0126DC, Sun 0x011A13,
 		                              // Blood 0x0118F9): opens the portal at the Time-Wound onto Home
+	};
+	// Who SkyState::shoutActor is (SkyState::shoutFlags).
+	enum ShoutFlags : std::uint8_t
+	{
+		kShoutByPlayer = 1u << 0,  // the Skyrim player shouted (Skyrim had the player: riding, a scene, ...)
+		kShoutByDragon = 1u << 1,  // a dragon shouted (kActorDragon: its breath is a shout too)
 	};
 	static_assert(kOffSkyState + sizeof(SkyState) <= kOffMcState);
 
@@ -314,6 +328,9 @@ namespace skycraft::proto
 		// sends kInSkyrimFood only while this is set.
 		kFeatSkyrimFood = 1u << 8,
 
+		// shared_world_events (added within version 13): Skyrim watches for shouts (SkyState::shoutSeq) and
+		// shakes its camera for kEvPartyShake. Off, it does neither.
+		kFeatSharedWorldEvents = 1u << 26,
 		kFeaturesValid = 1u << 31,
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
@@ -456,6 +473,10 @@ namespace skycraft::proto
 		                                   // teammate, or a horse the player owns
 		kActorCompanionWaiting = 1u << 6,  // a companion that isn't following the player now: told to wait (Minecraft's sit),
 		                                   // or left behind because another animal holds Skyrim's one animal follower slot
+
+		// Shared world events (added within version 13: an older plugin never sets it, an older Minecraft ignores it).
+		kActorDragon = 1u << 18,  // a dragon: its race has the ActorTypeDragon keyword (every dragon, Alduin, Durnehviir,
+		                          // skeletal and DLC dragons). A hostile one in combat near the player is a dragon attack
 	};
 
 	// Bits 8-11 of ActorRecord::flags: what kind of animal the actor is, from its race (AnimalKind; Skyrim's
@@ -565,6 +586,10 @@ namespace skycraft::proto
 		                         // number kEvMerchantGold asked with. Skyrim moves that much gold (Gold001, 0x0000000F) from
 		                         // the merchant's chest (its vendor faction's merchant container; its own purse if it has
 		                         // none) into the player's inventory, never more than the merchant has. Added within version 13
+		kEvPartyShake = 29,    // shared world events (kFeatSharedWorldEvents): something another player in the Minecraft world
+		                       // went through shakes this player's camera a little (a dragon attacking them, a dragon slain):
+		                       // a = strength (0 to 1, Skyrim's ShakeCamera), b = seconds (0.1 to 3). Nothing in this Skyrim
+		                       // changes but the camera. Added within version 13 (an older plugin ignores the type)
 	};
 
 	enum PortalTravelFlags : std::uint32_t

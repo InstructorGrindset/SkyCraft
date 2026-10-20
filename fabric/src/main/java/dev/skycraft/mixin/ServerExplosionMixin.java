@@ -68,10 +68,15 @@ public abstract class ServerExplosionMixin {
 			this.skycraft$blast = null;
 		}
 		ServerExplosion self = (ServerExplosion) (Object) this;
-		if (!SkyLink.active() || !dev.skycraft.SkyDimension.inMirror(self.level())) {
+		if (!dev.skycraft.SkyDimension.inMirror(self.level())) {
 			return;
 		}
 		var center = self.center();
+		// Guests near it feel it in their own Skyrims too (guest parity).
+		dev.skycraft.party.GuestParity.explosion(self.level(), center.x, center.y, center.z, self.radius());
+		if (!SkyLink.active()) {
+			return;
+		}
 		SkyLink.pushEventAt(Proto.EV_EXPLOSION, 0, center.x, center.y, center.z, self.radius(), 0, 0);
 	}
 }

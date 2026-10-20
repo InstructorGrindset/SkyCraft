@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -34,14 +35,21 @@ public final class GearDrops {
 	static final int WAIT_TICKS = SkyLoot.HIT_WINDOW_TICKS;
 	private static final String FILE = "skycraft-gear-drops.txt";
 
-	/** Worn gear by actor form id, waiting for the kill. */
-	private static final Map<Integer, List<Worn>> WORN = new HashMap<>();
-	/** Credited kills by actor form id, for gear still on its way. */
-	private static final Map<Integer, Kill> KILLS = new HashMap<>();
+	/** Worn gear by actor, waiting for the kill. */
+	private static final Map<ActorKey, List<Worn>> WORN = new HashMap<>();
+	/** Credited kills by actor, for gear still on its way. */
+	private static final Map<ActorKey, Kill> KILLS = new HashMap<>();
 	private static final Random RANDOM = new Random();
 	private static GearMap.Settings settings;
 
 	private record Worn(SkyLink.Item item, int tick) {
+	}
+
+	/**
+	 * One Skyrim's actor: {@code owner} null for the host's, a guest's id for theirs (party.GuestParity). The same form
+	 * id in two players' Skyrims is two actors.
+	 */
+	private record ActorKey(@Nullable UUID owner, int formId) {
 	}
 
 	private record Kill(String name, double x, double y, double z, int looting, int tick) {
@@ -50,22 +58,23 @@ public final class GearDrops {
 	private GearDrops() {
 	}
 
-	/** A piece of gear a Skyrim actor wore when it died (a worn ItemEvent). */
-	public static void onWorn(ServerLevel level, SkyLink.Item it, int tick) {
+	/** A piece of gear a Skyrim actor wore when it died (a worn ItemEvent), from the host's Skyrim ({@code owner} null) or a guest's. */
+	public static void onWorn(ServerLevel level, @Nullable UUID owner, SkyLink.Item it, int tick) {
 		if (!Features.on(Features.Feature.GEAR_DROPS)) {
 			return;
 		}
 		expire(tick);
-		Kill kill = KILLS.get(it.container());
+		ActorKey actor = new ActorKey(owner, it.container());
+		Kill kill = KILLS.get(actor);
 		if (kill != null) {
 			roll(level, kill, it);
 			return;
 		}
-		WORN.computeIfAbsent(it.container(), id -> new ArrayList<>()).add(new Worn(it, tick));
+		WORN.computeIfAbsent(actor, id -> new ArrayList<>()).add(new Worn(it, tick));
 	}
 
-	/** SkyLoot credited {@code killer} (SkyLoot.killer) with killing this actor. */
-	public static void onKill(ServerLevel level, SkyLink.Actor a, @Nullable ServerPlayer killer, int tick) {
+	/** SkyLoot credited {@code killer} (SkyLoot.killer, or party.GuestParity for a guest's actor) with killing this actor of {@code owner}'s Skyrim. */
+	public static void onKill(ServerLevel level, @Nullable UUID owner, SkyLink.Actor a, @Nullable ServerPlayer killer, int tick) {
 		if (!Features.on(Features.Feature.GEAR_DROPS)) {
 			return;
 		}
@@ -73,8 +82,9 @@ public final class GearDrops {
 		// Looting on the killer's weapon, as for Minecraft's equipment drops (only a player's counts there too).
 		int looting = killer != null ? SkyLoot.lootingLevel(killer) : 0;
 		Kill kill = new Kill(a.name(), a.x(), a.y(), a.z(), looting, tick);
-		KILLS.put(a.formId(), kill);
-		List<Worn> worn = WORN.remove(a.formId());
+		ActorKey actor = new ActorKey(owner, a.formId());
+		KILLS.put(actor, kill);
+		List<Worn> worn = WORN.remove(actor);
 		if (worn != null) {
 			for (Worn w : worn) {
 				roll(level, kill, w.item());

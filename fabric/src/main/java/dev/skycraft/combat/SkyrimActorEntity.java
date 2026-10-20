@@ -43,12 +43,25 @@ public class SkyrimActorEntity extends LivingEntity {
 	// The Skyrim actor's Proto.ACTOR_* flags (hostile, dead, essential, companion, waiting, its animal kind). Synced so
 	// the client knows a click on a Skyrim animal is for the companions feature (companion.SkyCompanions), not Skyrim.
 	private static final EntityDataAccessor<Integer> SKY_FLAGS = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
+	// Whose Skyrim the actor is in: the entity id of the guest whose client sent it (party.GuestParity), 0 for the host's
+	// (on the shared-memory link). Synced so each client picks and follows only its own Skyrim's actors.
+	private static final EntityDataAccessor<Integer> OWNER = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
+
+	/**
+	 * Client side: whether an OWNER entity id is this client's own Skyrim (0 on the host's machine, the player's own id
+	 * on a guest's), set by the client; and whether only those can be picked (guest parity on: nobody hits or clicks an
+	 * actor their own Skyrim doesn't draw). Off, every stand-in is picked as before.
+	 */
+	private static volatile java.util.function.IntPredicate localOwner = id -> id == 0;
+	private static volatile boolean ownOnly;
 
 	// The actor's Skyrim name (server side), without what the stand-in's own name adds to it ("(tamed)").
 	private String skyrimName = "";
 	// The last player whose attack reached us (melee, their arrow or trident), server side: the kill and
 	// its loot are theirs (loot.SkyLoot.killer).
 	private @Nullable UUID lastPlayerHit;
+	// The guest whose Skyrim this actor is in (server side), null for the host's.
+	private @Nullable UUID owner;
 
 	// This tick's hit, flushed to Skyrim by SkyCombat after all attacks for the tick have landed
 	// (Player.attack adds its sprint/enchantment knockback after hurtServer returns).
@@ -96,6 +109,40 @@ public class SkyrimActorEntity extends LivingEntity {
 
 	public void setSkyFlags(int flags) {
 		this.entityData.set(SKY_FLAGS, flags);
+	}
+
+	/** The guest whose Skyrim this actor is in (party.GuestParity), or null for the host's. Server side. */
+	public @Nullable UUID owner() {
+		return this.owner;
+	}
+
+	/** This stand-in is for an actor of {@code guest}'s own Skyrim (party.GuestParity). */
+	public void setOwner(ServerPlayer guest) {
+		this.owner = guest.getUUID();
+		this.entityData.set(OWNER, guest.getId());
+	}
+
+	/** Client side: how to tell this client's own Skyrim's stand-ins, and whether only those are picked (see {@link #shownHere}). */
+	public static void setClientOwnership(java.util.function.IntPredicate local, boolean onlyOwn) {
+		localOwner = local;
+		ownOnly = onlyOwn;
+	}
+
+	/** Client side: the actor is in this client's own Skyrim (ProxySync moves it to where that Skyrim has it). */
+	public boolean isLocalPlayers() {
+		return localOwner.test(this.entityData.get(OWNER));
+	}
+
+	/** Client side: the actor can be picked here (crosshair, clicks): this client's own Skyrim's, or any with guest parity off. */
+	public boolean shownHere() {
+		return !ownOnly || this.isLocalPlayers();
+	}
+
+	@Override
+	public boolean isPickable() {
+		// Another player's Skyrim's actor is an invisible box this player's Skyrim never draws: their crosshair passes it.
+		// The server's own checks (projectiles) still find it: the world is shared.
+		return super.isPickable() && (!this.level().isClientSide() || this.shownHere());
 	}
 
 	/** The actor's Skyrim name, as the actor table has it. */
@@ -162,6 +209,7 @@ public class SkyrimActorEntity extends LivingEntity {
 		builder.define(HEIGHT, 1.8F);
 		builder.define(VENDOR, 0);
 		builder.define(SKY_FLAGS, 0);
+		builder.define(OWNER, 0);
 	}
 
 	public void setSize(float width, float height) {

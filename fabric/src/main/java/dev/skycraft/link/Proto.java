@@ -69,6 +69,11 @@ public final class Proto {
 	public static final int ACTOR_COMPANION = 1 << 5;
 	/** A companion that isn't following now: told to wait (sit), or another animal holds Skyrim's one animal follower slot. */
 	public static final int ACTOR_COMPANION_WAITING = 1 << 6;
+	/**
+	 * Shared world events (added within protocol 13; an older Skyrim plugin never sets it): a dragon, by its race's
+	 * ActorTypeDragon keyword (party.WorldEvents also knows dragons by name, for an older plugin).
+	 */
+	public static final int ACTOR_DRAGON = 1 << 18;
 	/** Bits 8-11 of the actor flags: the actor's ANIMAL_* kind, from its race (Skyrim's AnimalKinds.h). Added within 13. */
 	public static final int ACTOR_KIND_SHIFT = 8;
 	public static final int ACTOR_KIND_MASK = 0xF << ACTOR_KIND_SHIFT;
@@ -144,6 +149,12 @@ public final class Proto {
 	 * its own purse) into the player's inventory, never more than the merchant has. Added within protocol 13.
 	 */
 	public static final int EV_SELL_TO_MERCHANT = 20;
+	/**
+	 * Shared world events (party.SharedWorldEvents): something another player in the Minecraft world went through shakes
+	 * this player's Skyrim camera a little. a = strength (0 to 1), b = seconds (0.1 to 3). Added within protocol 13; an
+	 * older Skyrim plugin ignores it.
+	 */
+	public static final int EV_PARTY_SHAKE = 29;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;
@@ -363,6 +374,17 @@ public final class Proto {
 	public static final int WEATHER_REFUSED = 1 << 2;
 	/** SkyState.aim: Skyrim's crosshair is on a plant it can harvest (right click harvests it; a hoe doesn't till under it). */
 	public static final int AIM_HARVEST = 1;
+	/**
+	 * Shared world events (added within protocol 13, zeros from an older plugin): u16 shoutSeq, bumped each time the
+	 * player or an actor in the actor table starts a shout; u8 its words of power (1 to 3, 0 unknown); u8 SHOUT_* flags;
+	 * u32 who shouted (0x14, the player).
+	 */
+	public static final long SS_SHOUT_SEQ = 0xA0;
+	public static final long SS_SHOUT_WORDS = 0xA2;
+	public static final long SS_SHOUT_FLAGS = 0xA3;
+	public static final long SS_SHOUT_ACTOR = 0xA4;
+	public static final int SHOUT_BY_PLAYER = 1;
+	public static final int SHOUT_BY_DRAGON = 1 << 1;
 
 	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
 	public static final int VENDOR_ANY = 1;
@@ -447,6 +469,8 @@ public final class Proto {
 	public static final long MS_WEATHER_WANT = 0xE8;
 	/** FeatureBits kFeatSkyrimFood: Skyrim food eaten in Skyrim fills Minecraft's hunger (Skyrim sends IN_SKYRIM_FOOD). */
 	public static final int FEATURE_SKYRIM_FOOD = 1 << 8;
+	/** shared_world_events: Skyrim watches for shouts (SS_SHOUT_*) and shakes its camera for EV_PARTY_SHAKE. */
+	public static final int FEATURE_SHARED_WORLD_EVENTS = 1 << 26;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;

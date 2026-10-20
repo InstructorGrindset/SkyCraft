@@ -33,7 +33,9 @@ import org.jspecify.annotations.Nullable;
  * tamed one the player's for real (EV_COMPANION: Skyrim's own animal follower, or the player's own horse). An empty
  * hand on a companion makes it sit (wait) or follow, sneaking for a horse (a plain click rides it, Skyrim's way); its
  * food heals it. Skyrim's existing animal followers and owned horses count as tamed. Which actors are what comes from
- * Skyrim in the actor table's flags; the rules are {@link CompanionRules}. Switch: companions. Log: SkyCraft-companion.
+ * Skyrim in the actor table's flags; the rules are {@link CompanionRules}. A guest's own Skyrim's animals (guest parity,
+ * party.GuestParity) are tamed the same way, their Skyrim told through the host's server. Switch: companions. Log:
+ * SkyCraft-companion.
  */
 public final class SkyCompanions {
 	/** Horses fed but not tamed yet, by form id: their temper (the oldest forgotten past {@link #MAX_TEMPERS}). */
@@ -113,22 +115,24 @@ public final class SkyCompanions {
 			return null;
 		}
 		if (player.level().isClientSide()) {
-			// A guest's clicks would reach the host's Skyrim, whose animals these are: a guest's are left alone.
-			return dev.skycraft.link.SkySpace.remoteWanted ? null : InteractionResult.SUCCESS;
+			// A guest's clicks on the host's animals would reach the host's Skyrim, whose animals these are: left alone. Their
+			// own Skyrim's animals (guest parity gives those stand-ins of theirs) are theirs to tame.
+			return dev.skycraft.link.SkySpace.remoteWanted && !proxy.isLocalPlayers() ? null : InteractionResult.SUCCESS;
 		}
-		if (!(player instanceof ServerPlayer host) || !dev.skycraft.net.SkyNet.isHost(host) || !SkyLink.active()
-			|| !dev.skycraft.SkyDimension.inMirror(host)) {
+		// The animal must be in the clicking player's own Skyrim: the host's, or a guest's own (party.GuestParity).
+		if (!(player instanceof ServerPlayer host) || !dev.skycraft.party.GuestParity.ownsActor(host, proxy) || !dev.skycraft.SkyDimension.inMirror(host)) {
 			return null;
 		}
 		ServerLevel level = host.level();
 		CompanionRules.Kind kind = CompanionRules.kind(flags);
 		String name = proxy.skyrimName();
-		SkyLink.Actor record = LATEST.get(proxy.formId());
+		SkyLink.Actor record = proxy.owner() != null ? dev.skycraft.party.GuestParity.record(proxy) : LATEST.get(proxy.formId());
 		float health = record != null ? record.healthFrac() : 1.0F;
 		switch (use) {
 			case TAME_BONE -> {
-				Integer hit = LAST_HIT.get(proxy.formId());
-				if (CompanionRules.angry(hit != null ? tick - hit : -1)) {
+				Integer hit = proxy.owner() != null ? dev.skycraft.party.GuestParity.lastHit(proxy) : LAST_HIT.get(proxy.formId());
+				int now = proxy.owner() != null ? level.getServer().getTickCount() : tick; // (a guest's hits are by the server's clock)
+				if (CompanionRules.angry(hit != null ? now - hit : -1)) {
 					SkyCraft.LOG.info("SkyCraft-companion: {} is still angry after your hit; it won't take the bone", name);
 					return InteractionResult.PASS;
 				}
@@ -150,7 +154,7 @@ public final class SkyCompanions {
 				stack.consume(1, host);
 				level.playSound(null, proxy.getX(), proxy.getY(), proxy.getZ(), SoundEvents.HORSE_EAT, SoundSource.NEUTRAL, 1.0F, 1.0F);
 				if (CompanionRules.hurt(health) && food.heal() > 0.0F) {
-					heal(proxy, kind, CompanionRules.horseHealShare(food));
+					heal(host, proxy, kind, CompanionRules.horseHealShare(food));
 				}
 				TEMPER.remove(proxy.formId());
 				if (meal.tamed()) {
@@ -182,12 +186,13 @@ public final class SkyCompanions {
 					level.playSound(null, proxy.getX(), proxy.getY(), proxy.getZ(), SoundEvents.GENERIC_EAT, SoundSource.NEUTRAL, 1.0F, 1.0F);
 				}
 				stack.consume(1, host);
-				heal(proxy, kind, share);
+				heal(host, proxy, kind, share);
 				SkyCraft.LOG.info("SkyCraft-companion: fed {} the {} ({}% of its health)", name, item, Math.round(share * 100.0F));
 			}
 			case TOGGLE -> {
 				boolean follow = CompanionRules.waiting(flags);
-				SkyLink.pushEvent(Proto.EV_COMPANION, proxy.formId(), 0.0F, 0.0F, 0.0F, 0.0F, follow ? Proto.COMPANION_FOLLOW : Proto.COMPANION_WAIT, kind.proto());
+				dev.skycraft.party.GuestParity.pushSkyrim(host, Proto.EV_COMPANION, proxy.formId(), 0.0F, 0.0F, 0.0F, 0.0F,
+					follow ? Proto.COMPANION_FOLLOW : Proto.COMPANION_WAIT, kind.proto());
 				host.sendOverlayMessage(Component.literal(follow ? name + " follows you" : name + " waits here"));
 				SkyCraft.LOG.info("SkyCraft-companion: {} told to {}", name, follow ? "follow" : "wait");
 			}
@@ -199,16 +204,16 @@ public final class SkyCompanions {
 	}
 
 	private static void tamed(ServerLevel level, ServerPlayer host, SkyrimActorEntity proxy, CompanionRules.Kind kind, String name) {
-		SkyLink.pushEvent(Proto.EV_COMPANION, proxy.formId(), 0.0F, 0.0F, 0.0F, 0.0F, Proto.COMPANION_TAME, kind.proto());
+		dev.skycraft.party.GuestParity.pushSkyrim(host, Proto.EV_COMPANION, proxy.formId(), 0.0F, 0.0F, 0.0F, 0.0F, Proto.COMPANION_TAME, kind.proto());
 		particles(level, proxy, ParticleTypes.HEART);
 		host.sendOverlayMessage(Component.literal(kind == CompanionRules.Kind.HORSE ? name + " is your horse now (sneak and right click: follow or stay)"
 			: name + " is tamed and sits (right click with an empty hand: follow)"));
 		SkyCraft.LOG.info("SkyCraft-companion: tamed {} ({}, a {})", name, hex(proxy.formId()), kind.name().toLowerCase(java.util.Locale.ROOT));
 	}
 
-	private static void heal(SkyrimActorEntity proxy, CompanionRules.Kind kind, float share) {
+	private static void heal(ServerPlayer owner, SkyrimActorEntity proxy, CompanionRules.Kind kind, float share) {
 		if (share > 0.0F) {
-			SkyLink.pushEvent(Proto.EV_COMPANION, proxy.formId(), share, 0.0F, 0.0F, 0.0F, Proto.COMPANION_HEAL, kind.proto());
+			dev.skycraft.party.GuestParity.pushSkyrim(owner, Proto.EV_COMPANION, proxy.formId(), share, 0.0F, 0.0F, 0.0F, Proto.COMPANION_HEAL, kind.proto());
 		}
 	}
 

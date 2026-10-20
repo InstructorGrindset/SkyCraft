@@ -64,6 +64,9 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Skooma brewing | `skooma_brewing` | `skycraft:moon_sugar`, and Skooma and Redwater Skooma as Minecraft potions (the effects item conversion's Skooma gives). In a brewing stand an awkward potion and moon sugar make Skooma, Skooma and glowstone dust Redwater Skooma (stronger, shorter, as glowstone makes any potion); gunpowder and dragon's breath make splash and lingering ones. See [Economy](#economy) | `skooma/SkoomaBrewing`, `config/FeatureCondition`, recipes in `data/skycraft/recipe/brewing` | none | none | `SkyCraft-skooma` | Written |
 | Skooma dealers | `merchants` | The Khajiit caravans (Ri'saad, Ahkari, Ma'dran, Kharjo, Zaynabi, Atahbah, Ma'jhad, Khayla, Ra'zhinda, Dro'marash, Ma'randru-jo) always sell Skooma, Redwater Skooma and moon sugar on their trade screen, and buy moon sugar and Skooma for gold. A named Khajiit Skyrim doesn't make a merchant (a caravan guard) opens a shop of these alone | `trade/TradeRules` (`dealer` lines), `trade/SkyTrade.vendorOf`, `combat/SkyCombat` | none | `skycraft-trades.txt` | `SkyCraft-trade` | Written |
 | Gear melting | none | Skyrim Iron, Steel and Orcish gear melts into iron nuggets and Dwarven gear into copper nuggets in a furnace or blast furnace, as vanilla's iron and copper gear does | recipes in `data/skycraft/recipe` (`iron_nugget_from_*`, `copper_nugget_from_*`) | none | data in the jar | none | Written |
+| Guest parity | `guest_parity` | A guest's own Skyrim gets from Minecraft play what the host's gets, through the host's server, which stays in charge: the guest's NPCs near them get stand-ins of their own to fight (hits reach the guest's Skyrim and train its weapon skills; kills pay kill XP, kill drops and gear drops), their loot converts by the host's item rules, each of their dungeon chests rolls once for them, their merchants trade at their town's prices and train their Speech, their animals tame, Block, Armor and Smithing train their Skyrim, a bed's night passes theirs, Minecraft's explosions and arrows reach their NPCs, and they travel through the host's portals. The server holds their claims to distances and rates (`skycraft-party.txt`); both the host's and the guest's switch must be on. `/skyparty` shows who's who. See [Multiplayer](#multiplayer) | `party/` (GuestParity, PartyCodec, PartyRules, GuestChests), `net/SkyNet` (GuestActors, GuestLoot, GuestEvent), `combat/SkyrimActorEntity` (owner), hooks in `combat/SkyCombat`, `loot/` (SkyLoot.payKill, SkyBridge.convertForGuest, GearDrops, DungeonLoot), `trade/SkyTrade`, `companion/SkyCompanions`, `portal/SkyPortals` (guestReach), `mixin/SmithingMixin`, `mixin/AbstractArrowMixin`, `mixin/ServerExplosionMixin`; client `PartyClient`, `ProxySync` | none: each guest's Skyrim gets the usual events on its own link | `skycraft-party.txt`; `skycraft-opened-chests-guests.txt` | `SkyCraft-party` | Written |
+| Shared world events | `shared_world_events` | A dragon attacking a player, a dragon slain, the host entering a dungeon and a shout in the host's Skyrim are told to every other player in the Skyrim mirror: a title (dragons) or an action bar line, a sound, and for dragons and shouts a small shake of their own Skyrim's camera. Nothing else in their Skyrim changes. A guest's own dragon fights are told the same way. Cooldowns per kind in `skycraft-party.txt`. `/skyparty test <dragon\|slain\|dungeon\|shout>` shows one to you. See [Multiplayer](#multiplayer) | `party/` (SharedWorldEvents, WorldEvents), `net/SkyNet` (GuestDragon, WorldEventShake); client `PartyClient` | `Party.cpp` (dragon bit, shout watch, camera shake), `Combat.cpp` (actor table, `kEvPartyShake`), `Game.cpp` (SkyState shout fields, the shake on Minecraft's camera) | `skycraft-party.txt` | `SkyCraft-party` (both halves) | Written |
+| Guests' arrows at blocks | none | A guest's Skyrim arrow or bolt stopped at a Minecraft block sticks a Minecraft arrow there too, as the host's do: their client moves the spot into the mirror's terms and the host's server sticks it (within 128 blocks of the guest, at most 20 at once and 10 a second) | client `InputBridge`, `PartyClient`; `net/SkyNet` (ArrowBlocked), `party/GuestParity.arrowBlocked`, `combat/SkyCombat.stickSkyrimArrow` | `Arrows.cpp` (as for the host) | none | none | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -189,7 +192,7 @@ Vanilla Nether travel never happens in any of them: every Nether portal belongs 
 The portal network ([Portal network](#feature-map)) is the way into the Seed family's worlds and out again.
 Everything is kept in the world's `skycraft-portals.txt` with the rest of the network and is under the
 `portals` switch; travel into another world also needs `minecraft_view` on (with the view off those worlds
-would act like the mirror). Only the host travels.
+would act like the mirror). The host travels as below; a guest (guest parity) goes through portals the host bound or opened, as far as their own Skyrim can follow (see [Multiplayer](#multiplayer)).
 
 | Way in | Where it opens | Partner | Back |
 |---|---|---|---|
@@ -297,8 +300,8 @@ holds the slot; on his own quest he is essential and his quest leads him, so a b
 **In Minecraft** the stand-in of a companion is named "Meeko (tamed)" (stand-ins aren't drawn, so the name shows in
 Minecraft's own messages and logs; a collar tint can't be shown, Skyrim draws the animal), the action bar answers
 each order, hearts and smoke are Minecraft particles (drawn in Skyrim like any), and a companion's death is told in
-chat, as Minecraft tells a pet's owner. Only the host tames and orders: a guest's clicks on the host's animals are
-left alone.
+chat, as Minecraft tells a pet's owner. Each player tames and orders the animals of their own Skyrim: a guest's clicks on the host's animals
+are left alone, and with guest parity a guest's own animals have stand-ins of theirs.
 
 **Riding.** Mounting already works while Minecraft drives the player: a right click on a horse with an empty hand
 (or G) is Skyrim's activation, and once Skyrim's player is on a mount Skyrim takes the player ("Skyrim takes the
@@ -976,6 +979,123 @@ furnace. Elven, Glass, Ebony and Daedric gear doesn't, like diamond and netherit
 Not played yet: all of it. Skyrim's side isn't built yet (new CommonLib calls: TESEquipEvent sink, `AddObjectToContainer`,
 reading a vendor faction's merchant chest), nor is Minecraft's against 26.3 (see the probe lines).
 
+## Multiplayer
+
+Friends who also run SkyCraft join the host's Minecraft world, each with their own Skyrim on their own PC. The host's
+integrated server runs the world; the host's Skyrim reaches it through shared memory, a guest's through their own client
+(SkyNet packets). Before this, a guest's Skyrim only told the server when it hit them, and only the host's Skyrim got
+anything back from Minecraft play.
+
+**Guest parity** (switch `guest_parity`, on in both the host's and the guest's `skycraft-features.txt`; numbers in the
+host's `skycraft-party.txt`). A guest's client sends what their Skyrim reports and the host's server answers their Skyrim
+the way it answers the host's (`party/GuestParity`):
+
+- Ten times a second, their Skyrim's place (world, place flags, town, hour) and its actors near them, nearest first
+  (`SkyNet.GuestActors`). The server gives the actors within `guest_range` of the guest (at most `guest_actors`) stand-ins
+  of their own: invisible, owned by the guest (`SkyrimActorEntity.owner`, synced as the guest's entity id). Each client
+  picks and follows only its own Skyrim's stand-ins, so nobody's crosshair lands on an actor their Skyrim doesn't draw;
+  projectiles still hit any stand-in in their way (the world is shared). Hits on a guest's stand-in go to their Skyrim
+  (`EV_HIT_ACTOR` in `SkyNet.GuestEvent`), which trains their weapon skills as the host's; an actor hit in the last ten
+  seconds and then seen dead is a kill, paid by `SkyLoot.payKill` as the host's are (kill XP, kill drops, gear drops) to
+  whoever landed the last hit, at most `guest_kill_burst` at once and `guest_kills_per_minute` after.
+- Whatever lands in their Skyrim inventory (`SkyNet.GuestLoot`): the host's item rules convert it into their inventory
+  and their Skyrim is told to remove it (`EV_TAKE_ITEM`); at most `guest_loot_burst` items at once and
+  `guest_loot_per_minute` after, and the rest stay in their Skyrim with a line on their action bar. Gear a dying actor of
+  theirs wore is taken only for an actor the server saw in their table in the last ten seconds, and drops only for a kill
+  it credited. A dungeon chest rolls once for each player (theirs are in `skycraft-opened-chests-guests.txt`), at most
+  `guest_chest_burst` at once and `guest_chests_per_hour` after.
+- The server tells their Skyrim what it tells the host's: skill uses (Block and Light or Heavy Armor from hits taken,
+  Smithing from crafting, Speech from trading), arrows stuck in their actors, Minecraft explosions within 64 blocks in the
+  same Skyrim world's space, a full night in a bed (by their Skyrim's own hour; the world's clock stays the host's), taming
+  and orders for their animals, and portal trips. Their client passes on only these event types (`GuestParity.RELAYED`).
+
+| Feature | Host | Guest before | Guest now |
+|---|---|---|---|
+| Fighting Skyrim's NPCs | Their NPCs have stand-ins | The host's NPCs' stand-ins only, invisible to them; their own NPCs couldn't be hit | Their own NPCs have stand-ins of theirs; hits reach their Skyrim |
+| Kill drops, kill XP | For credited kills | Only for a kill of one of the host's NPCs | Also for their own NPCs' kills, rate limited |
+| Gear drops | For credited kills | Only for the host's NPCs | Also for their own NPCs, gear checked against their stand-ins |
+| Weapon skills (One-Handed, Two-Handed, Archery) | From hits | None | From hits on their own NPCs |
+| Block, Light and Heavy Armor | From hits taken | None (`trainDefence` was the host's) | From hits taken |
+| Smithing | From crafting | None | From crafting |
+| Item conversion and potions | Their Skyrim loot converts | Never (their item ring was never read) | Converts by the host's rules, rate limited |
+| Dungeon chests | Once a chest | Never | Once a chest for each player, rate limited |
+| Merchants and Speech | Their merchants, their town's prices, Speech | The host's merchants (invisible to them), priced for the host's town, no Speech | Their own merchants, priced for their own town, with shops of their own; Speech |
+| Companions | Tame and order their animals | Clicks on the host's animals left alone | Tame and order their own animals; "died" told to them |
+| Arrows stuck in NPCs | Pinned in Skyrim | Into the host's Skyrim (a host's NPC of that id) | Into their own Skyrim |
+| Skyrim's arrows at blocks | Stick a Minecraft arrow | Ended at the block, no Minecraft arrow | Stick a Minecraft arrow (no switch: always) |
+| Explosions in Skyrim | Their Skyrim feels them | Only the host's Skyrim | Their Skyrim too, within 64 blocks |
+| Bed sleep | Passes Skyrim's night | Nothing | Passes their own Skyrim's night; the world's clock stays the host's |
+| Portal network | Binds, opens and travels | "The portal answers only to the host's Skyrim" | Travels through portals the host bound or opened: into other worlds and back to a portal in the Skyrim world their Skyrim is parked in; a far trip between Skyrim places is their own Skyrim's (`EV_PORTAL_TRAVEL`). Binding, keys, Seamstone and the Time-Wound stay the host's |
+| Skooma and addiction | Everyone | Everyone | Everyone; their Skooma now also comes from their own loot |
+| Hits from Skyrim, dying, digging, click to activate, Minecraft view | Everyone | Everyone | Everyone; a guest's Skyrim attacker is now their own NPC's stand-in |
+| Time sync | The host's Skyrim is the world's clock | The world's clock | The world's clock (one clock can't follow two Skyrims) |
+| Breach doors | The host's dungeons | "The seal answers only to the host's Skyrim" | The same: the breach table is the host's Skyrim's |
+| Deep creatures | Spawn in the host's Skyrim | Not for guests | Not for guests (their Skyrim would have to spawn them near them) |
+
+Features other branches of this wave add (stealth, skills, economy, world, towns, creatures) aren't in this table yet.
+
+**Shared world events** (switch `shared_world_events`; cooldowns in `skycraft-party.txt`). Twice a second the host's
+server reads its Skyrim (`party/SharedWorldEvents`, rules in `party/WorldEvents`) and tells every other player in the
+Skyrim mirror:
+
+| Event | When | They see | Sound | Camera shake |
+|---|---|---|---|---|
+| Dragon attack | A dragon in the host's actor table (Skyrim's `kActorDragon`, or a dragon's name from an older plugin) turns hostile and in combat; once a fight, then not for `dragon_attack_cooldown` | Title "Dragon attack!", "Mirmulnir attacks Host" | Ender dragon growl | 0.5 for 1.5 s |
+| Dragon slain | A dragon seen alive is dead (anyone's kill; a corpse found isn't one); not again for `dragon_slain_cooldown` | Title "Dragon slain", "Mirmulnir falls before Host" | Ender dragon death, quiet | 0.7 for 2 s |
+| Dungeon | The host goes into a dungeon (SkyState's place flags) with a name; the same one once in `dungeon_cooldown` | "Host enters Bleak Falls Barrow" on the action bar | Iron door | none |
+| Shout | Skyrim's shout sequence moves: the host, or an actor in their table, started a shout (its voice recovery jumped up); not again for `shout_cooldown` | "Host shouts (3 words)" or "Mirmulnir shouts at Host" on the action bar | A higher growl | 0.3 for 0.6 s |
+
+A guest's client watches its own Skyrim's actor table for dragon attacks and dragons slain the same way and tells the
+host's server (`SkyNet.GuestDragon`), which tells the others ("... in their Skyrim") once a cooldown per guest. The shake
+is the receiver's own Skyrim's: `kEvPartyShake` through their link (a guest's client passes it on only with its own
+switch on). While Minecraft drives the camera Skyrim's shake would be undone by SkyCraft pinning the camera to
+Minecraft's eye, so `Party::CameraOffset` jitters that pin instead (up to a tenth of a block, fading); when Skyrim drives
+the camera, Skyrim's own `ShakeCamera` does it. Where the player is when watching starts (joining, a load) isn't news.
+
+**`skycraft-party.txt`** (the host's; seconds and blocks):
+
+| Setting | Default | |
+|---|---|---|
+| `dragon_attack_cooldown` | 120 | Between dragon attacks told about one player's Skyrim |
+| `dragon_slain_cooldown` | 15 | Between dragons slain |
+| `dungeon_cooldown` | 300 | The same dungeon told again only after this |
+| `shout_cooldown` | 30 | Between shouts |
+| `guest_range` | 96 | A guest's actors this close to them get stand-ins |
+| `guest_actors` | 64 | At most this many of them |
+| `guest_loot_burst`, `guest_loot_per_minute` | 64, 120 | Items a guest's Skyrim hands over at once, then a minute |
+| `guest_chest_burst`, `guest_chests_per_hour` | 3, 30 | Dungeon chest rolls at once, then an hour |
+| `guest_kill_burst`, `guest_kills_per_minute` | 12, 30 | Kills of a guest's own actors that pay, at once, then a minute |
+
+**`/skyparty`** (anyone) lists the players: the host and whether their Skyrim is linked, each guest's Skyrim world and
+town and how many stand-ins they have, or that nothing came from them (an older SkyCraft, or a switch off).
+**`/skyparty test dragon|slain|dungeon|shout`** shows you one made-up event as the others would see it (title, sound,
+shake), nobody else.
+
+**Try it.** Two PCs, each with Skyrim and this build: the host opens the world to LAN, the guest joins (`/join`). Both
+logs say `SkyCraft-party: <guest>'s own Skyrim reaches this world` on the host. Then, on the guest's side:
+
+1. Walk up to an NPC of your own Skyrim and hit it: it reacts in your Skyrim (host's log: `SkyCraft-party: hit <guest>'s
+   <name>`). Kill a wolf: `SkyCraft-party: <guest>'s Skyrim: Wolf killed by <guest>` and the usual `SkyCraft-loot` lines;
+   its drops land at the corpse. Kill a bandit: sometimes their gear drops.
+2. Loot a dungeon chest in your Skyrim: the items become Minecraft items in your inventory and leave Skyrim, and the first
+   loot of the chest rolls a Minecraft chest (`first loot of dungeon chest ...`). Take a big pile at once: past 64, "Too
+   much Skyrim loot at once" and the rest stay in Skyrim.
+3. Block a hit with a shield, take hits in iron armor, craft an iron sword, trade with your own merchant: Block, Heavy
+   Armor, Smithing and Speech rise in your Skyrim (its `SkyCraft.log`: `skill ...`).
+4. Feed bones to a dog of your Skyrim: it's tamed in your Skyrim. Sleep in a bed for a night: your Skyrim passes the night.
+5. Let a Skyrim archer shoot at a block next to you: a Minecraft arrow sticks there.
+6. Step into a portal the host bound to the Nether: you go there and your Skyrim parks; step back: you're back at the
+   portal in your Skyrim.
+7. Shared world events: have the host meet a dragon (Skyrim console: `help dragon 4` lists the dragon actor bases, then `player.placeatme <one of them>`): the guest gets
+   "Dragon attack!", a growl and a little shake; kill it: "Dragon slain". The host goes into Bleak Falls Barrow: "Host
+   enters Bleak Falls Barrow". Alone: `/skyparty test dragon`.
+8. Switches off (`guest_parity = off`, `shared_world_events = off`, either side) and restart: none of the above, and a
+   guest's crosshair picks the host's stand-ins again as before.
+
+Not played yet: everything here; the stand-ins' positions over an internet connection (ten updates a second, the guest's
+own client moves its stand-ins to its Skyrim's actors every frame), how a dragon's breath counts as shouts (it is a shout
+in Skyrim, so the shout cooldown keeps it quiet), and whether `GetCurrentShoutLevel` gives an NPC's words (else they read 0).
+
 ## Planned
 
 | Feature | Notes |
@@ -1084,6 +1204,21 @@ when no answer comes; an older Minecraft ignores the input types and leaves the 
 | `kEvMerchantGold` (19) | Minecraft to Skyrim | Selling to merchants: formId = the merchant, flags = a request number. Skyrim answers with `kInMerchantGold` |
 | `kInMerchantGold` (16) | Skyrim to Minecraft | a = the merchant's FormID, b = the gold it can pay (its merchant chest's, else its purse; -1: not here to trade), c = the request number |
 | `kEvSellToMerchant` (20) | Minecraft to Skyrim | Minecraft took the goods: formId = the merchant, a = gold to pay, b = items (log), flags = the request number. Skyrim moves that much Gold001 from the merchant's chest (or purse) into the player's inventory, never more than it has |
+
+Shared world events added these within 13, without a version bump (an older half ignores them: an older plugin never sets
+the bit or the fields and ignores the event type and feature bit; an older Minecraft ignores the bit and fields and never
+sends the event):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `ActorFlags` `kActorDragon` (bit 18) in `ActorRecord.flags` | Skyrim to Minecraft | The actor's race has the ActorTypeDragon keyword: dragon attacks and dragons slain |
+| `SkyState` `shoutSeq` (u16, 0xA0), `shoutWords` (u8, 0xA2), `shoutFlags` (u8, 0xA3, `ShoutFlags` `kShoutByPlayer` 1, `kShoutByDragon` 2), `shoutActor` (u32, 0xA4); were `reservedParty[8]` | Skyrim to Minecraft | The sequence bumps each time the player or an actor in the actor table starts a shout (its voice recovery jumps up); who, and the words of power when Skyrim can tell (0 otherwise). Still 0 with the switch off |
+| `FeatureBits` `kFeatSharedWorldEvents` (bit 26) in `McState.features` | Minecraft to Skyrim | Skyrim watches for shouts and shakes its camera only while it's set |
+| `kEvPartyShake` (29) | Minecraft to Skyrim | a = strength (0 to 1), b = seconds (0.1 to 3): a small camera shake for something that happened to another player |
+
+Guest parity adds nothing to the protocol: a guest's Skyrim gets the events it already knows (`kEvHitActor`, `kEvTakeItem`,
+`kEvSkillUse`, `kEvArrowStuck`, `kEvExplosion`, `kEvSleep`, `kEvCompanion`, `kEvPortalTravel`) on its own link, from its
+own client, which got them from the host's server.
 
 ## Testing a build
 

@@ -30,7 +30,8 @@ final class ProxySync {
 			BY_ID.put(a.formId(), a);
 		}
 		for (Entity entity : minecraft.level.entitiesForRendering()) {
-			if (entity instanceof SkyrimActorEntity proxy) {
+			// Only this client's own Skyrim's stand-ins (guest parity: another player's Skyrim may have an actor of the same id).
+			if (entity instanceof SkyrimActorEntity proxy && proxy.shownHere()) {
 				SkyLink.Actor a = BY_ID.get(proxy.formId());
 				if (a == null) {
 					continue;

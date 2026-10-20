@@ -263,6 +263,14 @@ public final class SkyLink {
 		public int weatherAck;
 		/** Proto.AIM_* bits: what Skyrim's crosshair is on. */
 		public int aim;
+		/** Bumps each time the player or an actor near them starts a shout (0 and still from an older plugin; shared world events). */
+		public int shoutSeq;
+		/** The last shout's words of power (1 to 3), 0 when Skyrim couldn't tell. */
+		public int shoutWords;
+		/** Proto.SHOUT_* bits of the last shout. */
+		public int shoutFlags;
+		/** Who shouted last: an actor's FormID, 0x14 for the player. */
+		public int shoutActor;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -360,6 +368,10 @@ public final class SkyLink {
 			int weatherFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_WEATHER_FLAGS));
 			int aim = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_AIM));
 			int weatherAck = s.get(JAVA_INT, b + SS_WEATHER_ACK);
+			int shoutSeq = Short.toUnsignedInt(s.get(JAVA_SHORT, b + SS_SHOUT_SEQ));
+			int shoutWords = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_WORDS));
+			int shoutFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_FLAGS));
+			int shoutActor = s.get(JAVA_INT, b + SS_SHOUT_ACTOR);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -388,6 +400,10 @@ public final class SkyLink {
 				out.weatherFlags = weatherFlags;
 				out.aim = aim;
 				out.weatherAck = weatherAck;
+				out.shoutSeq = shoutSeq;
+				out.shoutWords = shoutWords;
+				out.shoutFlags = shoutFlags;
+				out.shoutActor = shoutActor;
 				return true;
 			}
 		}

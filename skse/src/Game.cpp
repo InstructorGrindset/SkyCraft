@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Breach.h"
 #include "Loot.h"
+#include "Party.h"
 #include "Travel.h"
 #include "WorldState.h"
 #include "WorldSync.h"
@@ -214,12 +215,13 @@ namespace skycraft
 				return;
 			}
 			auto* root = camera->cameraRoot.get();
+			const RE::NiPoint3 at = eyePos + Party::CameraOffset();  // a shared world event's small shake, if one is on
 			const bool identityParent = !root->parent || root->parent->world.translate.Length() < 0.001f;
 			if (identityParent) {
-				root->local.translate = eyePos;
+				root->local.translate = at;
 			}
-			root->world.translate = eyePos;
-			camera->GetRuntimeData2().pos = eyePos;
+			root->world.translate = at;
+			camera->GetRuntimeData2().pos = at;
 			if (auto* sky = RE::Sky::GetSingleton(); sky && sky->root) {
 				sky->root->local.translate = eyePos;
 				sky->root->world.translate = eyePos;
@@ -1202,6 +1204,7 @@ namespace skycraft
 			Weather::Update(a_player, haveMc ? &mc : nullptr, sky);  // Skyrim's weather for Minecraft, Minecraft's /weather for Skyrim
 			sky.aim = Farming::Aim();  // a plant to harvest under the crosshair: a right click harvests it, a hoe doesn't till there
 			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
+			Party::Fill(a_player, sky);                     // who shouted last (shared world events)
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

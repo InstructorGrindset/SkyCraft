@@ -3,6 +3,7 @@
 #include "Economy.h"
 #include "Game.h"
 #include "Loot.h"
+#include "Party.h"
 #include "WorldState.h"
 #include "Spawn.h"
 #include "Stealth.h"
@@ -205,6 +206,8 @@ namespace skycraft
 				r.flags = (actor->IsHostileToActor(a_player) ? proto::kActorHostile : 0u) | (actor->IsDead() ? proto::kActorDead : 0u) |
 				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u) |
 				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u) | Companion::Flags(actor, a_player);
+				r.flags |= Party::ActorFlags(actor);  // a dragon (shared world events)
+				Party::WatchActor(actor);             // the frame it starts a shout
 				const auto mc = SkyToMc(pos);
 				r.x = static_cast<float>(mc.x);
 				r.y = static_cast<float>(mc.y);
@@ -1005,6 +1008,8 @@ namespace skycraft
 						Companion::OnEvent(a_player, ev);  // a taming or an order sent just before Skyrim took the player
 					} else if (ev.type == proto::kEvMerchantGold || ev.type == proto::kEvSellToMerchant) {
 						Economy::OnEvent(a_player, ev);  // a sale Minecraft made just before: its goods are already taken
+					} else if (ev.type == proto::kEvPartyShake) {
+						Party::Shake(a_player, ev);  // Skyrim's own camera shake while it drives the camera
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
@@ -1069,6 +1074,9 @@ namespace skycraft
 				case proto::kEvMerchantGold:
 				case proto::kEvSellToMerchant:
 					Economy::OnEvent(a_player, ev);
+					break;
+				case proto::kEvPartyShake:
+					Party::Shake(a_player, ev);
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

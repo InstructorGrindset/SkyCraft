@@ -10,10 +10,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -25,6 +28,7 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The first time the player takes anything from a chest in a Skyrim dungeon, a Minecraft chest loot
@@ -51,6 +55,9 @@ public final class DungeonLoot {
 
 	private static List<Table> tables;
 	private static Set<Integer> opened;
+	/** Chests each guest has had a roll from, in their own Skyrim (party.GuestChests; the host's are {@link #opened}). */
+	private static Map<UUID, Set<Integer>> guestsOpened;
+	private static final String GUESTS_OPENED_FILE = "skycraft-opened-chests-guests.txt";
 
 	private DungeonLoot() {
 	}
@@ -122,14 +129,19 @@ public final class DungeonLoot {
 	/**
 	 * Called for every item the player loots in Skyrim, before conversion. Server thread. Rolls like
 	 * {@code /loot give <player> loot <table>}, except that what doesn't fit in the inventory drops at
-	 * the player's feet instead of being lost.
+	 * the player's feet instead of being lost. {@code guest}: null for the host's Skyrim, else the guest whose own
+	 * Skyrim's chest it is: each guest's chests pay out once for them (their Skyrim has its own).
 	 */
-	public static void onLooted(ServerPlayer player, SkyLink.Item it, int place) {
-		Set<Integer> seen = opened();
+	public static void onLooted(ServerPlayer player, SkyLink.Item it, int place, @Nullable UUID guest) {
+		Set<Integer> seen = guest != null ? guestsOpened().computeIfAbsent(guest, id -> new HashSet<>()) : opened();
 		if (!shouldRoll(it, place, seen)) {
 			return;
 		}
-		remember(it.container());
+		if (guest != null) {
+			rememberFor(guest, it.container());
+		} else {
+			remember(it.container());
+		}
 		String table = pick(tables(), RANDOM);
 		if (table == null) {
 			return;
@@ -146,6 +158,13 @@ public final class DungeonLoot {
 			SkyBridge.give(player, stack);
 		}
 		SkyCraft.LOG.info("SkyCraft-loot: first loot of dungeon chest {} rolled {} ({} stacks)", String.format("%08X", it.container()), table, stacks.size());
+	}
+
+	/** Whether this item from a guest's Skyrim would roll a dungeon chest for them (without marking the chest: GuestParity asks first). */
+	public static boolean guestWouldRoll(UUID guest, SkyLink.Item it, int place) {
+		Set<Integer> seen = guestsOpened().get(guest);
+		return it.source() == Proto.SRC_CONTAINER && it.chest() && it.container() != 0 && (place & Proto.PLACE_DUNGEON) != 0
+			&& (seen == null || !seen.contains(it.container()));
 	}
 
 	/** One of the configured dungeon chest tables, picked by weight (breach chests use these too), or null if there are none. */
@@ -195,6 +214,34 @@ public final class DungeonLoot {
 			}
 		}
 		return opened;
+	}
+
+	private static Map<UUID, Set<Integer>> guestsOpened() {
+		if (guestsOpened == null) {
+			guestsOpened = new HashMap<>();
+			Path path = FabricLoader.getInstance().getConfigDir().resolve(GUESTS_OPENED_FILE);
+			try {
+				if (Files.exists(path)) {
+					int bad = dev.skycraft.party.GuestChests.parse(Files.readAllLines(path, StandardCharsets.UTF_8), guestsOpened);
+					if (bad > 0) {
+						SkyCraft.LOG.warn("SkyCraft-loot: skipped {} unreadable lines in {}", bad, path);
+					}
+				}
+			} catch (IOException e) {
+				SkyCraft.LOG.warn("SkyCraft-loot: couldn't read {}: {}", path, e.toString());
+			}
+		}
+		return guestsOpened;
+	}
+
+	private static void rememberFor(UUID guest, int container) {
+		Path path = FabricLoader.getInstance().getConfigDir().resolve(GUESTS_OPENED_FILE);
+		try {
+			Files.writeString(path, dev.skycraft.party.GuestChests.line(guest, container), StandardCharsets.UTF_8, StandardOpenOption.CREATE,
+				StandardOpenOption.APPEND);
+		} catch (IOException e) {
+			SkyCraft.LOG.warn("SkyCraft-loot: couldn't write {}: {}", path, e.toString());
+		}
 	}
 
 	private static void remember(int container) {

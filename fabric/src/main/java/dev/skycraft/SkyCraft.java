@@ -38,6 +38,8 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.villagers.SkyVillagers.init(); // Tamriel Wilds' villagers: Skyrim names and trades
 		dev.skycraft.skooma.SkoomaBrewing.init(); // moon sugar, the Skooma potions (brewing recipes are data)
 		dev.skycraft.config.FeatureCondition.init(); // data pack files that load only with a feature on (Skooma brewing)
+		dev.skycraft.party.GuestParity.init(); // a guest's own Skyrim through this server: stand-ins, loot, skills
+		dev.skycraft.party.SharedWorldEvents.init(); // dragons, dungeons and shouts told to everyone; /skyparty
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

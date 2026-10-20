@@ -1,8 +1,6 @@
 package dev.skycraft.mixin;
 
 import dev.skycraft.link.Proto;
-import dev.skycraft.link.SkyLink;
-import dev.skycraft.net.SkyNet;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,14 +23,15 @@ public abstract class SmithingMixin {
 	@Inject(method = "onCraftedBy", at = @At("HEAD"))
 	private void skycraft$trainSmithing(Player player, int craftCount, CallbackInfo ci) {
 		ItemStack stack = (ItemStack) (Object) this;
-		if (!(player instanceof ServerPlayer serverPlayer) || !SkyNet.isHost(serverPlayer) || craftCount <= 0) {
+		// The crafter's own Skyrim: the host's on the link, a guest's through their client (party.GuestParity).
+		if (!(player instanceof ServerPlayer serverPlayer) || craftCount <= 0 || !dev.skycraft.party.GuestParity.reachesSkyrim(serverPlayer)) {
 			return;
 		}
 		if (!stack.has(DataComponents.EQUIPPABLE) && !stack.has(DataComponents.TOOL) && !stack.has(DataComponents.WEAPON) && !stack.is(Items.BOW)
 			&& !stack.is(Items.CROSSBOW)) {
 			return;
 		}
-		SkyLink.pushEvent(Proto.EV_SKILL_USE, Proto.SKILL_SMITHING, skycraft$worth(stack) * craftCount, 0.0F, 0.0F, 0.0F, 0);
+		dev.skycraft.party.GuestParity.pushSkyrim(serverPlayer, Proto.EV_SKILL_USE, Proto.SKILL_SMITHING, skycraft$worth(stack) * craftCount, 0.0F, 0.0F, 0.0F, 0);
 	}
 
 	@Unique
