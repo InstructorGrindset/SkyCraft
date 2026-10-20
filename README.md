@@ -16,7 +16,7 @@ shared memory. Minecraft runs hidden in the background, and Skyrim draws everyth
 
 ## What works
 
-This fork adds looting, merchants, dungeon chests, time and sleep sync, deep creatures and Skyrim gear sets; see [docs/FEATURES.md](docs/FEATURES.md).
+This fork adds looting, merchants (selling for Skyrim gold too), Skyrim food for Minecraft's hunger, Skooma brewing, dungeon chests, time and sleep sync, deep creatures and Skyrim gear sets; see [docs/FEATURES.md](docs/FEATURES.md).
 
 - **Movement:** Minecraft movement on Skyrim's terrain and buildings. That covers walking,
   sprinting, jumping, crouching, swimming and falling, and Skyrim's collision is fed into
@@ -48,6 +48,11 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   gives Skyrim's death camera with your Minecraft body ragdolling.
 - **Skyrim's own animations:** chairs, crafting stations, beds, pull levers, horses and scripted
   scenes hand control to Skyrim until they finish.
+- **Merchants and food:** right click a Skyrim merchant with an empty hand to trade on a villager
+  screen, or sneak and right click it with Minecraft goods in hand to sell them for Skyrim gold
+  (only what its shop deals in, out of its own gold). Food you eat in Skyrim fills Minecraft's
+  hunger. Khajiit caravans deal in Skooma and moon sugar, and moon sugar brews Skooma in a brewing
+  stand.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
 
@@ -146,7 +151,7 @@ Every other key is Minecraft's: **E** inventory, **F5** camera, **T** chat, **/*
 **Shift** crouch/sneak, and so on.
 
 **Right click** is Minecraft's use button first: it places blocks, eats, draws bows, raises shields
-and trades with merchants (empty hand). When Minecraft has no use for a click (empty hand, a sword
+and trades with merchants (empty hand; sneak with goods in hand to sell them for Skyrim gold). When Minecraft has no use for a click (empty hand, a sword
 or pickaxe, nothing to place), it activates what Skyrim's crosshair is on, like **G**. Only a fresh
 click counts, so holding right click to draw a bow or block stays Minecraft's. Switch it off with
 `click_to_activate = off` in `config/skycraft-features.txt`.

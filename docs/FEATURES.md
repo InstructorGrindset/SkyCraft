@@ -25,7 +25,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Item conversion | `item_conversion` | Food, potions, ores, hides and salvaged gear you loot in Skyrim (weapons and armor of every material salvage into their smithing material) become Minecraft items, and so do torches, tools, kitchenware, Dwemer clutter, Hearthfire building materials, animal parts, alchemy reagents, fish and gems (`+` gives several items for one); clothing and jewelry rules wait, commented out, for a decision; quest items never convert. Full table in `docs/CONVERSIONS.md` | `loot/SkyBridge`, `loot/ItemRules` | `Loot.cpp` (container sink, Take) | `skycraft-items.txt` | `SkyCraft-loot` | Tested |
 | Potions | `item_conversion` | Every Skyrim potion becomes a Minecraft potion with effects of its own, named like the Skyrim one (health red, magicka blue, stamina green), and every poison a splash potion: 57 alchemy effects map to Minecraft effects (Restore Health is Instant Health, magicka is Absorption, Barter is Hero of the Village, Smithing is Haste, Paralysis is Slowness V, ...), with level and seconds growing with the name's tier (Minor and Weak up to Ultimate, Grand and Prime). Cure Disease and Cure Poison give a milk bucket; the White Phial and the quest poisons stay. Rules write `minecraft:potion{haste:0-2:60-180 #rrggbb "Name"}`, or `minecraft:potion[healing]` for a vanilla potion, also for `splash_potion`, `lingering_potion` and `tipped_arrow`. Long names cut to 27 letters come back whole. Full table in `docs/CONVERSIONS.md` | `loot/ItemRules` ("Potions and poisons" section, `Effect`, `TIERS`, `LONG_NAMES`), `loot/SkyBridge` (potion contents, custom name) | `Loot.cpp` (VendorItemPotion, VendorItemPoison tags) | `skycraft-items.txt` | `SkyCraft-loot` | Built |
 | Dungeon chests | `dungeon_chests` | First loot of each dungeon chest also rolls a Minecraft chest loot table | `loot/DungeonLoot` | `WorldState::Place` (dungeon flag), item event chest flag and container id | `skycraft-dungeons.txt`, `skycraft-opened-chests.txt` | `SkyCraft-loot` | Built |
-| Merchants | `merchants` | Right click a Skyrim vendor with an empty hand for a villager trade screen; town prices, supply and demand, Speech XP | `trade/` (SkyTrade, TradeRules, Currency, Demand), `combat/SkyrimActorEntity.interact` | `WorldState::VendorMask`, `WorldState::Place` (town) | `skycraft-trades.txt`, `skycraft-towns.txt` | `SkyCraft-trade` | Built |
+| Merchants | `merchants` | Right click a Skyrim vendor with an empty hand for a villager trade screen; town prices, supply and demand, Speech XP (selling for Skyrim gold and Skooma dealers: below) | `trade/` (SkyTrade, TradeRules, Currency, Demand), `combat/SkyrimActorEntity.interact` | `WorldState::VendorMask`, `WorldState::Place` (town) | `skycraft-trades.txt`, `skycraft-towns.txt` | `SkyCraft-trade` | Built |
 | Time sync | `time_sync` | Minecraft's clock follows Skyrim's game hour, in the mirror and, sharing its clock, in Tamriel Wilds and Home while the host is there | `time/SkyTime` | SkyState game hour | none | `SkyCraft-time` | Built |
 | Bed sleep | `bed_sleep` | A full night in a Minecraft bed passes the night in Skyrim, in Tamriel Wilds and Home too (needs time sync for beds to work at night) | `time/SkyTime` | `WorldState::PassTime` | none | `SkyCraft-time` | Built |
 | Deep mining | none | Bedrock 64 blocks under the land (however deep, under buried rocks, ore veins and cave mouths too; in interiors 64 under the floor above), ores by depth, deepslate layer. Ground under the land never opens into nothing: undug cells beside a hole are solid, old holes close as you pass, and a player who still ends up in the void, or put inside rock by Skyrim, goes back to safe open ground | `world/SkyDig`, `world/SkyGround`, `world/SafeSpot`, client `FallGuard` | `Dig.cpp`, `Collision.cpp` (the land over a deep tunnel), `DigPhysics.cpp` (no Skyrim land rescue for the player) | none | `SkyCraft` | Built |
@@ -40,6 +40,11 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| Selling to merchants | `sell_to_merchants` | Sneak and right click a Skyrim merchant with Minecraft goods in your main hand to sell them for Skyrim gold, put in your Skyrim inventory. Only what its shop deals in (its VendorBuys kinds, the `gold` lines of the trades file: gems, ingots, leather, food, weapons, ...), in whole lots, out of the merchant's own gold (its merchant chest, as Skyrim's barter menu shows it), priced by town and demand like the trade screen, worn gear for what's left of it; trains Speech. Host only. See [Economy](#economy) | `trade/SkySell`, `trade/TradeRules` (gold lines, `goldPrices`), `combat/SkyrimActorEntity.interact`, client `InputBridge` (the answer) | `Economy.cpp` (`kEvMerchantGold`, `kEvSellToMerchant`) | `skycraft-trades.txt` | `SkyCraft-trade`, `SkyCraft-economy` in SkyCraft.log | Written |
+| Skyrim food fills hunger | `skyrim_food_hunger` | Food you eat in Skyrim (from Skyrim's inventory while Skyrim has the player, riding for one, or `player.equipitem`) fills Minecraft's hunger and saturation as the Minecraft food most like it would: stews like rabbit stew, cooked meat like cooked beef, raw meat, fish, bread, sweets, cheese, drinks, fruit and vegetables, by the food's name (and Skyrim's raw keyword). Guests too. See [Economy](#economy) | `food/SkyFood`, client `InputBridge`, `net/SkyNet` (`SkyrimFood`) | `Economy.cpp` (TESEquipEvent), `FoodValues.h` (the table, tested in `tests/FoodValuesTest.cpp`), Skyrim bit `kFeatSkyrimFood` | none | `SkyCraft-food`, `SkyCraft-economy` in SkyCraft.log | Written |
+| Skooma brewing | `skooma_brewing` | `skycraft:moon_sugar`, and Skooma and Redwater Skooma as Minecraft potions (the effects item conversion's Skooma gives). In a brewing stand an awkward potion and moon sugar make Skooma, Skooma and glowstone dust Redwater Skooma (stronger, shorter, as glowstone makes any potion); gunpowder and dragon's breath make splash and lingering ones. See [Economy](#economy) | `skooma/SkoomaBrewing`, `config/FeatureCondition`, recipes in `data/skycraft/recipe/brewing` | none | none | `SkyCraft-skooma` | Written |
+| Skooma dealers | `merchants` | The Khajiit caravans (Ri'saad, Ahkari, Ma'dran, Kharjo, Zaynabi, Atahbah, Ma'jhad, Khayla, Ra'zhinda, Dro'marash, Ma'randru-jo) always sell Skooma, Redwater Skooma and moon sugar on their trade screen, and buy moon sugar and Skooma for gold. A named Khajiit Skyrim doesn't make a merchant (a caravan guard) opens a shop of these alone | `trade/TradeRules` (`dealer` lines), `trade/SkyTrade.vendorOf`, `combat/SkyCombat` | none | `skycraft-trades.txt` | `SkyCraft-trade` | Written |
+| Gear melting | none | Skyrim Iron, Steel and Orcish gear melts into iron nuggets and Dwarven gear into copper nuggets in a furnace or blast furnace, as vanilla's iron and copper gear does | recipes in `data/skycraft/recipe` (`iron_nugget_from_*`, `copper_nugget_from_*`) | none | data in the jar | none | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -410,6 +415,126 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
 
+## Economy
+
+Selling Minecraft goods to Skyrim's merchants, Skyrim food for Minecraft's hunger, and Skooma made and sold.
+
+**Selling for Skyrim gold** (switch `sell_to_merchants`). Sneak and right click a merchant with the goods in your main
+hand. Minecraft asks Skyrim how much gold the merchant has (`kEvMerchantGold`; Skyrim reads the merchant's chest, the one
+its barter menu trades from, or its own purse if it has none), then takes as many whole lots from your hand as it can pay
+for and has Skyrim move that gold into your Skyrim inventory (`kEvSellToMerchant`). The action bar says what sold and for
+how much ("Sold 8 Iron Ingot to Belethor for 20 gold": 3 gold an ingot, a little less each), or why not ("Belethor doesn't buy Dirt.", "... buys Coal 8 at a
+time.", "... has only 12 gold."). What a merchant buys and pays is the trades file's `gold` lines in the kinds its Skyrim
+shop deals in (`ActorRecord.vendor`: a smith buys ingots and gear, a grocer food, a fence stolen goods, a general store
+everything but stolen goods):
+
+```
+# category gold count item price   (price: Skyrim gold for count items)
+ingot gold 1 minecraft:iron_ingot 3
+jewelry gold 1 minecraft:diamond 150
+potion gold 1 minecraft:potion[healing] 8
+```
+
+The price is times the town's multiplier for its kind (`skycraft-towns.txt`, as on the trade screen), and every lot sold
+lowers the next 5% (the shared supply and demand, down to half, easing back every two minutes). Worn gear sells for the
+share of its durability left. The sale trains Speech by the gold paid, as Skyrim's barter does. Only the host sells: the
+merchants and the gold are the host's Skyrim's. With an older Skyrim plugin, which never answers, the sale is called off
+after two seconds and nothing is taken. The defaults pay about what Skyrim's own merchants pay for the nearest Skyrim
+goods, always less than Skyrim sells them for, so gold can't be farmed between the two games.
+
+**Upgrading the trades file.** `skycraft-trades.txt` still holding an earlier build's defaults, never edited, gets the new
+ones (gold lines, Skooma) by itself, the old file kept as `.txt.old` (`TradeRules.OLD_TRADES`). An edited file is left
+alone: add the gold and Skooma lines from a fresh default (delete the file to get one).
+
+**Skyrim food fills hunger** (switch `skyrim_food_hunger`). When the player eats a food in Skyrim, Skyrim works out how
+filling it is (`skse/src/FoodValues.h`, by the words of its English name and the VendorItemFoodRaw keyword) and sends it
+(`kInSkyrimFood`); Minecraft adds it to its player's hunger and saturation (`FoodData.eat`, guests through the host).
+Skyrim's inventory can't be opened while Minecraft drives the player (Tab and I are Minecraft's), so this happens while
+Skyrim has the player (riding, a crafting station), or through the console.
+
+| Skyrim food | Food points, saturation modifier | Like Minecraft's |
+|---|---|---|
+| Beef, Horker, Venison Stew | 10, 0.6 | rabbit stew |
+| Apple Cabbage Stew; Clam Chowder, Elsweyr Fondue, Potage le Magnifique | 8, 0.6 | |
+| Vegetable, Tomato, Cabbage (Potato) Soup | 6, 0.6 | mushroom stew |
+| Cooked Beef, Horker Loaf, Mammoth Steak, Venison Chop, Horse Haunch, Leg of Goat Roast | 8, 0.8 | cooked beef |
+| Grilled Chicken Breast, Pheasant Roast, Rabbit Haunch | 6, 0.6 | cooked chicken |
+| Salmon Steak, Steamed Mudcrab Legs | 6, 0.8 | cooked salmon |
+| Raw Beef, Venison, Horse Meat, Horker Meat, Dog Meat, Leg of Goat | 3, 0.3 | raw beef |
+| Chicken or Pheasant Breast, Raw Rabbit Leg | 2, 0.3 | raw chicken |
+| Salmon Meat, Clam Meat, Mudcrab Legs | 2, 0.1 | raw salmon |
+| Apple Pie | 8, 0.3 | pumpkin pie |
+| Snowberry, Jazbay, Juniper Berry Crostata | 6, 0.3 | |
+| Bread, Braided and Garlic Bread, dumplings | 5, 0.6 | bread |
+| Sweet Roll, Honey Nut Treat, Long Taffy Treat | 3, 0.1 | cookie |
+| Cheese wheel, Mammoth Cheese Bowl / wedge / slice | 6 / 3 / 2, 0.6 | |
+| Red and Green Apple, Gourd | 4, 0.3 | apple |
+| Carrot / Cabbage / Leek, Tomato, Ash Yam / Potato | 3 / 2 / 2 / 1 | carrot, beetroot, potato |
+| Baked Potatoes, Grilled Leeks | 5, 0.6 | baked potato |
+| Honey / Butter | 6 / 1, 0.1 | honey bottle |
+| Ale, mead, wine, brandy, Sujamma / Jug of Milk | 2, 0.1 / 3, 0.3 | |
+| Anything else (mods, other languages) | 3, 0.3 (2 if raw) | |
+
+**Skooma brewing** (switch `skooma_brewing`). Moon sugar is an item of its own, `skycraft:moon_sugar`, and Skooma and
+Redwater Skooma are Minecraft potions, `skycraft:skooma` (Skooma High I for 180 s and a moment's Saturation) and
+`skycraft:redwater_skooma` (II for 150 s, Saturation II), the effects item conversion's Skooma gives. In a brewing stand:
+
+| Bottle | Reagent | Makes |
+|---|---|---|
+| Awkward potion (any bottle) | moon sugar | Skooma |
+| Skooma (any bottle) | glowstone dust | Redwater Skooma: stronger and shorter, as glowstone makes any potion |
+| Skooma or Redwater Skooma | gunpowder | the splash one |
+| Splash Skooma or Redwater Skooma | dragon's breath | the lingering one (and from it, tipped arrows) |
+
+Brewing is data in 26.3 (`minecraft:brewing` recipes; Fabric API 26.3 has no brewing builder any more), so the recipes are
+`data/skycraft/recipe/brewing/*.json` in vanilla's format, each with a Fabric load condition (`skycraft:feature_on`,
+`config/FeatureCondition`) that keeps it out while the switch is off. Drinking any of them is a dose (Skooma and
+addiction). Item conversion still turns Skyrim's Skooma into a potion with effects of its own and Moon Sugar into sugar
+until its rules name the new ones (`minecraft:potion[skycraft:skooma]`, `skycraft:moon_sugar`): Skooma converted that way
+(effects of its own, no potion id) doesn't brew into Redwater Skooma.
+
+**Skooma dealers** (switch `merchants`). A `dealer` line of the trades file names who deals in a kind of goods no Skyrim
+shop lists by itself:
+
+```
+skooma sell 1 minecraft:potion[skycraft:skooma] 30
+skooma sell 1 skycraft:moon_sugar 50
+dealer skooma = Ri'saad, Ahkari, Ma'dran, Kharjo, Zaynabi, Atahbah, Ma'jhad, Khayla, Ra'zhinda, Dro'marash, Ma'randru-jo
+```
+
+Those merchants always show these trades first on their screen (the other offers fill the rest of the twelve), and buy
+moon sugar and Skooma for gold. A named Khajiit Skyrim doesn't make a merchant (a caravan guard) opens a shop of these
+alone on an empty-hand right click; G still talks to them. Names match Skyrim's, ignoring case.
+
+**Gear melting.** Skyrim's ores convert straight into SkyCraft's ingots and refined gems (iron, gold and corundum ore into
+raw iron, gold and copper, which vanilla smelts), so there are no ore items to smelt. SkyCraft's metal gear now melts like
+vanilla's: Skyrim Iron, Steel and Orcish pieces into an iron nugget, Dwarven into a copper nugget, in a furnace or blast
+furnace. Elven, Glass, Ebony and Daedric gear doesn't, like diamond and netherite gear.
+
+**Try it** (cheats on, the host):
+
+1. Stand by Belethor in Whiterun. `/give @s minecraft:iron_ingot 10`, sneak and right click him with them: "Sold 10 Iron
+   Ingot to Belethor for ... gold", fewer ingots in hand, more gold in Skyrim (`player.getitemcount 0000000F` in the
+   console). The logs: `SkyCraft-trade: ... sold 10 x minecraft:iron_ingot` and `SkyCraft-economy: Belethor (...) paid ...`.
+   Again: each ingot pays a little less. With dirt: "Belethor doesn't buy Dirt.". Arcadia (an apothecary) won't buy ingots.
+2. Sell Belethor diamonds (`/give @s minecraft:diamond 10`) until his gold runs out: only the diamonds he can pay for
+   are taken, then "Belethor has only N gold.". The log's `SkyCraft-economy` line says what his chest held.
+3. A guest sneak-clicks a merchant: "Only the host sells ...". With `sell_to_merchants = off`, sneak-clicking with goods
+   does what it did before.
+4. Food: get hungry in Minecraft (`/effect give @s minecraft:hunger 30 9`), then in the Skyrim console
+   `help "Horker Stew" 4` for its form id, `player.additem <id> 1` and `player.equipitem <id>`: hunger rises by 10 points
+   (`SkyCraft-food: ... hunger a -> b`, and SkyCraft.log's `SkyCraft-economy: ate Horker Stew ...`). Any food works; riding
+   a horse, Tab opens Skyrim's inventory to eat from. With `skyrim_food_hunger = off` nothing is sent.
+5. Brewing: `/give @s skycraft:moon_sugar 3`, a brewing stand, awkward potions (water and nether wart, or
+   `/give @s minecraft:potion[potion_contents={potion:"minecraft:awkward"}]`): Skooma. Add glowstone dust: Redwater Skooma.
+   With `skooma_brewing = off` and a restart, moon sugar brews nothing.
+6. Dealers: Ri'saad's caravan outside Whiterun: Skooma, Redwater Skooma and moon sugar on his screen. Kharjo (Ahkari's
+   guard, at Dawnstar or Windhelm): a shop of those alone.
+7. Melting: `/give @s skycraft:steel_sword`, smelt it: an iron nugget.
+
+Not played yet: all of it. Skyrim's side isn't built yet (new CommonLib calls: TESEquipEvent sink, `AddObjectToContainer`,
+reading a vendor faction's merchant chest), nor is Minecraft's against 26.3 (see the probe lines).
+
 ## Planned
 
 | Feature | Notes |
@@ -477,6 +602,17 @@ plugin Skyrim's arrows go through blocks as before):
 | Addition | Direction | Used by |
 |---|---|---|
 | `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
+Economy added these within 13, without a version bump (an older plugin ignores the events, so Minecraft calls a sale off
+when no answer comes; an older Minecraft ignores the input types and leaves the feature bit off, so Skyrim sends no food):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatSkyrimFood` (bit 8) in `McState.features` | Minecraft to Skyrim | Skyrim food fills hunger: Skyrim sends `kInSkyrimFood` only while it's set |
+| `kInSkyrimFood` (15), `FoodKind` | Skyrim to Minecraft | The player ate a food in Skyrim: code = Minecraft food points, a = saturation modifier x 1000, b = the food's FormID, c = FoodKind (`FoodValues.h`) |
+| `kEvMerchantGold` (19) | Minecraft to Skyrim | Selling to merchants: formId = the merchant, flags = a request number. Skyrim answers with `kInMerchantGold` |
+| `kInMerchantGold` (16) | Skyrim to Minecraft | a = the merchant's FormID, b = the gold it can pay (its merchant chest's, else its purse; -1: not here to trade), c = the request number |
+| `kEvSellToMerchant` (20) | Minecraft to Skyrim | Minecraft took the goods: formId = the merchant, a = gold to pay, b = items (log), flags = the request number. Skyrim moves that much Gold001 from the merchant's chest (or purse) into the player's inventory, never more than it has |
 
 ## Testing a build
 
