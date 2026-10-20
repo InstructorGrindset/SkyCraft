@@ -596,6 +596,87 @@ Bought, it's the gear of the nearest tier; looted, it salvages into what it's ma
 - 2: horse armor: taken over by the household rules
 <!-- /gen:left -->
 
+## Enchanted weapons and armor
+
+Skyrim's leveled enchanted gear ("Ebony Sword of the Inferno", "Glass Helmet of Eminent Alchemy") keeps its enchantment: it becomes the gear of its material's tier with the nearest Minecraft enchantment, whether looted, bought or picked up, instead of salvaging into ingots. Tiers are the gear drops': Imperial and Ancient Nord are steel, Falmer orcish, silver Skyrim Iron, dragon daedric, hide, leather, studded and fur Minecraft leather, Nordic orcish and Stalhrim ebony. A rule names the gear's material, its type word and the enchantment's word (`tag weapon material ebony name sword name inferno = skycraft:ebony_sword{fire_aspect:2} 1`), so plain gear of the same name still salvages or is bought as before.
+
+The level follows the word's place in Skyrim's ladder for that enchantment (Embers, Burning, Scorching, the Blaze, the Inferno, ...): the lowest third is level I, the middle II, the top III, or Minecraft's own top when that's lower (Fire Aspect and Knockback stop at II). An enchantment only goes on gear that can carry it in Minecraft; every level is within Minecraft's own maximum and no two exclusive enchantments meet.
+
+| Skyrim enchantment | On swords | On war axes | On bows |
+|---|---|---|---|
+| Fire Damage | Fire Aspect | Sharpness | Flame |
+| Frost Damage | Knockback | Sharpness | Punch |
+| Shock Damage | Sharpness | Sharpness | Power |
+| Absorb Health | Sharpness, Mending at the top | Sharpness, Mending at the top | Power |
+| Absorb Magicka, Absorb Stamina | Mending | Mending | Mending |
+| Magicka Damage, Stamina Damage | Sweeping Edge | Unbreaking | Punch |
+| Soul Trap | Looting | Fortune | Infinity at the top, else Unbreaking |
+| Turn Undead, Silver | Smite | Smite | Power |
+| Fear, Banish, Paralysis | Knockback | Sharpness | Punch |
+| Huntsman's Prowess | Bane of Arthropods | | Power |
+| Chaos Damage | Fire Aspect and Sharpness | Sharpness | Flame and Power |
+
+Crossbows take Piercing for the damage enchantments, Quick Charge for Magicka and Stamina Damage and Unbreaking for Soul Trap.
+
+| Skyrim enchantment (armor) | Minecraft |
+|---|---|
+| Fortify Health, Resist Magic, Frost, Poison and Disease, Fortify Heavy and Light Armor | Protection |
+| Resist Fire | Fire Protection |
+| Resist Shock | Blast Protection |
+| Fortify Archery | Projectile Protection |
+| Fortify One-Handed, Two-Handed (gauntlets) | Thorns |
+| Fortify Magicka and Magicka Regen, the magic schools | Mending |
+| Fortify Sneak, Muffle (boots) | Feather Falling |
+| Waterbreathing (helmets) | Respiration III and Aqua Affinity |
+| Fortify Carry Weight, Stamina, Smithing, Alchemy, Enchanting, Lockpicking, Pickpocket, Speech, Barter | Unbreaking |
+| Fortify Block (shields) | Unbreaking on the shield; a shield with any other enchantment is a plain shield |
+
+Skyrim sends 27 letters of a name, so the enchantment word is often cut (`name infer`), and items whose names share their first 27 letters ("Steel Plate Armor of Eminent Health" and "... of Eminent Illusion") necessarily share one rule. Many names follow Skyrim's pattern rather than a list seen item by item, so some rules name gear Skyrim never spawns; they cost nothing.
+
+<!-- gen:enchanted -->
+| Skyrim gear | Becomes | Items (names confirmed) | For example |
+|---|---|---|---|
+| Crossbows | crossbow | 31 (15) | Dwarven Crossbow of Diminishing: crossbow (Quick Charge II) |
+| Bows | bow | 278 (12) | Daedric Bow of Debilitation: bow (Punch II) |
+| Iron weapons | SkyCraft iron | 162 (31) | Iron War Axe of Frost: SkyCraft iron_war_axe (Sharpness I) |
+| Steel weapons | SkyCraft steel | 168 (5) | Steel Warhammer of Chills: SkyCraft steel_war_axe (Sharpness I) |
+| Orcish weapons | SkyCraft orcish | 245 (0) | Orcish Greatsword of Absorption: SkyCraft orcish_sword (Sharpness I) |
+| Dwarven weapons | SkyCraft dwarven | 245 (0) | Dwarven Greatsword of Devouring: SkyCraft dwarven_sword (Sharpness II) |
+| Elven weapons | SkyCraft elven | 246 (2) | Elven War Axe of Thunderbolts: SkyCraft elven_war_axe (Sharpness II) |
+| Glass weapons | SkyCraft glass | 259 (36) | Glass Battleaxe of Consuming: SkyCraft glass_war_axe (Sharpness II) |
+| Ebony weapons | SkyCraft ebony | 273 (5) | Ebony Dagger of the Vampire: SkyCraft ebony_sword (Sharpness III, Mending) |
+| Daedric weapons | SkyCraft daedric | 270 (3) | Daedric Sword of Harvesting: SkyCraft daedric_sword (Mending) |
+| Nordic weapons | SkyCraft orcish | 280 (1) | Nordic Greatsword of Harrowing: SkyCraft orcish_sword (Mending) |
+| Stalhrim weapons | SkyCraft ebony | 285 (1) | Stalhrim Greatsword of Subsuming: SkyCraft ebony_sword (Mending) |
+| Imperial weapons | SkyCraft steel | 24 (1) | Imperial Sword of Fatigue: SkyCraft steel_sword (Sweeping Edge I) |
+| Shields | shield | 201 (63) | Glass Shield of Flame Suppression: shield |
+| Banded Iron armor | SkyCraft iron | 5 (2) | Banded Iron Armor of the Minor Knight: SkyCraft iron_cuirass (Protection I) |
+| Steel Plate armor | SkyCraft steel | 41 (8) | Steel Plate Boots of Hauling: SkyCraft steel_boots (Unbreaking I) |
+| Studded armor | SkyCraft steel | 3 (2) | Studded Imperial Armor of Health: SkyCraft steel_cuirass (Protection I) |
+| Hide armor | Minecraft leather | 82 (14) | Hide Bracers of Archery: leather_leggings (Projectile Protection I) |
+| Leather armor | Minecraft leather | 81 (18) | Leather Bracers of Alchemy: leather_leggings (Unbreaking I) |
+| Studded armor | Minecraft leather | 4 (3) | Studded Armor of the Squire: leather_chestplate (Protection I) |
+| Imperial armor | SkyCraft steel | 5 (3) | Imperial Armor of the Knight: SkyCraft steel_cuirass (Protection I) |
+| Iron armor | SkyCraft iron | 76 (23) | Iron Gauntlets of Wielding: SkyCraft iron_greaves (Thorns I) |
+| Steel armor | SkyCraft steel | 79 (18) | Steel Gauntlets of Wielding: SkyCraft steel_greaves (Thorns I) |
+| Elven armor | SkyCraft elven | 84 (32) | Elven Bracers of Smithing: SkyCraft elven_greaves (Unbreaking I) |
+| Scaled armor | SkyCraft elven | 78 (7) | Scaled Bracers of Wielding: SkyCraft elven_greaves (Thorns I) |
+| Dwarven armor | SkyCraft dwarven | 67 (17) | Dwarven Boots of Shock Suppression: SkyCraft dwarven_boots (Blast Protection II) |
+| Orcish armor | SkyCraft orcish | 66 (14) | Orcish Boots of Major Sneaking: SkyCraft orcish_boots (Feather Falling II) |
+| Glass armor | SkyCraft glass | 73 (28) | Glass Boots of Frost Abatement: SkyCraft glass_boots (Protection III) |
+| Ebony armor | SkyCraft ebony | 71 (13) | Ebony Boots of Dwindling Shock: SkyCraft ebony_boots (Blast Protection II) |
+| Dragonscale armor | SkyCraft daedric | 26 (8) | Dragonscale Boots of the Mammoth: SkyCraft daedric_boots (Unbreaking III) |
+| Dragonplate armor | SkyCraft daedric | 26 (3) | Dragonplate Boots of the Mammoth: SkyCraft daedric_boots (Unbreaking III) |
+| Daedric armor | SkyCraft daedric | 56 (19) | Daedric Boots of Brawn: SkyCraft daedric_boots (Unbreaking II) |
+| Bonemold armor | SkyCraft steel | 66 (8) | Bonemold Boots of Resist Shock: SkyCraft steel_boots (Blast Protection I) |
+| Chitin armor | SkyCraft elven | 77 (10) | Chitin Bracers of Wielding: SkyCraft elven_greaves (Thorns I) |
+| Nordic armor | SkyCraft orcish | 64 (8) | Nordic Boots of Major Sneaking: SkyCraft orcish_boots (Feather Falling II) |
+| Stalhrim armor | SkyCraft ebony | 57 (12) | Stalhrim Boots of the Mammoth: SkyCraft ebony_boots (Unbreaking III) |
+| Lunar weapons | SkyCraft iron | 3 (3) | Lunar Iron War Axe: SkyCraft iron_war_axe (Sharpness I) |
+| Lunar weapons | SkyCraft steel | 3 (3) | Lunar Steel War Axe: SkyCraft steel_war_axe (Sharpness I) |
+| Dawnguard weapons | SkyCraft orcish | 2 (2) | Dawnguard Rune Hammer: SkyCraft orcish_war_axe (Smite II) |
+<!-- /gen:enchanted -->
+
 ## Looted gear
 
 Weapons and armor looted from a corpse or a container salvage into their material's smithing material, one for a weapon and two for a piece of armor, as iron and steel always did, so nothing NPCs carry is useless in Minecraft. The material comes from the item's WeapMaterial or ArmorMaterial keyword. Bought gear still becomes the SkyCraft piece itself, and bows, crossbows, pickaxes, woodcutter's axes and arrows keep their own rules from anywhere.

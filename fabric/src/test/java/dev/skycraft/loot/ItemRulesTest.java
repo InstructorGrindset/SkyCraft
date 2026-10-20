@@ -628,16 +628,17 @@ class ItemRulesTest {
 		assertEquals("keep", item(rules, "foodraw", "none", "Jug of Milk"));
 		assertEquals("keep", item(rules, "foodraw,ingredient", "none", "Salmon Roe"));
 		assertEquals("keep", item(rules, "clutter", "none", "Charred Skeever Hide"));
-		// Household rules never see gear: a hammer that is a weapon stays a weapon, and so does a knife.
-		assertEquals("keep", item(rules, "weapon", "steel", "Dawnguard Rune Hammer"));
+		// Household rules never see gear: a hammer that is a weapon is a weapon (this one an enchanted war axe, not
+		// iron nuggets), and a knife that is a weapon stays one.
+		assertEquals("skycraft:orcish_war_axe{smite:2} 1", item(rules, "weapon", "steel", "Dawnguard Rune Hammer"));
 		assertEquals("keep", item(rules, "weapon,clutter", "none", "Knife"));
 		assertEquals("keep", item(rules, "armor", "steel", "Steel Shin Boots"));
 		// Clothing and jewelry you make, enchant or pick up stay (item() is from the world).
 		assertEquals("keep", item(rules, "clothing", "none", "Fine Boots"));
 		assertEquals("keep", item(rules, "jewelry", "none", "Gold Diamond Ring"));
 		assertEquals("keep", item(rules, "", "none", "Girl's Yellow Dress"));
-		// Lockpicking enchantments are not lockpicks.
-		assertEquals("minecraft:leather 1", item(rules, "armor", "hide", "Leather Bracers of Lockpicking"));
+		// Lockpicking enchantments are not lockpicks: these are leather bracers that keep it, as Unbreaking.
+		assertEquals("minecraft:leather_leggings{unbreaking:1} 1", item(rules, "armor", "hide", "Leather Bracers of Lockpicking"));
 	}
 
 	private static ItemRules.Result looted(ItemRules rules, String tagList, int kind, String name) {
@@ -713,6 +714,30 @@ class ItemRulesTest {
 		assertTrue(!ItemRules.DEFAULT_TEXT.contains("netherite_"), "a default rule gives netherite gear");
 		assertEquals("minecraft:iron_horse_armor 1", item(rules, "", "none", "Steel Horse Armor"));
 		assertEquals("minecraft:golden_horse_armor 1", item(rules, "", "none", "Elven Horse Armor"));
+	}
+
+	@Test
+	void enchantedGearKeepsItsEnchantment() {
+		ItemRules rules = defaults();
+		// From anywhere, looted or bought: the tier's gear with the nearest enchantment, at the name's strength.
+		assertEquals("skycraft:ebony_sword{fire_aspect:2} 1", convert(rules, tags("weapon"), material("ebony"), CORPSE, sent("Ebony Sword of the Inferno")));
+		assertEquals("skycraft:ebony_sword{fire_aspect:2} 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, sent("Ebony Sword of the Inferno")));
+		assertEquals("skycraft:iron_sword{fire_aspect:1} 1", convert(rules, tags("weapon"), material("iron"), CONTAINER, "Iron Sword of Embers"));
+		assertEquals("skycraft:steel_sword{knockback:1} 1", convert(rules, tags("weapon"), material("steel"), CORPSE, "Steel Greatsword of Chills"));
+		assertEquals("minecraft:bow{power:2} 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, "Hallowed Ebony Bow"));
+		assertEquals("skycraft:daedric_war_axe{unbreaking:3} 1", convert(rules, tags("weapon"), material("daedric"), CORPSE, "Daedric Mace of Exhaustion"));
+		assertEquals("skycraft:orcish_war_axe{smite:3} 1", convert(rules, tags("weapon"), 0, CORPSE, "Virtuous Nordic Battleaxe"));
+		assertEquals("minecraft:crossbow{piercing:2} 1", convert(rules, tags("weapon"), 0, WORLD, "Enhanced Crossbow"));
+		assertEquals("skycraft:daedric_cuirass{protection:3} 1", convert(rules, tags("armor"), material("daedric"), CORPSE, sent("Daedric Armor of Peerless Health")));
+		assertEquals("skycraft:steel_helmet{respiration:3+aqua_affinity:1} 1", convert(rules, tags("armor"), material("steel"), CORPSE, sent("Steel Helmet of Waterbreathing")));
+		assertEquals("skycraft:iron_helmet{respiration:3+aqua_affinity:1} 1", convert(rules, tags("armor"), material("iron"), BOUGHT, sent("Iron Helmet of Waterbreathing")));
+		assertEquals("skycraft:daedric_boots{unbreaking:3} 1", convert(rules, tags("armor"), material("dragon"), CORPSE, sent("Dragonplate Boots of the Mammoth")));
+		assertEquals("minecraft:shield{unbreaking:3} 1", convert(rules, tags("armor"), material("orcish"), CONTAINER, sent("Orcish Shield of Extreme Blocking")));
+		// A shield enchanted against the elements is a plain shield: a Minecraft shield takes only Unbreaking and Mending.
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), material("glass"), CORPSE, sent("Glass Shield of Dwindling Shock")));
+		// Plain gear of the same name still salvages or is bought as before.
+		assertEquals("skycraft:ebony_ingot 1", convert(rules, tags("weapon"), material("ebony"), CORPSE, "Ebony Sword"));
+		assertEquals("skycraft:ebony_sword 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, "Ebony Sword"));
 	}
 
 	@Test
