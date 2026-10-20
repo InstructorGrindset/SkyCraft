@@ -99,11 +99,11 @@ name scroll name bane = minecraft:lingering_potion{instant_health:1:0 #f5e6a8} 1
 tag book = keep
 
 # Skooma is SkyCraft's Skooma: a high of speed, higher jumps and quick, quiet sneaking, and an addiction
-# that comes with it (skycraft-skooma.txt). Redwater Skooma is the stronger cut. Moon sugar's rush is
-# also a little stamina (saturation).
+# that comes with it (skycraft-skooma.txt). Redwater Skooma is the stronger cut. They're the potions a brewing stand
+# makes from moon sugar (skooma_brewing), so looted, brewed and bought Skooma are one item.
 name empty name skooma = minecraft:glass_bottle 1
-name redwater name skooma = minecraft:potion{skycraft:skooma:1:150 + saturation:1:0 #8e3fb5} 1
-name skooma = minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1
+name redwater name skooma = minecraft:potion[skycraft:redwater_skooma] 1
+name skooma = minecraft:potion[skycraft:skooma] 1
 
 # Drinks: wine, ale, mead, brandy and the Dunmer spirits are potions named after them, a little
 # Saturation (Skyrim's drinks restore stamina) and a few seconds of Nausea for the drink. Milk
@@ -347,7 +347,7 @@ tag ingredient name deathbell = minecraft:wither_rose 1
 tag ingredient name nightshade = minecraft:wither_rose 1
 tag ingredient name grass name pod = minecraft:wheat_seeds 2
 tag ingredient name comberry = minecraft:sweet_berries 2
-tag ingredient name moon name sugar = minecraft:sugar 2
+tag ingredient name moon name sugar = skycraft:moon_sugar 1
 tag ingredient name salt name pile = minecraft:sugar 1
 tag ingredient name honeycomb = minecraft:honeycomb 1
 tag ingredient name beehive name husk = minecraft:honeycomb 1

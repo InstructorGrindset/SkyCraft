@@ -124,7 +124,7 @@ The household, Dwemer, Hearthfire, animal, plant, fish and gem rules below (163,
 | Comberry | 2 sweet_berries | Berries |
 | Juniper Berries | 2 sweet_berries | Berries (they carry a raw food tag, so the old ingredient rule missed them) |
 | Wheat | wheat | The same thing (raw food tag, like juniper) |
-| Moon Sugar | 2 sugar | Sugar |
+| Moon Sugar | moon sugar (`skycraft:moon_sugar`) | SkyCraft's own item: it brews Skooma in a brewing stand (`skooma_brewing`) |
 | Salt Pile | sugar | Minecraft's white cooking powder; it has no salt |
 | Spriggan Sap | resin_clump | Tree resin |
 | Burnt Spriggan Wood | charcoal | Burnt wood |
@@ -1113,8 +1113,10 @@ Skooma and Redwater Skooma become SkyCraft potions named after them, holding Sky
 running, higher jumps that don't hurt to land, and quick, quiet sneaking that mobs notice later. Skooma is level I for
 180 s, Redwater Skooma level II for 150 s; both give a little saturation, moon sugar's rush of stamina. Drinking it
 can make the player addicted (feature `skooma_addiction`, `skycraft-skooma.txt`; see FEATURES.md). An Empty Skooma
-Bottle is a glass bottle. Rules write SkyCraft's effects with their namespace:
-`minecraft:potion{skycraft:skooma:0:180 + saturation:0:0 #b26be0} 1`, `skycraft:stealth`.
+Bottle is a glass bottle. They are SkyCraft's registered potions `skycraft:skooma` and `skycraft:redwater_skooma`, the
+ones a brewing stand makes from moon sugar (`skooma_brewing`), so looted, brewed and bought Skooma are one item:
+`minecraft:potion[skycraft:skooma] 1`. Rules can also write SkyCraft's effects with their namespace:
+`minecraft:potion{skycraft:skooma:0:180 + saturation:0:0} 1`, `skycraft:stealth`.
 
 | Item | Becomes |
 |---|---|

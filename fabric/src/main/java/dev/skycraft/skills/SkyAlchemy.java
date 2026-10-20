@@ -4,7 +4,6 @@ import dev.skycraft.SkyCraft;
 import dev.skycraft.config.Features;
 import dev.skycraft.link.Proto;
 import dev.skycraft.skooma.SkyEffects;
-import net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
@@ -14,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
 
@@ -30,7 +28,9 @@ import net.minecraft.world.item.alchemy.PotionContents;
  * <li>Purple Mountain Flower, Skyrim's best known Fortify Sneak ingredient, is an allium once item conversion has it, and
  * an allium brews an awkward potion into a potion of Stealth (SkyCraft's own effect, skooma.SkyEffects: 3:00), redstone
  * makes it last 8:00 and glowstone makes it Stealth II for 1:30, as vanilla's Swiftness goes. The potions are always
- * registered (a potion in a chest stays good with the switch off); the recipes only with the switch on.
+ * registered (a potion in a chest stays good with the switch off); the recipes are data
+ * (data/skycraft/recipe/brewing, Minecraft's own brewing recipes, as the Skooma ones are) that load only with the switch on
+ * (config.FeatureCondition).
  * </ul>
  *
  * <p>Skooma isn't brewed here (switch {@code skooma_brewing} has moon sugar for it).
@@ -51,18 +51,10 @@ public final class SkyAlchemy {
 	private SkyAlchemy() {
 	}
 
-	/** Loads the class (the potions register as it does) and adds the brewing recipes when Minecraft builds its list. */
+	/** Loads the class, so the potions register as it does (their recipes are data files). */
 	static void init() {
 		SkyCraft.LOG.info("SkyCraft-skills: registered potions {}, {} and {}", BuiltInRegistries.POTION.getKey(STEALTH.value()),
 			BuiltInRegistries.POTION.getKey(LONG_STEALTH.value()), BuiltInRegistries.POTION.getKey(STRONG_STEALTH.value()));
-		FabricBrewingRecipeRegistryBuilder.BUILD.register(builder -> {
-			if (!Features.on(Features.Feature.ALCHEMY_BREWING)) {
-				return;
-			}
-			builder.addStartMix(Items.ALLIUM, STEALTH); // awkward to Stealth (and water to mundane, as every first ingredient)
-			builder.addMix(STEALTH, Items.REDSTONE, LONG_STEALTH);
-			builder.addMix(STEALTH, Items.GLOWSTONE_DUST, STRONG_STEALTH);
-		});
 	}
 
 	private static Holder<Potion> register(String name, Potion potion) {

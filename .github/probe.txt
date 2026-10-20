@@ -23,7 +23,7 @@ net.minecraft.network.chat.ClickEvent$OpenFile
 # Guide book (guide/GuideBook), made as worlds/HomeCamp.journal makes Steve's journal.
 net.minecraft.world.item.component.WrittenBookContent
 net.minecraft.server.network.Filterable
-# Skills: Skyrim's skill levels in Minecraft (skills/, the skills mixins). FabricBrewingRecipeRegistryBuilder (Fabric API) can't be probed here.
+# Skills: Skyrim's skill levels in Minecraft (skills/, the skills mixins). The Stealth brewing recipes are data files, like the Skooma ones.
 -c net.minecraft.world.item.ProjectileWeaponItem createProjectile
 -c net.minecraft.world.entity.projectile.arrow.AbstractArrow BaseDamage
 -c net.minecraft.world.inventory.AnvilMenu createResult

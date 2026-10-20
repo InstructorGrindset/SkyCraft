@@ -281,7 +281,8 @@ public final class ItemRules {
 		"sha256:932298a3eece9216b1957ab4c3e9f987348ea7c75bbc027d3b6465e4bc27a754",
 		"sha256:2245de88006dfd9d3edfafaa958f162b96002741615588e0239a76e82b443ae9",
 		"sha256:14f22e466df66472acad8d35459eba7a385cfd668a0a123e91c9b37dda1b95ec",
-		"sha256:9aa3836434a12fe144ddf17bddea2e6c367f323b18232ea57aec95a776fcb044");
+		"sha256:9aa3836434a12fe144ddf17bddea2e6c367f323b18232ea57aec95a776fcb044",
+		"sha256:f3c53257b2f2256ec2e3021f89e1b37a650f5eedd60ff1b78899bdc3aaf45a38");
 
 	/** Where the default rules live in the jar, beside this class: {@link #DEFAULT_TEXT}. */
 	static final String DEFAULT_RESOURCE = "skycraft-items.txt";

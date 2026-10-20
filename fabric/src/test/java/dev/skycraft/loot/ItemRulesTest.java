@@ -994,12 +994,12 @@ class ItemRulesTest {
 	@Test
 	void skoomaIsSkyCraftsSkoomaAndItsBottleStaysABottle() {
 		ItemRules rules = defaults();
-		assertEquals("minecraft:potion{skycraft:skooma:0:180+saturation:0:0} 1", convert(rules, 0, 0, WORLD, "Skooma"));
-		assertEquals("minecraft:potion{skycraft:skooma:1:150+saturation:1:0} 1", convert(rules, 0, 0, CORPSE, "Redwater Skooma"));
+		// The brewing stand's Skooma (skooma_brewing), so looted, brewed and bought Skooma are one item.
+		assertEquals("skycraft:skooma", rules.match(new ItemRules.Item(0, 0, WORLD, "Skooma")).potion());
+		assertEquals("skycraft:redwater_skooma", rules.match(new ItemRules.Item(0, 0, CORPSE, "Redwater Skooma")).potion());
+		assertEquals("minecraft:potion", rules.match(new ItemRules.Item(0, 0, WORLD, "Skooma")).item());
 		assertEquals("minecraft:glass_bottle 1", convert(rules, tags("clutter"), 0, CONTAINER, "Empty Skooma Bottle"));
-		ItemRules.Result skooma = rules.match(new ItemRules.Item(0, 0, WORLD, "Skooma"));
-		assertEquals("skycraft:skooma", skooma.effects().get(0).id());
-		assertEquals("Skooma", skooma.name());
+		assertEquals("skycraft:moon_sugar 1", convert(rules, tags("ingredient"), 0, WORLD, "Moon Sugar"));
 	}
 
 	@Test
