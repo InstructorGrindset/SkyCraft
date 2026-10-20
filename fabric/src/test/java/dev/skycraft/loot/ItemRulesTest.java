@@ -270,6 +270,10 @@ class ItemRulesTest {
 		assertEquals("minecraft:iron_ingot 1", item(rules, "oreingot", "none", "Silver Ingot"));
 		assertEquals("minecraft:bone_block 2", item(rules, "", "none", "Dragon Bone"));
 		assertEquals("minecraft:bowl 1", item(rules, "clutter", "none", "Wooden Plate"));
+		assertEquals("minecraft:iron_nugget 3", item(rules, "clutter", "none", "Silver Bowl"));
+		assertEquals("minecraft:bowl 1", item(rules, "clutter", "none", "Wooden Bowl"));
+		assertEquals("minecraft:skeleton_skull 1", item(rules, "clutter", "none", "Human Skull"));
+		assertEquals("minecraft:gold_nugget 6", item(rules, "", "none", "Statue of Dibella"));
 		assertEquals("minecraft:bundle 1", item(rules, "clutter", "none", "Basket"));
 		// Arrows, and the conjured bow and arrows, which would otherwise be bows and arrows from nothing.
 		assertEquals("minecraft:tipped_arrow[harming] 1", item(rules, "arrow", "daedric", "Daedric Arrow"));
@@ -284,6 +288,9 @@ class ItemRulesTest {
 		assertEquals("minecraft:blue_ice 2", convert(rules, tags("armor"), 0, CORPSE, "Stalhrim Armor"));
 		assertEquals("keep", convert(rules, tags("armor"), 0, WORLD, "Stalhrim Armor"));
 		assertEquals("skycraft:orcish_war_axe 1", convert(rules, tags("weapon"), 0, BOUGHT, "Nordic War Axe"));
+		assertEquals("skycraft:daedric_sword 1", convert(rules, tags("weapon"), 0, BOUGHT, "Madness Greatsword"));
+		assertEquals("minecraft:iron_chestplate 1", convert(rules, tags("armor"), 0, CONTAINER, "Silver Armor"));
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), 0, CORPSE, "Shadowed Netch Leather Tower Shield"));
 		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), 0, CONTAINER, "Nordic Dagger"));
 		assertEquals("skycraft:steel_sword 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Nord Hero Sword"));
 		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Ancient Nord Sword"));

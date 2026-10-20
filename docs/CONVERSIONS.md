@@ -230,7 +230,7 @@ Gear of no smithing material converts only when looted or bought (`from looted f
 | Scroll of Ironflesh | potion: Resistance II 60 s | Expert armor skin: Resistance II |
 | Scroll of Ebonyflesh | potion: Resistance II 120 s | Master armor skin: longer Resistance II |
 | Scroll of Dragonhide | potion: Resistance IV 30 s | Dragonhide absorbs 80% of physical damage for 30 s |
-| Scroll of Candlelight | potion: Night Vision I 60 s | A light that follows you for a minute: Night Vision, as this file does for Night Eye |
+| Scroll of Candlelight, Scroll of Detect Life | potion: Night Vision I 60 s | A light that follows you for a minute: Night Vision, as this file does for Night Eye |
 | Scroll of Magelight | 4 torch | A ball of light that sticks where it lands: torches you place |
 | Scroll of Waterbreathing | potion: Water Breathing I 60 s, Conduit Power I 60 s | Same effects as this file's Waterbreathing potions, for the spell's 60 seconds |
 | Scroll of Paralyze | splash_potion: Slowness V 10 s, Mining Fatigue III 10 s | Same effects as the Paralysis poison rule, for the spell's 10 seconds |
@@ -250,6 +250,7 @@ Gear of no smithing material converts only when looted or bought (`from looted f
 | Scroll of Muffle | potion: Invisibility I 60 s | Same effect as this file's Muffle potions |
 | Scroll of Invisibility | potion: Invisibility I 30 s | The spell's 30 seconds of invisibility |
 | Scroll of Fast Healing | potion: Instant Health II | A big instant self-heal |
+| Scroll of Close Wounds | potion: Instant Health III | Expert self-heal, stronger than Fast Healing |
 | Scroll of Heal Other, Scroll of Turn Undead, Scroll of Repel Undead | splash_potion: Instant Health II | Healing for someone else: thrown |
 | Scroll of Grand Healing, Scroll of Turn Greater Undead | splash_potion: Instant Health III | Heals you and everyone near you: a strong splash heal |
 | Scroll of Turn Lesser Undead, Scroll of Repel Lesser Undead | splash_potion: Instant Health I | Instant Health hurts Minecraft's undead, so turning the undead is a thrown healing potion |
@@ -264,7 +265,7 @@ Gear of no smithing material converts only when looted or bought (`from looted f
 | Item | Becomes | Why |
 |---|---|---|
 | Apple Cabbage Stew, Hot Apple Cabbage Stew, Cabbage Soup, Hot Cabbage Soup, Tomato Soup, Hot Tomato Soup, Vegetable Soup, Hot Vegetable Soup, Roasted Tomato Crab Bisque, Hot Roasted Tomato Crab Bisque | beetroot_soup | A cabbage-and-apple vegetable stew |
-| Clam Chowder, Hot Clam Chowder, Potato Crab Chowder, Hot Potato Crab Chowder, Creamy Crab Bisque, Hot Creamy Crab Bisque, Elsweyr Fondue, Hot Elsweyr Fondue | mushroom_stew | Creamy soup of clams, potato, milk and butter |
+| Hot Potato Soup, Clam Chowder, Hot Clam Chowder, Potato Crab Chowder, Hot Potato Crab Chowder, Creamy Crab Bisque, Hot Creamy Crab Bisque, Elsweyr Fondue, Hot Elsweyr Fondue | mushroom_stew | A creamy soup, so the soup default (mushroom stew) |
 | Potage le Magnifique | rabbit_stew | The Gourmet's famous soup, Skyrim's finest dish |
 | Horse Haunch, Venison Chop, Horker Loaf, Cooked Nix-Hound Meat | cooked_beef | raw Horse Meat is beef in the defaults, so the haunch is cooked beef |
 | Rabbit Haunch | cooked_rabbit | Roast rabbit is Minecraft's cooked rabbit |
@@ -412,22 +413,22 @@ Looted or bought (never when made or picked up). Stalhrim, Nordic Carved, Amber,
 | Item | Becomes | Why |
 |---|---|---|
 | Whiterun Guard's Armor, Solitude Guard's Armor, Markarth Guard's Armor, Riften Guard's Armor, Falkreath Guard's Armor, Pale Guard's Armor, Hjaalmarch Guard's Armor, Winterhold Guard's Armor, Stormcloak Cuirass, Scaled Armor, Penitus Oculatus Armor, Dawnguard Armor | chainmail_chestplate | Whiterun guards' light mail-and-leather cuirass under the hold's tabard: chainmail |
-| Whiterun Guard's Helmet, Solitude Guard's Helmet, Markarth Guard's Helmet, Falkreath Guard's Helmet, Pale Guard's Helmet, Hjaalmarch Guard's Helmet, Stormcloak Helmet, Scaled Helmet, Penitus Oculatus Helmet, Dawnguard Helmet | chainmail_helmet | Whiterun guards' face-covering light helmet: chainmail helmet like the cuirass |
-| Whiterun Guard's Shield, Solitude Guard's Shield, Markarth Guard's Shield, Falkreath Guard's Shield, Pale Guard's Shield, Hjaalmarch Guard's Shield, Imperial Dragon Shield, Storm-Bear Shield, Stalhrim Shield, Blades Shield, Dawnguard Shield, Bonemold Shield, Chitin Shield, Nordic Shield, Amber Shield, Dark Seducer Shield, Golden Saint Shield, Madness Shield, Netch Leather Shield, Ordinator Shield | shield | Whiterun guards' heraldic shield |
-| Stormcloak Officer Armor | iron_chestplate | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
-| Stormcloak Officer Helmet | iron_helmet | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
-| Stormcloak Officer Boots | iron_boots | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
-| Stormcloak Officer Bracers | iron_leggings | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Whiterun Guard's Helmet, Solitude Guard's Helmet, Markarth Guard's Helmet, Riften Guard's Helmet, Falkreath Guard's Helmet, Pale Guard's Helmet, Hjaalmarch Guard's Helmet, Winterhold Guard's Helmet, Stormcloak Helmet, Scaled Helmet, Penitus Oculatus Helmet, Dawnguard Helmet | chainmail_helmet | Whiterun guards' face-covering light helmet: chainmail helmet like the cuirass |
+| Whiterun Guard's Shield, Solitude Guard's Shield, Markarth Guard's Shield, Riften Guard's Shield, Falkreath Guard's Shield, Pale Guard's Shield, Hjaalmarch Guard's Shield, Winterhold Guard's Shield, Windhelm Guard's Shield, Imperial Dragon Shield, Storm-Bear Shield, Stalhrim Shield, Blades Shield, Dawnguard Shield, Bonemold Shield, Chitin Shield, Nordic Shield, Amber Shield, Dark Seducer Shield, Golden Saint Shield, Madness Shield, Netch Leather Shield, Shadowed Netch Leather Shield, Shadowed Netch Leather Tower Shield, Ordinator Shield | shield | Whiterun guards' heraldic shield |
+| Stormcloak Officer Armor, Silver Armor | iron_chestplate | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Helmet, Silver Helmet | iron_helmet | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Boots, Silver Boots | iron_boots | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
+| Stormcloak Officer Bracers, Silver Gauntlets | iron_leggings | Stormcloak captain's bear-pelt armor, a step above the soldier's: Minecraft iron (bracers fill the leggings slot) |
 | Imperial Dragon Armor, Storm-Bear Armor, Wolf Armor, Blades Armor, Dawnguard Heavy Armor, Bonemold Armor, Vigil Enforcer Armor | SkyCraft steel_cuirass | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
 | Imperial Dragon Helmet, Storm-Bear Helmet, Wolf Helmet, Blades Helmet, Dawnguard Full Helmet, Bonemold Helmet, Vigil Enforcer Helmet | SkyCraft steel_helmet | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
 | Imperial Dragon Boots, Storm-Bear Boots, Wolf Boots, Blades Boots, Dawnguard Heavy Boots, Bonemold Boots, Vigil Enforcer Boots | SkyCraft steel_boots | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
 | Imperial Dragon Gauntlets, Storm-Bear Gauntlets, Wolf Gauntlets, Blades Gauntlets, Dawnguard Heavy Gauntlets, Bonemold Gauntlets, Vigil Enforcer Gauntlets | SkyCraft steel_greaves | Imperial champion's heavy plate, Imperial steel at its best: the SkyCraft steel piece |
-| Fur Boots, Forsworn Boots, Boots of the Old Gods, Guild Master's Boots, Thieves Guild Boots, Linwe's Boots, Shrouded Boots, Morag Tong Boots, Blackguard's Boots, Netch Leather Boots | leather_boots | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
-| Fur Gauntlets, Forsworn Gauntlets, Gauntlets of the Old Gods, Guild Master's Gloves, Thieves Guild Gloves, Linwe's Gloves, Shrouded Gloves, Vampire Gauntlets, Blackguard's Gloves, Netch Leather Bracers, Painted Netch Leather Bracers | leather_leggings | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
+| Fur Armor, Forsworn Armor, Armor of the Old Gods, Thieves Guild Master's Armor, Guild Master's Armor, Thieves Guild Armor, Linwe's Armor, Shrouded Armor, Vampire Armor, Morag Tong Armor, Blackguard's Armor, Netch Leather Armor, Shadowed Netch Leather Armor | leather_chestplate | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
+| Fur Boots, Forsworn Boots, Boots of the Old Gods, Thieves Guild Master's Boots, Guild Master's Boots, Thieves Guild Boots, Linwe's Boots, Shrouded Boots, Vampire Boots, Morag Tong Boots, Blackguard's Boots, Netch Leather Boots, Shadowed Netch Leather Boots | leather_boots | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
+| Fur Gauntlets, Forsworn Gauntlets, Gauntlets of the Old Gods, Thieves Guild Master's Gloves, Guild Master's Gloves, Thieves Guild Gloves, Linwe's Gloves, Shrouded Gloves, Vampire Gauntlets, Morag Tong Bracers, Blackguard's Gloves, Netch Leather Bracers, Painted Netch Leather Bracers, Shadowed Netch Leather Bracers | leather_leggings | Fur light armor worn by bandits, guards and Stormcloaks: Minecraft leather piece |
 | Scaled Boots, Penitus Oculatus Boots, Dawnguard Boots | chainmail_boots | Scale-mail light armor (ArmorMaterialScaled, not a SkyCraft material): chainmail piece |
-| Scaled Bracers, Dawnguard Gauntlets | chainmail_leggings | Scale-mail light armor (ArmorMaterialScaled, not a SkyCraft material): chainmail piece |
-| Forsworn Armor, Armor of the Old Gods, Guild Master's Armor, Thieves Guild Armor, Linwe's Armor, Shrouded Armor, Vampire Armor, Morag Tong Armor, Blackguard's Armor, Netch Leather Armor | leather_chestplate | Forsworn hide-and-bone light armor (the headdress misses the piece rules): leather piece |
-| Forsworn Headdress, Guild Master's Hood, Thieves Guild Hood, Linwe's Hood, Shrouded Cowl, Morag Tong Hood, Blackguard's Hood, Netch Leather Helmet, Painted Netch Leather Helmet | leather_helmet | Forsworn hide-and-bone light armor (the headdress misses the piece rules): leather piece |
+| Scaled Bracers, Penitus Oculatus Bracers, Dawnguard Gauntlets | chainmail_leggings | Scale-mail light armor (ArmorMaterialScaled, not a SkyCraft material): chainmail piece |
+| Forsworn Headdress, Helmet of the Old Gods, Guild Master's Hood, Thieves Guild Hood, Linwe's Hood, Shrouded Cowl, Morag Tong Hood, Blackguard's Hood, Netch Leather Helmet, Painted Netch Leather Helmet, Shadowed Netch Leather Helmet | leather_helmet | Forsworn hide-and-bone light armor (the headdress misses the piece rules): leather piece |
 | Falmer Helmet, Chitin Helmet | turtle_helmet | Chaurus-chitin Falmer helmet (chitin is turtle scute here): turtle helmet instead of 2 scutes |
 | Falmer Heavy Armor | SkyCraft ebony_cuirass | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
 | Falmer Heavy Helm | SkyCraft ebony_helmet | Strongest Falmer chitin plate (beats Falmer Hardened): SkyCraft ebony piece |
@@ -460,9 +461,10 @@ Bought, it's the gear of the nearest tier; looted, it salvages into what it's ma
 | Nordic Dagger, Forsworn Sword | steel_ingot | Looted Nordic gear salvages like other looted gear (one material per weapon) |
 | Stalhrim War Axe, Stalhrim Mace, Stalhrim Battleaxe, Stalhrim Warhammer | SkyCraft ebony_war_axe | Bought: Stalhrim (no SkyCraft material) matches ebony, like the gear drops |
 | Stalhrim Dagger | blue_ice | Looted Stalhrim gear salvages like other looted gear (one material per weapon) |
-| Amber War Axe, Amber Mace, Amber Battleaxe, Amber Warhammer, Madness Warhammer, Dragonbone War Axe, Dragonbone Mace, Dragonbone Battleaxe, Dragonbone Warhammer | SkyCraft daedric_war_axe | Bought: Amber weapons (Amber Sword 15 damage) are top tier: daedric |
+| Amber War Axe, Amber Mace, Amber Battleaxe, Amber Warhammer, Madness War Axe, Madness Mace, Madness Battleaxe, Madness Warhammer, Dragonbone War Axe, Dragonbone Mace, Dragonbone Battleaxe, Dragonbone Warhammer | SkyCraft daedric_war_axe | Bought: Amber weapons (Amber Sword 15 damage) are top tier: daedric |
 | Amber Sword, Madness Sword, Dragonbone Sword, Dragonbone Dagger, Dragonbone Greatsword | SkyCraft daedric_sword | Bought (also catches the line's dagger |
 | Amber Dagger | 2 resin_brick | Looted Amber gear salvages like other looted gear (one material per weapon) |
+| Madness Dagger | crying_obsidian | Looted Madness gear salvages like other looted gear (one material per weapon) |
 | Dark War Axe, Dark Mace, Dark Battleaxe, Dark Warhammer | SkyCraft glass_war_axe | Bought: Dark Seducer weapons are glass quality (Dark Sword 12 damage): glass |
 | Dark Sword | SkyCraft glass_sword | Bought (also catches the line's dagger |
 | Dark Dagger | obsidian | Looted Dark gear salvages like other looted gear (one material per weapon) |
@@ -494,10 +496,14 @@ Bought, it's the gear of the nearest tier; looted, it salvages into what it's ma
 <!-- gen:household -->
 | Item | Becomes | Why |
 |---|---|---|
+| Statue of Dibella | 6 gold_nugget | Small golden figurine of Dibella: melts into gold nuggets |
+| Human Skull | skeleton_skull | Necromancer-altar skull: Minecraft's skeleton skull is the same thing |
+| Troll Skull | 4 bone | A big beast skull, so bone rather than a placeable head |
 | Basket | bundle | A wicker carry-basket: Minecraft's carry-sack is the bundle (1 string + 1 leather), a modest price for very common clutter |
 | Bellows | leather + 2 oak_planks | A forge bellows is two wooden boards and a leather bag |
 | Embalming Tool | 2 iron_nugget | The four Nordic-ruin embalming tools (scalpel, pick, screw tool, scissors) are small iron tools: two nuggets, like the knife and fork rules |
 | Wooden Plate, Wooden Ladle | bowl | Minecraft's only wooden dish is the bowl, as for the Wooden Bowl |
+| Silver Bowl, Silver Plate | 3 iron_nugget | like the Silver Goblet (3) and Silver Jug (4) it should melt into nuggets |
 <!-- /gen:household -->
 
 ### Proposals left out
