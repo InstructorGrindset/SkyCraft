@@ -73,6 +73,8 @@ public final class InputBridge {
 			case Proto.IN_RELEASE_ALL -> releaseAll();
 			case Proto.IN_HURT -> hurt(minecraft, code, a / 100.0F, b, c);
 			case Proto.IN_ARROW_BLOCKED -> arrowBlocked(minecraft, code, a / 1024.0, b / 1024.0, c / 1024.0);
+			// Paired backups: Skyrim copied the save it loaded; the integrated server's world is backed up with it.
+			case Proto.IN_PAIRED_BACKUP -> dev.skycraft.backup.SkyBackups.onInput(code, a, b, c, minecraft.getSingleplayerServer());
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();

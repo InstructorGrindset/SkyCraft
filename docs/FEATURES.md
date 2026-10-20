@@ -40,6 +40,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| Paired backups | `paired_backups` | Each time Skyrim loads a save with Minecraft connected, both are backed up as a pair under one stamp (the time of the load): Skyrim copies the save (its `.ess` and `.skse` co-save) to `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>`, Minecraft zips its world to `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder. The newest 5 pairs are kept. Minecraft saves its world first and holds its autosaves while the zip is written; both copies run on threads of their own, so neither game waits. A save loaded before Minecraft is connected is backed up once it is; a guest's world is backed up when they're back in their own. Death reloads and quickloads make pairs too. See [Paired backups](#paired-backups) | `backup/` (SkyBackups, BackupRequest, BackupNames, WorldZip, BackupRules), client `InputBridge` (`IN_PAIRED_BACKUP`) | `Backups.cpp`, `BackupNames.h`, `main.cpp` (kPreLoadGame, kPostLoadGame), `Combat.cpp` (`kEvPairedBackup`), bit `kFeatPairedBackups` | `skycraft-backups.txt` | `SkyCraft-backup`; `paired backups` in SkyCraft.log | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -410,6 +411,45 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
 
+## Tooling
+
+### Paired backups
+
+Switch `paired_backups` (on by default; Skyrim's side needs a Minecraft that sends the switch, `kFeatPairedBackups`). Every
+time Skyrim loads a save (from the menu, a quickload, the reload after dying) while Minecraft is connected, the save and
+Minecraft's world are backed up together, as a pair named by one stamp, the local time of the load (`YYYY-MM-DD_hh-mm-ss`):
+
+| Half | Where | What |
+|---|---|---|
+| Skyrim | `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>\` (beside the `Saves` folder, or beside the folder `sLocalSavePath` in Skyrim.ini names) | The loaded save's `.ess` and its SKSE co-save `.skse` |
+| Minecraft | `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder (the bundled one: `%LOCALAPPDATA%\SkyCraft\Prism\instances\SkyCraft\.minecraft`) | The whole world folder (every dimension), laid out like Minecraft's own backups, without `session.lock`. The zip's comment names the Skyrim save |
+
+How it goes: the plugin notes the save's name when SKSE says a load starts (`kPreLoadGame`). Once the load is done and Minecraft
+is connected with the switch on, it picks the stamp, sends Minecraft `kInPairedBackup` (the stamp and the save's name) and copies
+the save on a thread of its own (into `<stamp>.partial`, renamed to `<stamp>` when done, so a copy cut short never looks like a
+backup). Minecraft, on its integrated server: saves the players and every chunk to disk, holds autosaves off (as `/save-off` does),
+and zips the world on a thread of its own (into `<name>.zip.part`, renamed when done); then autosaves come back, the zips past the
+newest `keep` are deleted, and it answers `kEvPairedBackup` with `keep`, so Skyrim deletes its older copies too. A save loaded
+before Minecraft has connected (Minecraft still starting) is copied once it connects. A request that comes while Minecraft has no
+world of its own open (the title screen, or a guest in a friend's world) waits until one opens, and a newer load replaces it.
+
+**`skycraft-backups.txt`**: `keep = 5`, the pairs to keep (0 keeps all). The Minecraft world can be hundreds of MB once Tamriel
+Wilds, Home or the Nether have been explored, so mind the disk.
+
+**Going back to a pair** (close both games first): copy the two files from `SkyCraft Backups\<stamp>` into Skyrim's `Saves`
+folder (with Mod Organizer's profile-specific saves, the profile's `saves` folder), and unzip `<stamp> SkyCraft.zip` into the
+instance's `.minecraft\saves` folder, replacing the `SkyCraft` folder. Load that save.
+
+**Try it**: start Skyrim with SkyCraft and load a save. SkyCraft.log says `paired backups: <save> was loaded: copying it as
+<stamp> ...`, then `copied to ...` and `Minecraft backed up its world for <stamp> (x MB); keeping the newest 5 pairs`.
+Minecraft's latest.log says `SkyCraft-backup: <stamp> SkyCraft.zip written for Skyrim's <save>: n files, x MB (saving a ms,
+zipping b ms)`. Both folders have the pair. Load six more times (a quickload is quickest): the oldest pair goes from both.
+Load a save from the main menu before Minecraft is ready: the pair is made when it connects. `paired_backups = off` in
+`skycraft-features.txt`, restart Minecraft: no more pairs.
+
+Not tried in a game yet: the save folder under Mod Organizer's profile-specific saves (the copy reads through MO2's virtual
+folder, which should work), and how long a big world's zip takes.
+
 ## Planned
 
 | Feature | Notes |
@@ -477,6 +517,15 @@ plugin Skyrim's arrows go through blocks as before):
 | Addition | Direction | Used by |
 |---|---|---|
 | `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
+Paired backups added these within 13, without a version bump (an older Minecraft never sets the bit, so an older plugin's
+Skyrim side stays off; an older plugin ignores the event type and an older Minecraft the input type):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatPairedBackups` (bit 28) in `McState.features` | Minecraft to Skyrim | `paired_backups` is on: Skyrim copies each save it loads |
+| `kInPairedBackup` (28) in the input ring | Skyrim to Minecraft | One text in a run of events: code 0 with a = the request id, b = the text's length in bytes (1 to `kPairedBackupTextMax`, 512), then code 1, 2, ... each with the next 12 bytes in a, b, c (little endian). The text is UTF-8 `<stamp>\|<save name>` |
+| `kEvPairedBackup` (32) | Minecraft to Skyrim | The world backup for a request is done: formId = the request id, flags = 1 if it was written, a = the pairs to keep (0 all), b = its size in MB |
 
 ## Testing a build
 

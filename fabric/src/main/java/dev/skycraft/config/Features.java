@@ -80,7 +80,8 @@ public final class Features {
 		GUIDE_BOOK("guide_book", "a new player gets a SkyCraft guide book"),
 
 		// Tooling
-		PAIRED_BACKUPS("paired_backups", "loading a save backs up the Skyrim save and the Minecraft world together"),
+		PAIRED_BACKUPS("paired_backups", "loading a Skyrim save backs it up together with the Minecraft world, under one time stamp; the newest few pairs are kept (skycraft-backups.txt)", true,
+			dev.skycraft.link.Proto.FEATURE_PAIRED_BACKUPS),
 		FAR_BLOCK_DETAIL("far_block_detail", "far Minecraft blocks are drawn with less detail, for a higher frame rate", false, 0);
 
 		public final String key;

@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Backups.h"
 #include "Breach.h"
 #include "Loot.h"
 #include "Travel.h"
@@ -852,6 +853,7 @@ namespace skycraft
 			Input::SetActivatePromptKey(puppet);
 			Combat::PerFrame(a_player, puppet, a_delta);
 			Arrows::PerFrame();
+			Backups::Update();  // paired backups: a loaded save waiting for Minecraft
 			WorldRender::UpdateRagdoll(a_player, haveMc && st.mcInWorld);
 			if (puppet) {
 				NpcBlocks::PushActorsOut(a_player, a_delta);

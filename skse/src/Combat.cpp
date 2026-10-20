@@ -1,3 +1,4 @@
+#include "Backups.h"
 #include "Breach.h"
 #include "Companion.h"
 #include "Game.h"
@@ -880,6 +881,8 @@ namespace skycraft
 						Travel::Request(a_player, ev);  // checks the player's state itself
 					} else if (ev.type == proto::kEvCompanion) {
 						Companion::OnEvent(a_player, ev);  // a taming or an order sent just before Skyrim took the player
+					} else if (ev.type == proto::kEvPairedBackup) {
+						Backups::OnEvent(ev);  // Minecraft's world backup is done (often while a load still holds the player)
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
 					// So is kEvActivate: a click from before Skyrim took the player activates nothing.
@@ -940,6 +943,9 @@ namespace skycraft
 					break;
 				case proto::kEvCompanion:
 					Companion::OnEvent(a_player, ev);
+					break;
+				case proto::kEvPairedBackup:
+					Backups::OnEvent(ev);
 					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {

@@ -50,6 +50,9 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   scenes hand control to Skyrim until they finish.
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
+- **Backups:** each time you load a Skyrim save, SkyCraft backs it up together with your Minecraft
+  world, so the two can be put back as a pair. The newest five pairs are kept (see
+  [Paired backups](docs/FEATURES.md#paired-backups)).
 
 ## Requirements
 

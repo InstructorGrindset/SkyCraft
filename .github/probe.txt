@@ -9,3 +9,6 @@ net.minecraft.world.entity.projectile.arrow.AbstractArrow$Pickup
 net.minecraft.client.player.LocalPlayer
 -c net.minecraft.client.player.LocalPlayer isShiftKeyDown
 -c net.minecraft.client.player.LocalPlayer isCrouching
+# Paired backups (backup/SkyBackups): autosave held while the world is zipped, players saved first
+-c net.minecraft.server.level.ServerLevel noSave
+-c net.minecraft.server.players.PlayerList saveAll

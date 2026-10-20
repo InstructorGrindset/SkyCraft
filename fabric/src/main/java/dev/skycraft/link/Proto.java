@@ -358,6 +358,10 @@ public final class Proto {
 	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
 	public static final long MS_FEATURES = 0xD8;
 	public static final int FEATURES_VALID = 1 << 31;
+	/** paired_backups: Skyrim copies each save it loads and tells Minecraft (IN_PAIRED_BACKUP). Added within protocol 13. */
+	public static final int FEATURE_PAIRED_BACKUPS = 1 << 28;
+	/** far_block_detail: Skyrim's block renderer draws far sections without sun shadows. Added within protocol 13. */
+	public static final int FEATURE_FAR_BLOCK_DETAIL = 1 << 29;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -408,6 +412,21 @@ public final class Proto {
 	 * the Skyrim world's terms), code = which way it flew ({@link #arrowFlight}). Minecraft sticks an arrow of its own there.
 	 */
 	public static final int IN_ARROW_BLOCKED = 10;
+	/**
+	 * Paired backups: Skyrim copied the save it just loaded; Minecraft backs its world up under the same stamp. One text in
+	 * a run of events: code 0 with a = request id and b = the text's length in bytes, then code 1, 2, ... with the next 12
+	 * bytes each in a, b, c (little endian). The text is UTF-8 {@code "<stamp>|<save name>"} (backup.BackupRequest). Added
+	 * within protocol 13.
+	 */
+	public static final int IN_PAIRED_BACKUP = 28;
+	/** IN_PAIRED_BACKUP's longest text, in bytes. */
+	public static final int PAIRED_BACKUP_TEXT_MAX = 512;
+	/**
+	 * Paired backups: Minecraft is done with an IN_PAIRED_BACKUP request. formId = its id, flags = 1 if the world backup was
+	 * written, a = how many pairs to keep (0 all; Skyrim deletes its older copies past that), b = the backup's size in MB.
+	 * Added within protocol 13; an older Skyrim plugin ignores it.
+	 */
+	public static final int EV_PAIRED_BACKUP = 32;
 
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn

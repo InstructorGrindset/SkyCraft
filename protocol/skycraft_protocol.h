@@ -230,6 +230,10 @@ namespace skycraft::proto
 	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
 	enum FeatureBits : std::uint32_t
 	{
+		// Tooling (added within version 13: an older Minecraft never sets them, so these stay off).
+		kFeatPairedBackups = 1u << 28,   // paired_backups: a loaded save is copied, and Minecraft is told (kInPairedBackup)
+		kFeatFarBlockDetail = 1u << 29,  // far_block_detail: far block sections cast no sun shadows (WorldRender.cpp)
+
 		kFeaturesValid = 1u << 31,
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
@@ -289,7 +293,15 @@ namespace skycraft::proto
 		                       // where it reached the block (MC coords x 1024), code = which way it flew: yaw in the high
 		                       // byte (256ths of a turn from +z toward +x), pitch in the low byte (0 straight down, 255
 		                       // straight up). Minecraft sticks an arrow of its own there. Added within version 13
+		kInPairedBackup = 28,  // Paired backups (kFeatPairedBackups): Skyrim copied the save it just loaded into its backup
+		                       // folder; Minecraft backs its world up under the same stamp. One text in a run of events: the
+		                       // first has code 0, a = request id (answered by kEvPairedBackup), b = the text's length in bytes
+		                       // (1 to kPairedBackupTextMax); then code 1, 2, ... each carry the next 12 bytes in a, b, c (little
+		                       // endian, byte 0 lowest in a). The text is UTF-8 "<stamp>|<save name>", the stamp Skyrim's local
+		                       // time as "YYYY-MM-DD_hh-mm-ss". Added within version 13 (an older Minecraft ignores the type)
 	};
+
+	inline constexpr std::uint32_t kPairedBackupTextMax = 512;
 
 	enum HurtKind : std::uint16_t
 	{
@@ -424,6 +436,10 @@ namespace skycraft::proto
 		                       // maximum health to restore (0..1). Skyrim checks the actor is alive, near the player and
 		                       // (for every action but kCompanionTame) the player's companion. Added within version 13 (an
 		                       // older plugin ignores the type)
+		kEvPairedBackup = 32,  // Paired backups: Minecraft is done with kInPairedBackup's request: formId = its id, flags = 1
+		                       // if Minecraft's world backup was written (0 failed), a = how many pairs to keep (0: all;
+		                       // Skyrim deletes its older copies past that), b = the world backup's size in MB. Added within
+		                       // version 13 (an older plugin ignores the type)
 	};
 
 	enum PortalTravelFlags : std::uint32_t
