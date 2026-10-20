@@ -111,8 +111,10 @@ namespace skycraft::proto
 		std::uint8_t reservedWeather[8];  // 0x80
 		// stealth and detection
 		std::uint8_t reservedStealth[8];  // 0x88
-		// towns: crime and guards
-		std::uint8_t reservedTown[8];  // 0x90
+		// towns (added within version 13, zeros from an older plugin)
+		std::uint32_t townFlags;   // 0x90: TownFlags
+		std::uint32_t hearthPlot;  // 0x94: with kTownHearthfirePlot, the Hearthfire house (its BGSLocation FormID) whose land the
+		                           // player stands on outdoors, else 0
 		// creatures
 		std::uint8_t reservedCreatures[8];  // 0x98
 		// multiplayer
@@ -121,6 +123,17 @@ namespace skycraft::proto
 	static_assert(sizeof(SkyState) == 0xA8);
 	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
 	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
+	static_assert(offsetof(SkyState, townFlags) == 0x90 && offsetof(SkyState, hearthPlot) == 0x94);  // Proto.SS_TOWN_FLAGS, SS_HEARTH_PLOT
+
+	// What the plugin tells Minecraft about towns (SkyState::townFlags). Added within version 13: zero from an older plugin.
+	enum TownFlags : std::uint32_t
+	{
+		kTownPassages = 1u << 0,        // this plugin reads kRenPassages (NPCs open Minecraft doors and climb its ladders), so
+		                                // Minecraft may leave ladders and open doors out of kRenSolids. Without it they stay solid
+		kTownHearthfirePlot = 1u << 1,  // the player is outdoors on a Hearthfire house's land (Lakeview Manor, Windstad Manor,
+		                                // Heljarchen Hall: a location HearthFires.esm defines with LocTypePlayerHouse or
+		                                // LocTypeHouse); hearthPlot names it
+	};
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t
@@ -219,18 +232,30 @@ namespace skycraft::proto
 		std::uint8_t reservedStealth[8];  // 0xDC
 		// weather
 		std::uint8_t reservedWeather[8];  // 0xE4
-		// building
-		std::uint8_t reservedBuild[8];  // 0xEC
+		// building (added within version 13, zeros from an older Minecraft)
+		std::uint32_t hearthPlot;    // 0xEC: the Hearthfire plot Minecraft counts blocks for (SkyState::hearthPlot as it last
+		                             // saw it), 0 if none
+		std::uint32_t hearthBlocks;  // 0xF0: Minecraft blocks standing on that plot
 		std::uint8_t reserved[12];      // 0xF4
 	};
 	static_assert(sizeof(McState) == 0x100);
 	static_assert(offsetof(McState, features) == 0xD8);  // Proto.MS_FEATURES
+	static_assert(offsetof(McState, hearthPlot) == 0xEC && offsetof(McState, hearthBlocks) == 0xF0);  // Proto.MS_HEARTH_*
 
 	// McState::features. Minecraft sets kFeaturesValid with the bits of every switched on feature whose Skyrim
 	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
 	enum FeatureBits : std::uint32_t
 	{
 		kFeaturesValid = 1u << 31,
+
+		// Towns and building (added within version 13):
+		kFeatNpcDoorsLadders = 1u << 16,  // npc_doors_ladders: an NPC walking into a closed Minecraft door asks Minecraft to
+		                                  // open it (kInOpenDoor) and paths through doors; an NPC standing in a ladder
+		                                  // column whose path goes up is lifted up it
+		kFeatDwemerRedstone = 1u << 17,   // dwemer_redstone: levers, buttons and pressure plates send kInRedstonePulse,
+		                                  // nearby Dwemer doors go to Minecraft (kInDwemerDoor), kEvRedstoneDoor works them
+		kFeatHearthfire = 1u << 18,       // hearthfire_blocks: Skyrim reports the Hearthfire plot the player stands on
+		                                  // (SkyState::hearthPlot). Bits 19 to 21 are set aside for towns
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
 	static_assert(sizeof(McState) <= 0x100);
@@ -289,6 +314,18 @@ namespace skycraft::proto
 		                       // where it reached the block (MC coords x 1024), code = which way it flew: yaw in the high
 		                       // byte (256ths of a turn from +z toward +x), pitch in the low byte (0 straight down, 255
 		                       // straight up). Minecraft sticks an arrow of its own there. Added within version 13
+
+		// Towns and building (added within version 13; an older Minecraft ignores them). Block coordinates are in the
+		// current Skyrim world's terms, like every position on the link.
+		kInOpenDoor = 19,       // an NPC walked into a closed Minecraft door (kRenPassages): a, b, c = the door's block (MC
+		                        // block coords). Minecraft opens it if NPCs may (any door but iron) and closes it again once
+		                        // nobody has been in the doorway for a few seconds. At most once a second per door
+		kInRedstonePulse = 20,  // a Skyrim lever, button or pressure plate was used (TESActivateEvent): a, b, c = the block its
+		                        // origin is in (MC block coords), code = how many ticks Minecraft powers that block
+		kInDwemerDoor = 21,     // a Dwemer door (not a load door) near the player: a, b, c = the block at its foot (MC block
+		                        // coords), code = 1 open, 0 closed. Resent every 2 s for each one within 24 blocks; Minecraft
+		                        // forgets one not resent for 6 s and watches redstone power at that block and the one above
+		// 22: set aside for towns
 	};
 
 	enum HurtKind : std::uint16_t
@@ -324,6 +361,10 @@ namespace skycraft::proto
 		                                   // teammate, or a horse the player owns
 		kActorCompanionWaiting = 1u << 6,  // a companion that isn't following the player now: told to wait (Minecraft's sit),
 		                                   // or left behind because another animal holds Skyrim's one animal follower slot
+
+		// Towns (added within version 13: an older plugin never sets it, an older Minecraft ignores it).
+		kActorGuard = 1u << 16,  // a guard (Actor::IsGuard): Minecraft sends kEvTownBuild only with one near. Bit 17 is set aside
+		                         // for towns
 	};
 
 	// Bits 8-11 of ActorRecord::flags: what kind of animal the actor is, from its race (AnimalKind; Skyrim's
@@ -424,6 +465,20 @@ namespace skycraft::proto
 		                       // maximum health to restore (0..1). Skyrim checks the actor is alive, near the player and
 		                       // (for every action but kCompanionTame) the player's companion. Added within version 13 (an
 		                       // older plugin ignores the type)
+
+		// Towns and building (added within version 13; an older plugin ignores them). a/b/c are a place (MC coords).
+		kEvTownCrime = 23,        // the player griefed a town (town_crime): formId = TownCrimeKind, a/b/c = where, d = what it is
+		                          // worth in gold (a few seconds' worth added up), flags = how many blocks. Skyrim decides who
+		                          // saw it (its own detection) and raises a steal alarm (Actor::StealAlarm) for the witness's
+		                          // crime faction: bounty, witnesses and guards as for a theft of that value
+		kEvTownBuild = 24,        // the host placed, broke or dug blocks in a town with a guard near (kActorGuard): a/b/c =
+		                          // where, flags = TownBuildKind. At most one every 2 s. A guard who sees the player may remark on
+		                          // it (guard_comments), never more than once a minute per guard
+		kEvHearthfireStage = 25,  // enough Minecraft blocks stand on a Hearthfire plot for a stage (hearthfire_blocks): formId =
+		                          // the plot (SkyState::hearthPlot), flags = HearthfireStage, a = blocks standing
+		kEvRedstoneDoor = 26,     // redstone power at a Dwemer door's block (kInDwemerDoor) came or went: a/b/c = the block's
+		                          // centre, flags = 1 powered, 0 not. Skyrim opens the door when power comes and closes it when
+		                          // it goes (an unlocked door only, with Skyrim's own activation)
 	};
 
 	enum PortalTravelFlags : std::uint32_t
@@ -443,6 +498,30 @@ namespace skycraft::proto
 		                       // stops waiting (the WaitingForPlayer actor value Skyrim's follower packages read)
 		kCompanionWait = 3,    // wait here (Minecraft's sit): WaitingForPlayer 1
 		kCompanionHeal = 4,    // fed: restore a = a share of its maximum health
+	};
+
+	// What a kEvTownCrime was (its formId).
+	enum TownCrimeKind : std::uint32_t
+	{
+		kCrimeGround = 1,  // Skyrim's own ground dug out (its land, rocks, roads), or a block of it that digging revealed broken
+		kCrimeObject = 2,  // a Skyrim building, wall or other object dug into
+		kCrimeBlock = 3,   // a Minecraft block another player placed in the town broken
+	};
+
+	// What a kEvTownBuild was (its flags).
+	enum TownBuildKind : std::uint32_t
+	{
+		kBuildPlace = 1,  // blocks placed
+		kBuildBreak = 2,  // Minecraft blocks broken
+		kBuildDig = 3,    // Skyrim's ground or objects dug
+	};
+
+	// Which Hearthfire stage a kEvHearthfireStage reached (its flags).
+	enum HearthfireStage : std::uint32_t
+	{
+		kStageSmallHouse = 1,
+		kStageMainHall = 2,
+		kStageWings = 3,
 	};
 
 	// What kEvSpawnCreature asks for (Skyrim picks the actor base by the player's level).
@@ -702,7 +781,36 @@ namespace skycraft::proto
 		                      // relative to the feet and facing +Z, split into its parts (RenBatch
 		                      // flags bits 8-11: RagdollPart). Sent about once a second while alive;
 		                      // Skyrim hangs the parts on its ragdoll when the player dies.
+		kRenPassages = 14,    // RenPassages + RenPassage[count]: a section's doors and ladders (npc_doors_ladders; sent
+		                      // after its kRenSolids; 0 = none). Added within version 13: an older plugin skips it.
+		                      // 15 is set aside for towns
 	};
+
+	struct RenPassages
+	{
+		std::int32_t  sx, sy, sz;  // section coords, as in RenSection
+		std::uint32_t count;       // RenPassage records that follow
+	};
+
+	// RenPassage::flags: what the block is (bits 0-1), whether a door is open, which way it faces, which half.
+	enum PassageFlags : std::uint8_t
+	{
+		kPassageDoor = 1,      // a Minecraft door NPCs may open (wooden, copper, ...: any but iron)
+		kPassageIronDoor = 2,  // an iron door: only redstone opens it
+		kPassageLadder = 3,    // a ladder (never NPC solid while kTownPassages is set)
+		kPassageKindMask = 3,
+		kPassageOpen = 1u << 2,         // the door is open (never NPC solid while kTownPassages is set)
+		kPassageFacingShift = 3,        // bits 3-4: the way it faces, Minecraft's 2D value (0 south +z, 1 west -x, 2 north -z,
+		kPassageFacingMask = 3u << 3,   // 3 east +x); a ladder hangs on the block behind it, the opposite way
+		kPassageUpper = 1u << 5,        // a door's upper half
+	};
+
+	struct RenPassage
+	{
+		std::uint8_t x, y, z;  // block within the section
+		std::uint8_t flags;    // PassageFlags
+	};
+	static_assert(sizeof(RenPassage) == 4);
 
 	struct RenSolids
 	{

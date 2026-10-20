@@ -238,6 +238,10 @@ public final class SkyLink {
 		public int place;
 		/** Proto.CARRY_* bits: quest items the Skyrim player carries (0 from a plugin that predates the field). */
 		public int carried;
+		/** Proto.TOWN_* bits (0 from a plugin that predates them). */
+		public int townFlags;
+		/** With TOWN_HEARTHFIRE_PLOT: the Hearthfire house (its BGSLocation FormID) whose land the player stands on, else 0. */
+		public int hearthPlot;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -328,6 +332,8 @@ public final class SkyLink {
 			String town = readName(s, b + SS_TOWN, 32, out.town);
 			int place = s.get(JAVA_INT, b + SS_PLACE);
 			int carried = s.get(JAVA_INT, b + SS_CARRIED);
+			int townFlags = s.get(JAVA_INT, b + SS_TOWN_FLAGS);
+			int hearthPlot = s.get(JAVA_INT, b + SS_HEARTH_PLOT);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -349,6 +355,8 @@ public final class SkyLink {
 				out.town = town;
 				out.place = place;
 				out.carried = carried;
+				out.townFlags = townFlags;
+				out.hearthPlot = hearthPlot;
 				return true;
 			}
 		}
@@ -446,6 +454,8 @@ public final class SkyLink {
 		s.set(JAVA_INT, b + MS_SPACE_X, mirror ? WorldSpaces.originX(space) : 0);
 		s.set(JAVA_INT, b + MS_SPACE_Z, mirror ? WorldSpaces.originZ(space) : 0);
 		s.set(JAVA_INT, b + MS_FEATURES, dev.skycraft.config.Features.skyrimBits());
+		s.set(JAVA_INT, b + MS_HEARTH_PLOT, dev.skycraft.town.SkyHearthfire.shownPlot());
+		s.set(JAVA_INT, b + MS_HEARTH_BLOCKS, dev.skycraft.town.SkyHearthfire.shownBlocks());
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

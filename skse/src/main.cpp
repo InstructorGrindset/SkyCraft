@@ -5,6 +5,7 @@
 #include "Loot.h"
 #include "Game.h"
 #include "Spawn.h"
+#include "Towns.h"
 #include "Travel.h"
 
 namespace
@@ -40,6 +41,7 @@ namespace
 			skycraft::Arrows::Install();
 			skycraft::Dig::Install();
 			skycraft::Loot::Install();
+			skycraft::Towns::Install();
 			skycraft::CrashLog::Install();
 			break;
 		case SKSE::MessagingInterface::kPostLoadGame:
@@ -49,6 +51,7 @@ namespace
 			skycraft::Companion::Reset();
 			skycraft::Breach::Reset();
 			skycraft::Travel::Reset();  // portal network
+			skycraft::Towns::Reset();
 			break;
 		default:
 			break;

@@ -81,6 +81,9 @@ public final class WorldExporter {
 	private static final LongOpenHashSet SOLID = new LongOpenHashSet(); // sections Skyrim holds NPC collision for
 	private static final long[] SOLID_BITS = new long[64]; // 4096 blocks: bit x + 16z + 256y
 	private static final LongOpenHashSet DUG = new LongOpenHashSet(); // sections Skyrim holds dug cells for
+	// Doors and ladders Skyrim's NPCs use (npc_doors_ladders): the sections Skyrim holds them for, and one section's.
+	private static final LongOpenHashSet PASSAGES = new LongOpenHashSet();
+	private static final ByteBuffer PASSAGE_BUF = ByteBuffer.allocate(16 * 16 * 16 * 4).order(ByteOrder.LITTLE_ENDIAN);
 	private static final ByteBuffer LIGHTS = ByteBuffer.allocate(16 * 16 * 16 * 8).order(ByteOrder.LITTLE_ENDIAN);
 	private static int sentGeneration = Integer.MIN_VALUE;
 	private static int meshesSent;
@@ -175,6 +178,7 @@ public final class WorldExporter {
 		LIT.clear();
 		SOLID.clear();
 		DUG.clear();
+		PASSAGES.clear();
 		dev.skycraft.client.SkyDigClient.resendAll();
 		// Everything already loaded needs meshing again; later chunk loads mark themselves dirty.
 		int radius = minecraft.options.getEffectiveRenderDistance() + 1;
@@ -240,12 +244,18 @@ public final class WorldExporter {
 				dugCount += Long.bitCount(word);
 			}
 		}
-		if (empty && !SENT.contains(key) && !LIT.contains(key) && !SOLID.contains(key) && dugCount == 0 && !DUG.contains(key)) {
+		if (empty && !SENT.contains(key) && !LIT.contains(key) && !SOLID.contains(key) && dugCount == 0 && !DUG.contains(key) && !PASSAGES.contains(key)) {
 			return false; // nothing there and nothing to remove
 		}
 		MESH.reset();
 		LIGHTS.clear();
 		int lightCount = 0;
+		// Doors and ladders go to Skyrim on their own; with a plugin that reads them, open doors and ladders aren't walls
+		// for its NPCs (closed doors are, until an NPC asks Minecraft to open one).
+		boolean passages = dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.NPC_DOORS_LADDERS);
+		boolean passableOut = passages && (dev.skycraft.client.SkyClient.sky().townFlags & Proto.TOWN_PASSAGES) != 0;
+		PASSAGE_BUF.clear();
+		int passageCount = 0;
 		java.util.Arrays.fill(SOLID_BITS, 0L);
 		int solidCount = 0;
 		MESH.cardinal = level.cardinalLighting();
@@ -257,11 +267,16 @@ public final class WorldExporter {
 					for (int x = 0; x < 16; x++) {
 						pos.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
 						BlockState state = chunk.getBlockState(pos);
-						if (state.isAir()) {
-							continue;
+						if (state.isAir() || dev.skycraft.town.SkyRedstone.hidden(pos.asLong())) {
+							continue; // (a Skyrim lever's redstone pulse: the lever is what's there)
+						}
+						int passage = passages ? passageFlags(state) : 0;
+						if (passage != 0) {
+							PASSAGE_BUF.put((byte) x).put((byte) y).put((byte) z).put((byte) passage);
+							passageCount++;
 						}
 						// Blocks Skyrim's NPCs can't walk through (anything with a collision shape).
-						if (!state.getCollisionShape(level, pos).isEmpty()) {
+						if (!state.getCollisionShape(level, pos).isEmpty() && !(passableOut && passable(passage))) {
 							int bit = x + 16 * z + 256 * y;
 							SOLID_BITS[bit >> 6] |= 1L << (bit & 63);
 							solidCount++;
@@ -295,7 +310,7 @@ public final class WorldExporter {
 			DigWalls.add(level, sx, sy, sz, dug, digLookup, st -> cubeFaces(minecraft, st), MESH::wall);
 		}
 		if (MESH.vertexCount() == 0 && !SENT.contains(key) && lightCount == 0 && !LIT.contains(key) && solidCount == 0 && !SOLID.contains(key) && dugCount == 0
-			&& !DUG.contains(key)) {
+			&& !DUG.contains(key) && passageCount == 0 && !PASSAGES.contains(key)) {
 			return true;
 		}
 		ByteBuffer header = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN).putInt(lx).putInt(sy).putInt(lz).putInt(MESH.vertexCount()).flip();
@@ -331,6 +346,17 @@ public final class WorldExporter {
 					SOLID.remove(key);
 				}
 			}
+			// Its doors and ladders, after its NPC walls.
+			if (passageCount > 0 || PASSAGES.contains(key)) {
+				ByteBuffer passageHeader = ByteBuffer.allocate(16).order(ByteOrder.LITTLE_ENDIAN).putInt(lx).putInt(sy).putInt(lz).putInt(passageCount).flip();
+				if (!SkyLink.writeRender(Proto.REN_PASSAGES, passageHeader, PASSAGE_BUF.flip())) {
+					markDirty(sx, sy, sz);
+				} else if (passageCount > 0) {
+					PASSAGES.add(key);
+				} else {
+					PASSAGES.remove(key);
+				}
+			}
 			// Cells dug out of Skyrim's world: its geometry there goes.
 			if (dugCount > 0 || DUG.contains(key)) {
 				ByteBuffer dugHeader = ByteBuffer.allocate(24).order(ByteOrder.LITTLE_ENDIAN).putInt(lx).putInt(sy).putInt(lz).putInt(dugCount)
@@ -356,6 +382,30 @@ public final class WorldExporter {
 			markDirty(sx, sy, sz); // ring full; try again later
 		}
 		return true;
+	}
+
+	/**
+	 * Proto.PASSAGE_* flags of a door or ladder for Skyrim's NPCs (npc_doors_ladders): its kind (iron doors only open by
+	 * redstone), whether it's open, the way it faces and which half of a door it is. 0 for any other block.
+	 */
+	private static int passageFlags(BlockState state) {
+		if (state.getBlock() instanceof net.minecraft.world.level.block.DoorBlock) {
+			int kind = state.is(net.minecraft.world.level.block.Blocks.IRON_DOOR) ? Proto.PASSAGE_IRON_DOOR : Proto.PASSAGE_DOOR;
+			return kind | (state.getValue(net.minecraft.world.level.block.DoorBlock.OPEN) ? Proto.PASSAGE_OPEN : 0)
+				| state.getValue(net.minecraft.world.level.block.DoorBlock.FACING).get2DDataValue() << Proto.PASSAGE_FACING_SHIFT
+				| (state.getValue(net.minecraft.world.level.block.DoorBlock.HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER
+					? Proto.PASSAGE_UPPER : 0);
+		}
+		if (state.getBlock() instanceof net.minecraft.world.level.block.LadderBlock) {
+			return Proto.PASSAGE_LADDER | state.getValue(net.minecraft.world.level.block.LadderBlock.FACING).get2DDataValue() << Proto.PASSAGE_FACING_SHIFT;
+		}
+		return 0;
+	}
+
+	/** A ladder or an open door: something Skyrim's NPCs walk into (climb, go through), not a wall. */
+	private static boolean passable(int passage) {
+		int kind = passage & Proto.PASSAGE_KIND_MASK;
+		return kind == Proto.PASSAGE_LADDER || (kind != 0 && (passage & Proto.PASSAGE_OPEN) != 0);
 	}
 
 	/** True if AvatarExporter's scene draws this dropped or thrown item this frame, with Minecraft's own model. */

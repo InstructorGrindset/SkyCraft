@@ -1,6 +1,7 @@
 #include "Dig.h"
 #include "Game.h"
 #include "Perf.h"
+#include "Towns.h"
 
 #include "Collision.h"
 
@@ -1108,6 +1109,7 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 						ClearAvatar();
 						BlockLights::Clear();
 						NpcBlocks::Clear();
+						Passages::Clear();
 						Dig::Clear();
 						break;
 					case proto::kRenLights:
@@ -1118,6 +1120,9 @@ float4 OverlayPS(float4 pos : SV_Position) : SV_Target
 						break;
 					case proto::kRenSolids:
 						NpcBlocks::OnSolids(a_data, a_bytes);
+						break;
+					case proto::kRenPassages:
+						Passages::OnPassages(a_data, a_bytes);  // doors and ladders (npc_doors_ladders)
 						break;
 					case proto::kRenDug:
 						Dig::OnDug(a_data, a_bytes);

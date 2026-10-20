@@ -79,6 +79,8 @@ public final class Proto {
 	/** Wolves (not werewolves): tamed like a Minecraft wolf. */
 	public static final int ANIMAL_WOLF = 2;
 	public static final int ANIMAL_HORSE = 3;
+	/** Towns (added within protocol 13; an older Skyrim plugin never sets it): a guard (Actor::IsGuard). Bit 17 is set aside for towns. */
+	public static final int ACTOR_GUARD = 1 << 16;
 
 	// Event ring (relative to OFF_EVENT_RING)
 	public static final int EVENT_RING_ENTRIES = 512;
@@ -132,6 +134,35 @@ public final class Proto {
 	public static final int COMPANION_WAIT = 3;
 	/** Fed: restore a share of its health. */
 	public static final int COMPANION_HEAL = 4;
+
+	// Towns and building (added within protocol 13; an older Skyrim plugin ignores them). a/b/c are a place in the mirror,
+	// sent with SkyLink.pushEventAt in the current Skyrim world's terms.
+	/**
+	 * The host griefed a town (town.SkyTown): formId = a CRIME_* kind, a/b/c = where, d = what it's worth in gold (a few
+	 * seconds' worth added up), flags = how many blocks. Skyrim decides who saw it and raises a steal alarm.
+	 */
+	public static final int EV_TOWN_CRIME = 23;
+	/** The host placed, broke or dug blocks in a town with a guard near: a/b/c = where, flags = a BUILD_* kind. At most one every 2 s. */
+	public static final int EV_TOWN_BUILD = 24;
+	/** Enough blocks stand on a Hearthfire plot for a stage: formId = the plot (SS_HEARTH_PLOT), flags = a STAGE_*, a = blocks standing. */
+	public static final int EV_HEARTHFIRE_STAGE = 25;
+	/** Redstone power at a Dwemer door's block (IN_DWEMER_DOOR) came or went: a/b/c = the block's centre, flags = 1 powered, 0 not. */
+	public static final int EV_REDSTONE_DOOR = 26;
+	// EV_TOWN_CRIME kinds
+	/** Skyrim's own ground dug out, or a block of it that digging revealed broken. */
+	public static final int CRIME_GROUND = 1;
+	/** A Skyrim building, wall or other object dug into. */
+	public static final int CRIME_OBJECT = 2;
+	/** A Minecraft block another player placed in the town broken. */
+	public static final int CRIME_BLOCK = 3;
+	// EV_TOWN_BUILD kinds
+	public static final int BUILD_PLACE = 1;
+	public static final int BUILD_BREAK = 2;
+	public static final int BUILD_DIG = 3;
+	// EV_HEARTHFIRE_STAGE stages
+	public static final int STAGE_SMALL_HOUSE = 1;
+	public static final int STAGE_MAIN_HALL = 2;
+	public static final int STAGE_WINGS = 3;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;
@@ -262,6 +293,17 @@ public final class Proto {
 	public static final int REN_RAGDOLL = 9;
 	public static final int REN_SOLIDS = 10;
 	public static final int REN_DUG = 11;
+	/**
+	 * A section's doors and ladders (npc_doors_ladders): {sx, sy, sz, count} then count records {u8 x, y, z, flags}
+	 * (PASSAGE_*). Added within protocol 13; an older plugin skips it.
+	 */
+	public static final int REN_PASSAGES = 14;
+	/** PASSAGE_* kinds (flags bits 0-1): a door NPCs may open, an iron door, a ladder. */
+	public static final int PASSAGE_DOOR = 1, PASSAGE_IRON_DOOR = 2, PASSAGE_LADDER = 3, PASSAGE_KIND_MASK = 3;
+	public static final int PASSAGE_OPEN = 1 << 2;
+	/** Bits 3-4: the way the door or ladder faces, Direction.get2DDataValue (0 south, 1 west, 2 north, 3 east). */
+	public static final int PASSAGE_FACING_SHIFT = 3, PASSAGE_FACING_MASK = 3 << 3;
+	public static final int PASSAGE_UPPER = 1 << 5;
 	public static final int PART_HEAD = 1, PART_BODY = 2, PART_RIGHT_ARM = 3, PART_LEFT_ARM = 4, PART_RIGHT_LEG = 5, PART_LEFT_LEG = 6;
 	public static final int LIGHT_STEADY = 0, LIGHT_FLAME = 1, LIGHT_LAVA = 2;
 	public static final int REN_VERTEX_BYTES = 32;
@@ -292,6 +334,14 @@ public final class Proto {
 	public static final long SS_PLACE = 0x60;  // PlaceFlags
 	/** CarriedFlags: quest items the Skyrim player carries. Was the reserved field (0), added within 13. */
 	public static final long SS_CARRIED = 0x64;
+	/** SkyState.townFlags (TOWN_*), added within 13: zero from an older plugin. */
+	public static final long SS_TOWN_FLAGS = 0x90;
+	/** SkyState.hearthPlot: with TOWN_HEARTHFIRE_PLOT, the Hearthfire house (BGSLocation FormID) whose land the player stands on. */
+	public static final long SS_HEARTH_PLOT = 0x94;
+	/** The plugin reads REN_PASSAGES: ladders and open doors may be left out of REN_SOLIDS. */
+	public static final int TOWN_PASSAGES = 1;
+	/** The player is outdoors on a Hearthfire house's land (SS_HEARTH_PLOT names it). */
+	public static final int TOWN_HEARTHFIRE_PLOT = 1 << 1;
 	public static final int PLACE_INTERIOR = 1;
 	public static final int PLACE_DUNGEON = 1 << 1;
 	public static final int PLACE_TOWN = 1 << 2;
@@ -358,6 +408,13 @@ public final class Proto {
 	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
 	public static final long MS_FEATURES = 0xD8;
 	public static final int FEATURES_VALID = 1 << 31;
+	// FeatureBits of the towns and building features (added within 13).
+	public static final int FEATURE_NPC_DOORS_LADDERS = 1 << 16;
+	public static final int FEATURE_DWEMER_REDSTONE = 1 << 17;
+	public static final int FEATURE_HEARTHFIRE = 1 << 18;
+	/** McState.hearthPlot, hearthBlocks (added within 13): the Hearthfire plot Minecraft counts for and its blocks standing. */
+	public static final long MS_HEARTH_PLOT = 0xEC;
+	public static final long MS_HEARTH_BLOCKS = 0xF0;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -408,6 +465,15 @@ public final class Proto {
 	 * the Skyrim world's terms), code = which way it flew ({@link #arrowFlight}). Minecraft sticks an arrow of its own there.
 	 */
 	public static final int IN_ARROW_BLOCKED = 10;
+	/**
+	 * Towns (added within protocol 13): an NPC walked into a closed Minecraft door: a, b, c = the door's block (block
+	 * coords, the Skyrim world's terms). Minecraft opens it unless it's iron and closes it again once the doorway is empty.
+	 */
+	public static final int IN_OPEN_DOOR = 19;
+	/** A Skyrim lever, button or pressure plate was used: a, b, c = its block, code = ticks to power that block. */
+	public static final int IN_REDSTONE_PULSE = 20;
+	/** A Dwemer door near the player: a, b, c = the block at its foot, code = 1 open. Resent every 2 s; forgotten after 6 s. */
+	public static final int IN_DWEMER_DOOR = 21;
 
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn

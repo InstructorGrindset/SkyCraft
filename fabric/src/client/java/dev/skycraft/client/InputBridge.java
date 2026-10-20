@@ -73,6 +73,7 @@ public final class InputBridge {
 			case Proto.IN_RELEASE_ALL -> releaseAll();
 			case Proto.IN_HURT -> hurt(minecraft, code, a / 100.0F, b, c);
 			case Proto.IN_ARROW_BLOCKED -> arrowBlocked(minecraft, code, a / 1024.0, b / 1024.0, c / 1024.0);
+			case Proto.IN_OPEN_DOOR, Proto.IN_REDSTONE_PULSE, Proto.IN_DWEMER_DOOR -> TownInput.accept(minecraft, type, code, a, b, c);
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();

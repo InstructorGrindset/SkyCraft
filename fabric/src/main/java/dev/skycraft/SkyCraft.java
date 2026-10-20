@@ -31,6 +31,7 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.portal.SkyPortals.init(); // portal network: soul gem items, tick, frame breaks
 		dev.skycraft.worlds.SkyWorlds.init();
 		dev.skycraft.skooma.SkySkooma.init(); // Skooma, Stealth and Skooma Withdrawal effects; the addiction
+		dev.skycraft.town.SkyTown.init(); // NPCs and Minecraft doors, town crime, guards, Hearthfire plots, Dwemer redstone
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

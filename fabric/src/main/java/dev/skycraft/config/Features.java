@@ -56,13 +56,16 @@ public final class Features {
 		SHRINE_BLESSINGS("shrine_blessings", "a Skyrim shrine's blessing also gives a Minecraft effect"),
 
 		// Towns
-		NPC_DOORS_LADDERS("npc_doors_ladders", "Skyrim NPCs open Minecraft doors and climb Minecraft ladders"),
-		TOWN_CRIME("town_crime", "breaking blocks or taking from chests in a Skyrim town is a crime: a bounty, and the guards come"),
-		GUARD_COMMENTS("guard_comments", "guards remark on your building near them"),
+		NPC_DOORS_LADDERS("npc_doors_ladders", "Skyrim NPCs open Minecraft doors (not iron ones) and walk through open ones, and are helped up Minecraft ladders their path climbs; doors close again when the doorway is empty (skycraft-town-rules.txt)", true,
+			dev.skycraft.link.Proto.FEATURE_NPC_DOORS_LADDERS),
+		TOWN_CRIME("town_crime", "digging up a Skyrim town's ground or buildings, or breaking blocks someone else placed there, is a theft in Skyrim if anyone sees it: a bounty, and the guards come (skycraft-town-rules.txt)"),
+		GUARD_COMMENTS("guard_comments", "a guard who sees you building or digging in town remarks on it now and then (in Skyrim's corner, at most once a minute per guard)"),
 
 		// Building
-		HEARTHFIRE_BLOCKS("hearthfire_blocks", "a Hearthfire house plot can be built with Minecraft blocks"),
-		DWEMER_REDSTONE("dwemer_redstone", "Skyrim levers and pressure plates power redstone, and redstone opens Dwemer doors"),
+		HEARTHFIRE_BLOCKS("hearthfire_blocks", "Minecraft blocks you place on a Hearthfire house plot (Lakeview Manor, Windstad Manor, Heljarchen Hall) count toward a small house, a main hall and wings (skycraft-town-rules.txt); Skyrim's own house parts aren't built by them yet", true,
+			dev.skycraft.link.Proto.FEATURE_HEARTHFIRE),
+		DWEMER_REDSTONE("dwemer_redstone", "Skyrim levers, buttons and pressure plates give a redstone pulse where they are, and redstone power at a Dwemer door's foot opens it (gone: closes it)", true,
+			dev.skycraft.link.Proto.FEATURE_DWEMER_REDSTONE),
 
 		// Creatures
 		MOBS_FIGHT_NPCS("mobs_fight_npcs", "Minecraft's monsters and Skyrim's NPCs fight each other"),

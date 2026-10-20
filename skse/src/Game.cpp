@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Breach.h"
 #include "Loot.h"
+#include "Towns.h"
 #include "Travel.h"
 #include "WorldState.h"
 
@@ -856,6 +857,7 @@ namespace skycraft
 			if (puppet) {
 				NpcBlocks::PushActorsOut(a_player, a_delta);
 			}
+			Towns::Update(a_player, puppet, a_delta);  // switches and Dwemer doors to Minecraft; NPCs up its ladders
 
 			// Interpolate Minecraft's 20 Hz physics ticks on our own clock (what MC's renderer does
 			// with partial ticks). Sampling MC's per-frame position instead judders, because the two
@@ -1196,6 +1198,7 @@ namespace skycraft
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
+			Towns::FillSkyState(a_player, sky);           // doors and ladders read here; the Hearthfire plot underfoot
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

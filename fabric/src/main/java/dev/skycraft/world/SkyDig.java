@@ -236,6 +236,7 @@ public final class SkyDig {
 			}
 		}
 		level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_DESTROY_BLOCK, pos, Block.getId(state));
+		dev.skycraft.town.SkyTown.dugSkyrim(player, pos); // in a Skyrim town, that's griefing (town_crime) a guard may see
 	}
 
 	/** Cells around a mined one that are wholly inside Skyrim's geometry: blocks now. */
