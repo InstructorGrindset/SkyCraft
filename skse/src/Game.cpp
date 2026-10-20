@@ -1196,6 +1196,7 @@ namespace skycraft
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
+			WorldState::Skills(a_player, loading, sky);   // skill levels and Dragon Souls, for Minecraft's skill bonuses
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

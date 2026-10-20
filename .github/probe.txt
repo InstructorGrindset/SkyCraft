@@ -23,3 +23,26 @@ net.minecraft.network.chat.ClickEvent$OpenFile
 # Guide book (guide/GuideBook), made as worlds/HomeCamp.journal makes Steve's journal.
 net.minecraft.world.item.component.WrittenBookContent
 net.minecraft.server.network.Filterable
+# Skills: Skyrim's skill levels in Minecraft (skills/, the skills mixins). FabricBrewingRecipeRegistryBuilder (Fabric API) can't be probed here.
+-c net.minecraft.world.item.ProjectileWeaponItem createProjectile
+-c net.minecraft.world.entity.projectile.arrow.AbstractArrow BaseDamage
+-c net.minecraft.world.inventory.AnvilMenu createResult
+-c net.minecraft.world.inventory.AnvilMenu cost
+-c net.minecraft.world.inventory.EnchantmentMenu EnchantmentMenu(
+-c net.minecraft.world.inventory.EnchantmentMenu slotsChanged
+-c net.minecraft.world.inventory.EnchantmentMenu quickMoveStack
+-c net.minecraft.world.inventory.EnchantmentMenu clickMenuButton
+-c net.minecraft.world.item.enchantment.EnchantmentHelper getEnchantmentCost
+-c net.minecraft.world.inventory.AbstractContainerMenu addSlot
+-c net.minecraft.world.inventory.AbstractContainerMenu doClick
+-c net.minecraft.world.inventory.Slot getNoItemIcon
+-c net.minecraft.world.inventory.Slot mayPickup
+-c net.minecraft.world.inventory.BrewingStandMenu quickMoveStack
+net.minecraft.world.item.alchemy.Potion
+net.minecraft.world.item.alchemy.PotionBrewing$Builder
+-c net.minecraft.world.item.alchemy.PotionBrewing mix
+-c net.minecraft.world.item.alchemy.PotionContents getName
+-c net.minecraft.world.item.alchemy.PotionContents onConsume
+-c net.minecraft.core.component.DataComponents POTION_DURATION_SCALE
+-c net.minecraft.world.entity.player.Player giveExperienceLevels
+-c net.minecraft.sounds.SoundEvents PLAYER_LEVELUP

@@ -33,6 +33,7 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.skooma.SkySkooma.init(); // Skooma, Stealth and Skooma Withdrawal effects; the addiction
 		dev.skycraft.report.SkyReport.init(); // /skycraft report: the logs and configs a tester sends, in one zip
 		dev.skycraft.guide.GuideBook.init(); // the SkyCraft guide book, once per player
+		dev.skycraft.skills.SkySkills.init(); // Skyrim's skill levels in Minecraft; Stealth potions and their brewing
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

@@ -10,6 +10,9 @@ default 4) set where the fake player is; SKYCRAFT_PLACE=3 makes it a dungeon int
 SKYCRAFT_CARRIED (CarriedFlags, default 0; 1 = an Elder Scroll) sets SkyState.carried.
 SKYCRAFT_COMPANION=1 adds a wild wolf to tame with bones (Companions): see COMPANION below.
 SKYCRAFT_GEAR=1 kills the fake bandit you punch and sends what it wore (Gear drops): see GEAR below.
+SKYCRAFT_SKILL sets every one of the 18 skill levels in SkyState.skills (default 0: unknown, no bonus), so
+SKYCRAFT_SKILL=100 gives the host the full Sneak, Archery, Smithing, Enchanting and Alchemy bonuses. SKYCRAFT_SOULS
+sets the Dragon Souls (default 0), and SKYCRAFT_SOUL_EVERY=30 absorbs one more every 30 seconds (Dragon souls).
 
 Breach doors: outside (no interior place flag) it publishes two dungeon entrances near the fake
 player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
@@ -60,6 +63,11 @@ TOWN = os.environ.get("SKYCRAFT_TOWN", "Whiterun")
 PLACE = int(os.environ.get("SKYCRAFT_PLACE", "4"), 0)
 CARRIED = int(os.environ.get("SKYCRAFT_CARRIED", "0"), 0)  # SkyState.carried: 1 = an Elder Scroll
 BREACHES = os.environ.get("SKYCRAFT_BREACHES", "1") != "0"
+SKILL = max(0, min(255, int(os.environ.get("SKYCRAFT_SKILL", "0"))))  # SkyState.skills: every skill this level
+SOULS = int(os.environ.get("SKYCRAFT_SOULS", "0"))  # SkyState.dragonSouls
+SOUL_EVERY = float(os.environ.get("SKYCRAFT_SOUL_EVERY", "0"))  # seconds between souls absorbed; 0: never
+SKILLS_LOAD = (int(time.time() * 1000) & 0xFFFFFFFF) or 1  # SkyState.skillsLoad: a new game each run
+STARTED = time.time()
 # A made-up worldspace FormID (load order FF, as no plugin uses), as in SkyState.worldId: Minecraft gives
 # it a space of its own (SkySpace). 0x3C (Tamriel) puts the test blocks at the real Tamriel's origin.
 WORLD_ID = int(os.environ.get("SKYCRAFT_WORLD", "FF0FA4E0"), 16)
@@ -130,7 +138,7 @@ class Link:
         ctypes.windll.kernel32.GetTickCount64.restype = ctypes.c_uint64
         self.m = mmap.mmap(-1, SIZE, tagname=NAME)
         self.m[0:0x100] = bytes(0x100)
-        self.m[OFF_SKY:OFF_SKY + 0x100] = bytes(0x100)  # SkyState is 0x68 bytes
+        self.m[OFF_SKY:OFF_SKY + 0x100] = bytes(0x100)  # SkyState is 0xA8 bytes
         self.m[OFF_OVL:OFF_OVL + 0x100] = bytes(0x100)
         self.m[OFF_IN:OFF_IN + 0x80] = bytes(0x80)
         self.m[OFF_COL:OFF_COL + 0x80] = bytes(0x80)
@@ -300,6 +308,8 @@ class Link:
         town = TOWN if town is None else town
         place = PLACE if place is None else place
         struct.pack_into("<32sII", self.m, OFF_SKY + 0x40, town.encode("utf-8")[:31], place, CARRIED)  # town[32] NUL-padded, place, carried
+        souls = SOULS + (int((time.time() - STARTED) / SOUL_EVERY) if SOUL_EVERY > 0 else 0)
+        struct.pack_into("<18sHI", self.m, OFF_SKY + 0x68, bytes([SKILL] * 18), min(souls, 0xFFFF), SKILLS_LOAD)  # skills, dragonSouls, skillsLoad
         struct.pack_into("<I", self.m, OFF_SKY, self.sky_seq * 2)
 
     def push_item(self, form, count, tags, name, material=0, source=SRC_CONTAINER, chest=1, container=0, quest=0):

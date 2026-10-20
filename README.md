@@ -44,6 +44,11 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
     One-Handed; axes and spears train Two-Handed; bows and anything thrown train Archery.
   - Shields train Block, and hits taken train Light or Heavy Armor depending on what you wear.
   - Crafting gear trains Smithing, and crouching is Skyrim sneak, which trains Sneak.
+  - And the other way: your Skyrim skills make Minecraft better. Sneak keeps Minecraft's mobs from
+    noticing you crouch, Archery makes arrows hit harder, Smithing makes anvil work cheaper,
+    Enchanting counts as extra bookshelves (and a filled soul gem can stand in for lapis), Alchemy
+    makes brewed potions last longer, and every dragon soul you absorb gives Minecraft XP levels.
+    `/skyskills` shows what yours give. Only the host's own Skyrim counts for now.
 - **Camera and death:** Minecraft's F5 camera modes show your skin and armor in Skyrim. Dying
   gives Skyrim's death camera with your Minecraft body ragdolling.
 - **Skyrim's own animations:** chairs, crafting stations, beds, pull levers, horses and scripted

@@ -238,6 +238,23 @@ public final class SkyLink {
 		public int place;
 		/** Proto.CARRY_* bits: quest items the Skyrim player carries (0 from a plugin that predates the field). */
 		public int carried;
+		/**
+		 * The Skyrim player's skill levels, Proto.SKILL_COUNT bytes in ActorValue order from Proto.SKILL_FIRST (read them with
+		 * {@link #skill}); all 0 from a plugin that predates them.
+		 */
+		public final byte[] skills = new byte[SKILL_COUNT];
+		/** The Dragon Souls the Skyrim player holds. */
+		public int dragonSouls;
+		/** Which game Skyrim has loaded (a new number each load; 0 from a plugin that predates the skills). */
+		public int skillsLoad;
+		/** Where readSkyState reads the skills before it knows the read is whole. */
+		private final byte[] skillsRead = new byte[SKILL_COUNT];
+
+		/** The level of {@code skill} (a Skyrim ActorValue, One-Handed 6 to Enchanting 23), 0 = unknown. */
+		public int skill(int skill) {
+			int i = skill - SKILL_FIRST;
+			return i >= 0 && i < SKILL_COUNT ? Byte.toUnsignedInt(this.skills[i]) : 0;
+		}
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -328,6 +345,9 @@ public final class SkyLink {
 			String town = readName(s, b + SS_TOWN, 32, out.town);
 			int place = s.get(JAVA_INT, b + SS_PLACE);
 			int carried = s.get(JAVA_INT, b + SS_CARRIED);
+			MemorySegment.copy(s, JAVA_BYTE, b + SS_SKILLS, out.skillsRead, 0, SKILL_COUNT);
+			int dragonSouls = Short.toUnsignedInt(s.get(JAVA_SHORT, b + SS_DRAGON_SOULS));
+			int skillsLoad = s.get(JAVA_INT, b + SS_SKILLS_LOAD);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -349,6 +369,9 @@ public final class SkyLink {
 				out.town = town;
 				out.place = place;
 				out.carried = carried;
+				System.arraycopy(out.skillsRead, 0, out.skills, 0, SKILL_COUNT);
+				out.dragonSouls = dragonSouls;
+				out.skillsLoad = skillsLoad;
 				return true;
 			}
 		}
