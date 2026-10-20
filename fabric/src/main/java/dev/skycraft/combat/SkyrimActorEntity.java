@@ -57,6 +57,31 @@ public class SkyrimActorEntity extends LivingEntity {
 	private float pushStrength;
 	private boolean hitThisTick;
 
+	/**
+	 * This tick's hits from Minecraft's own creatures (a monster, a player's tamed wolf) and from daylight, which aren't the
+	 * player's: flushed to Skyrim as EV_MOB by creatures.SkyCreatures once the tick's attacks have landed.
+	 */
+	public static final class CreatureHit {
+		public float damage;
+		/** Proto.HIT_* */
+		public int flags;
+		/** Proto.WEAPON_* */
+		public int weapon;
+		/** Proto.MOB_BY_* */
+		public int attacker;
+		/** MOB_BY_WOLF: the wolf's owner, whose hit Minecraft counts it as. */
+		public @Nullable UUID owner;
+		public double pushX, pushZ;
+		public float push;
+	}
+
+	private @Nullable CreatureHit creatureHit;
+	// Minecraft's melee monsters strike once a second, but in the mirror (no paths to follow) their attack goal keeps
+	// starting over and would strike twice as often: each creature's melee hit counts once per CreatureRules.MELEE_COOLDOWN_TICKS.
+	private final java.util.Map<Integer, Integer> creatureMelee = new java.util.HashMap<>();
+	// Set alight by the sun (creatures_and_light): its fire is no player's doing. Cleared once the fire is out.
+	private boolean sunBurning;
+
 	public SkyrimActorEntity(EntityType<? extends SkyrimActorEntity> type, Level level) {
 		super(type, level);
 		this.setNoGravity(true);
@@ -97,6 +122,35 @@ public class SkyrimActorEntity extends LivingEntity {
 	/** The last player whose attack reached this stand-in, or null if no player has hit it. */
 	public @Nullable UUID lastPlayerHit() {
 		return this.lastPlayerHit;
+	}
+
+	/** A hit Minecraft counts as this player's (their tamed wolf's): the kill and its loot are theirs, as for their own hit. */
+	public void creditPlayer(UUID player) {
+		this.lastPlayerHit = player;
+	}
+
+	/** The sun just set this undead stand-in alight. */
+	public void markSunBurning() {
+		this.sunBurning = true;
+	}
+
+	/** It's burning because of the sun (not a player's Fire Aspect or flame arrow). */
+	public boolean sunBurning() {
+		return this.sunBurning;
+	}
+
+	private CreatureHit creatureHit() {
+		if (this.creatureHit == null) {
+			this.creatureHit = new CreatureHit();
+		}
+		return this.creatureHit;
+	}
+
+	/** Returns this tick's hits from Minecraft's creatures and daylight and clears them; null if there were none. */
+	public @Nullable CreatureHit takeCreatureHit() {
+		CreatureHit hit = this.creatureHit;
+		this.creatureHit = null;
+		return hit;
 	}
 
 	/** Its Skyrim name, and the stand-in's own name ({@code shown}: the Skyrim name, or "Meeko (tamed)"), when they change. */
@@ -175,6 +229,39 @@ public class SkyrimActorEntity extends LivingEntity {
 		if (this.isInvulnerableTo(level, source) || dmg <= 0.0F) {
 			return;
 		}
+		// A Minecraft creature's bite, swing or arrow, or daylight on the undead (mobs_fight_npcs, wolves_fight_skyrim,
+		// creatures_and_light): Skyrim takes it as nobody's hit, or as the wolf owner's, not as this player's.
+		int by = dev.skycraft.creatures.SkyCreatures.creatureAttacker(this, source);
+		if (by >= 0) {
+			boolean projectile = source.getDirectEntity() instanceof Projectile;
+			Entity cause = source.getEntity();
+			if (cause != null && !projectile && by != Proto.MOB_BY_SUN) {
+				int now = level.getServer().getTickCount();
+				Integer last = this.creatureMelee.get(cause.getId());
+				if (last != null && now >= last && now - last < dev.skycraft.creatures.CreatureRules.MELEE_COOLDOWN_TICKS) {
+					return;
+				}
+				this.creatureMelee.put(cause.getId(), now);
+				if (this.creatureMelee.size() > 32) {
+					this.creatureMelee.clear();
+				}
+			}
+			CreatureHit hit = this.creatureHit();
+			hit.damage += dmg;
+			hit.attacker = by;
+			hit.weapon = weaponClass(source);
+			if (projectile) {
+				hit.flags |= Proto.HIT_PROJECTILE;
+			}
+			if (source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
+				hit.flags |= Proto.HIT_FIRE;
+			}
+			if (by == Proto.MOB_BY_WOLF) {
+				hit.owner = dev.skycraft.creatures.SkyCreatures.ownerOf(cause);
+			}
+			this.getCombatTracker().recordDamage(source, dmg);
+			return;
+		}
 		this.pendingDamage += dmg;
 		if (source.getEntity() instanceof Player player) {
 			this.lastPlayerHit = player.getUUID();
@@ -195,6 +282,18 @@ public class SkyrimActorEntity extends LivingEntity {
 		// Skyrim owns this actor's position. Remember the strongest push for Skyrim's stagger:
 		// Minecraft pushes towards -(xd, zd).
 		double len = Math.sqrt(xd * xd + zd * zd);
+		int by = dev.skycraft.creatures.SkyCreatures.creatureAttacker(this, source);
+		if (by >= 0) {
+			// A creature's push goes with its hit, never with the player's (Skyrim would take it as theirs).
+			CreatureHit hit = this.creatureHit();
+			hit.attacker = by;
+			if (len > 1e-6 && power > hit.push) {
+				hit.push = (float) power;
+				hit.pushX = -xd / len;
+				hit.pushZ = -zd / len;
+			}
+			return;
+		}
 		if (len > 1e-6 && power > this.pushStrength) {
 			this.pushStrength = (float) power;
 			this.pushX = -xd / len;
@@ -254,6 +353,9 @@ public class SkyrimActorEntity extends LivingEntity {
 	public void tick() {
 		// Position and rotation come from Skyrim (SkyCombat); keep hurt timers and fire ticking.
 		this.baseTick();
+		if (this.sunBurning && !this.isOnFire()) {
+			this.sunBurning = false;
+		}
 		this.setHealth(this.getMaxHealth());
 	}
 

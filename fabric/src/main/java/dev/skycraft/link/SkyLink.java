@@ -238,6 +238,9 @@ public final class SkyLink {
 		public int place;
 		/** Proto.CARRY_* bits: quest items the Skyrim player carries (0 from a plugin that predates the field). */
 		public int carried;
+		/** The player's horse (Horses carry over; 0: none, or a plugin that predates the field) and its Proto.HORSE_INFO_* word. */
+		public int horse;
+		public int horseInfo;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -328,6 +331,8 @@ public final class SkyLink {
 			String town = readName(s, b + SS_TOWN, 32, out.town);
 			int place = s.get(JAVA_INT, b + SS_PLACE);
 			int carried = s.get(JAVA_INT, b + SS_CARRIED);
+			int horse = s.get(JAVA_INT, b + SS_HORSE);
+			int horseInfo = s.get(JAVA_INT, b + SS_HORSE_INFO);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -349,6 +354,8 @@ public final class SkyLink {
 				out.town = town;
 				out.place = place;
 				out.carried = carried;
+				out.horse = horse;
+				out.horseInfo = horseInfo;
 				return true;
 			}
 		}
@@ -693,7 +700,7 @@ public final class SkyLink {
 
 	/** Event types whose a, b, c are a place (Minecraft coordinates) rather than amounts. */
 	private static boolean carriesPlace(int type) {
-		return type == EV_EXPLOSION || type == EV_ARROW_STUCK || type == EV_SPAWN_CREATURE || type == EV_PORTAL_TRAVEL;
+		return type == EV_EXPLOSION || type == EV_ARROW_STUCK || type == EV_SPAWN_CREATURE || type == EV_PORTAL_TRAVEL || type == EV_HORSE;
 	}
 
 	/**

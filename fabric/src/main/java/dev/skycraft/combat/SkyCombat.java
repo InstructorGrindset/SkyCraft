@@ -74,6 +74,11 @@ public final class SkyCombat {
 		return PROXIES.get(formId);
 	}
 
+	/** Every Skyrim actor's stand-in now (server thread; empty while the host is away from the mirror). */
+	public static java.util.Collection<SkyrimActorEntity> proxies() {
+		return java.util.Collections.unmodifiableCollection(PROXIES.values());
+	}
+
 	private static void serverTick(MinecraftServer server) {
 		List<ServerPlayer> players = server.getPlayerList().getPlayers();
 		if (!SkyLink.active() || players.isEmpty()) {

@@ -78,6 +78,21 @@ public final class SkyDeep {
 		return r;
 	}
 
+	/** Spawned creatures alive now (the deep's and the night's: Skyrim caps them together), as the actor table last showed. */
+	public static int aliveSpawned() {
+		return aliveSpawned;
+	}
+
+	/** skycraft-deep.txt's max_alive: no more spawned creatures than this at once, from the deep or the night. */
+	public static int maxAlive() {
+		return rules().maxAlive();
+	}
+
+	/** Another spawned creature was asked for (night monsters): counted until the actor table shows it. */
+	public static void countSpawn() {
+		aliveSpawned++;
+	}
+
 	/** Skyrim's nearby actors (a consistent read of the actor table): counts the live spawned creatures. */
 	public static void onActors(List<SkyLink.Actor> actors) {
 		int alive = 0;
@@ -260,7 +275,7 @@ public final class SkyDeep {
 	}
 
 	/** Can this player see any of a body standing at {@code feet} (in their view, no block in the way)? */
-	private static boolean sees(ServerLevel level, ServerPlayer player, BlockPos feet) {
+	public static boolean sees(ServerLevel level, ServerPlayer player, BlockPos feet) {
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getViewVector(1.0F);
 		for (double h : SIGHT_HEIGHTS) {

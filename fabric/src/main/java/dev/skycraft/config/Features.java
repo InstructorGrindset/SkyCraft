@@ -65,11 +65,15 @@ public final class Features {
 		DWEMER_REDSTONE("dwemer_redstone", "Skyrim levers and pressure plates power redstone, and redstone opens Dwemer doors"),
 
 		// Creatures
-		MOBS_FIGHT_NPCS("mobs_fight_npcs", "Minecraft's monsters and Skyrim's NPCs fight each other"),
-		WOLVES_FIGHT_SKYRIM("wolves_fight_skyrim", "your tamed Minecraft wolves fight Skyrim enemies"),
-		NIGHT_MONSTERS("night_monsters", "at night, Skyrim creatures come out of the dark in the Skyrim world", false, 0),
-		HORSES_CARRY_OVER("horses_carry_over", "a tamed Minecraft horse is your Skyrim horse, and the other way round"),
-		CREATURES_AND_LIGHT("creatures_and_light", "skeevers and Falmer keep away from torches, and Skyrim's undead burn in sunlight"),
+		MOBS_FIGHT_NPCS("mobs_fight_npcs", "Minecraft's monsters in the Skyrim world go for Skyrim's people and creatures (its undead leave Skyrim's undead be), and guards, your followers and your enemies next to one swing back", true,
+			dev.skycraft.link.Proto.FEATURE_MOBS_FIGHT_NPCS),
+		WOLVES_FIGHT_SKYRIM("wolves_fight_skyrim", "your tamed Minecraft wolves go for Skyrim enemies fighting you; their kills are yours for drops and XP, as in Minecraft", true,
+			dev.skycraft.link.Proto.FEATURE_WOLVES_FIGHT_SKYRIM),
+		NIGHT_MONSTERS("night_monsters", "at night, outdoors, away from towns and in the dark, Skyrim creatures now and then come out near you (skycraft-night.txt)", false, 0),
+		HORSES_CARRY_OVER("horses_carry_over", "your tamed Minecraft horse ridden into the Skyrim world becomes your Skyrim horse there, and your Skyrim horse near you when you leave for another world comes along as a Minecraft horse", true,
+			dev.skycraft.link.Proto.FEATURE_HORSES_CARRY_OVER),
+		CREATURES_AND_LIGHT("creatures_and_light", "skeevers and Falmer keep away from torches, lanterns and glowstone, and Skyrim's undead (draugr, skeletons, vampires) burn in daylight outdoors", true,
+			dev.skycraft.link.Proto.FEATURE_CREATURES_AND_LIGHT),
 
 		// Multiplayer
 		GUEST_PARITY("guest_parity", "friends in your world get Skyrim drops, skill training and item conversion as you do"),
