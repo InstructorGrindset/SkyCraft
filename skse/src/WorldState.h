@@ -13,6 +13,11 @@ namespace skycraft::WorldState
 	// Quest items Minecraft asks about (proto::CarriedFlags for SkyState::carried): an Elder Scroll in the
 	// player's inventory. Rechecked once a second.
 	std::uint32_t Carried(RE::PlayerCharacter* a_player);
+	// The player's skills for Minecraft (SkyState::skills, dragonSouls, skillsLoad): the 18 skill levels and the Dragon
+	// Souls, read once a second and at once after a game loads (SkillsReloaded), never while loading (the last read stays).
+	void Skills(RE::PlayerCharacter* a_player, bool a_loading, proto::SkyState& a_sky);
+	// A game was loaded or started: Skills reads its levels on its next call, under a new skillsLoad.
+	void SkillsReloaded();
 	// Pass game hours in Skyrim (the player slept in a Minecraft bed).
 	void PassTime(float a_hours);
 }

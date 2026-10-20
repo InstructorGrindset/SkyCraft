@@ -218,6 +218,11 @@ public final class Proto {
 	public static final int SKILL_SMITHING = 10;
 	public static final int SKILL_HEAVY_ARMOR = 11;
 	public static final int SKILL_LIGHT_ARMOR = 12;
+	// Skyrim skills (ActorValue) whose levels make Minecraft better (skills.SkySkills).
+	public static final int SKILL_ARCHERY = 8;
+	public static final int SKILL_SNEAK = 15;
+	public static final int SKILL_ALCHEMY = 16;
+	public static final int SKILL_ENCHANTING = 23;
 	public static final int HIT_CRITICAL = 1;
 	public static final int HIT_PROJECTILE = 1 << 1;
 	public static final int HIT_SWEEP = 1 << 2;
@@ -297,6 +302,19 @@ public final class Proto {
 	public static final int PLACE_TOWN = 1 << 2;
 	/** SkyState.carried: an Elder Scroll is in the Skyrim player's inventory (opens the Time-Wound portal onto Home). */
 	public static final int CARRY_ELDER_SCROLL = 1;
+	/**
+	 * Skills (added within 13; zeros from an older plugin): SKILL_COUNT skill levels, one byte each, in ActorValue order from
+	 * SKILL_FIRST (One-Handed) to SKILL_ENCHANTING: Skyrim's current value clamped to 0-255, 0 = unknown. Refreshed about once
+	 * a second, never while loading.
+	 */
+	public static final long SS_SKILLS = 0x68;
+	/** u16: the Dragon Souls the Skyrim player holds (unspent). */
+	public static final long SS_DRAGON_SOULS = 0x7A;
+	/** u32: a new number each time Skyrim loads or starts a game (0: no skills written yet), so a soul absorbed can be told from another save's count. */
+	public static final long SS_SKILLS_LOAD = 0x7C;
+	public static final int SKILL_COUNT = 18;
+	/** The ActorValue of SkyState's first skill, One-Handed. */
+	public static final int SKILL_FIRST = 6;
 
 	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
 	public static final int VENDOR_ANY = 1;

@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Spawn.h"
 #include "Travel.h"
+#include "WorldState.h"
 
 namespace
 {
@@ -49,6 +50,7 @@ namespace
 			skycraft::Companion::Reset();
 			skycraft::Breach::Reset();
 			skycraft::Travel::Reset();  // portal network
+			skycraft::WorldState::SkillsReloaded();  // the new game's skills, under a new skillsLoad
 			break;
 		default:
 			break;

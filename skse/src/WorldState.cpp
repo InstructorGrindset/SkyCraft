@@ -200,6 +200,67 @@ namespace skycraft::WorldState
 		return cached;
 	}
 
+	namespace
+	{
+		// The skills as Minecraft last got them (main thread only).
+		struct SkillsRead
+		{
+			std::uint8_t                          levels[proto::kSkillCount] = {};
+			std::uint16_t                         souls = 0;
+			std::uint32_t                         load = 0;  // 0 until a game's skills are read
+			bool                                  reload = true;
+			std::chrono::steady_clock::time_point next{};
+		};
+		SkillsRead skillsRead;
+		// The next skillsLoad. It starts somewhere new each Skyrim run (as Game.cpp's teleportSeq does), so a Minecraft
+		// that remembers the last run's Dragon Souls can't take this run's game for the same one.
+		std::uint32_t nextSkillsLoad = [] {
+			LARGE_INTEGER t;
+			::QueryPerformanceCounter(&t);
+			return static_cast<std::uint32_t>(t.QuadPart);
+		}();
+	}
+
+	void SkillsReloaded()
+	{
+		skillsRead.reload = true;
+	}
+
+	void Skills(RE::PlayerCharacter* a_player, bool a_loading, proto::SkyState& a_sky)
+	{
+		auto&      r = skillsRead;
+		const auto now = std::chrono::steady_clock::now();
+		if (a_player && !a_loading && (r.reload || now >= r.next)) {
+			// Skyrim's current value: the level its own skill formulas use (a fortified one counts above 100, as far as 255).
+			auto* av = a_player->AsActorValueOwner();
+			for (std::uint32_t i = 0; i < proto::kSkillCount; ++i) {
+				const auto skill = static_cast<RE::ActorValue>(static_cast<int>(proto::kSkillFirst + i));
+				r.levels[i] = static_cast<std::uint8_t>(std::clamp(std::lround(av->GetActorValue(skill)), 0l, 255l));
+			}
+			const auto souls = static_cast<std::uint16_t>(std::clamp(std::lround(av->GetActorValue(RE::ActorValue::kDragonSouls)), 0l, 65535l));
+			if (r.reload) {
+				if (++nextSkillsLoad == 0) {
+					++nextSkillsLoad;  // 0 means no skills
+				}
+				r.load = nextSkillsLoad;
+				logger::info("SkyCraft-skills: game {:08X}: One-Handed {}, Archery {}, Smithing {}, Sneak {}, Alchemy {}, Enchanting {}; dragon souls {}",
+					r.load, r.levels[0], r.levels[2], r.levels[4], r.levels[9], r.levels[10], r.levels[17], souls);
+			} else if (souls != r.souls) {
+				static int logged = 0;
+				if (logged < 20) {
+					++logged;
+					logger::info("SkyCraft-skills: dragon souls {} -> {}", r.souls, souls);
+				}
+			}
+			r.souls = souls;
+			r.reload = false;
+			r.next = now + 1s;
+		}
+		std::memcpy(a_sky.skills, r.levels, sizeof(r.levels));
+		a_sky.dragonSouls = r.souls;
+		a_sky.skillsLoad = r.load;
+	}
+
 	void PassTime(float a_hours)
 	{
 		auto* cal = RE::Calendar::GetSingleton();

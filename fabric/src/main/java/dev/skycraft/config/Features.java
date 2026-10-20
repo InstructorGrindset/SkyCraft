@@ -37,12 +37,12 @@ public final class Features {
 		LIGHT_STEALTH("light_stealth", "how lit you are in Minecraft (torches, dark tunnels) is how lit Skyrim's detection thinks you are"),
 
 		// Skills and progression
-		SNEAK_SKILL("sneak_skill", "your Skyrim Sneak level makes Minecraft mobs notice you later"),
-		ARCHERY_SKILL("archery_skill", "your Skyrim Archery level makes Minecraft bows hit harder"),
-		SMITHING_SKILL("smithing_skill", "your Skyrim Smithing level makes anvil repairs cheaper"),
-		ENCHANTING_SKILL("enchanting_skill", "your Skyrim Enchanting level raises the enchanting table's offers; soul gems can stand in for lapis"),
-		DRAGON_SOULS("dragon_souls", "every dragon you kill gives Minecraft XP levels"),
-		ALCHEMY_BREWING("alchemy_brewing", "your Skyrim Alchemy level makes brewed potions last longer, and Skyrim ingredients brew"),
+		SNEAK_SKILL("sneak_skill", "your Skyrim Sneak level makes Minecraft mobs notice you later while you crouch (skycraft-skills.txt)"),
+		ARCHERY_SKILL("archery_skill", "your Skyrim Archery level makes arrows from Minecraft bows and crossbows hit harder (skycraft-skills.txt)"),
+		SMITHING_SKILL("smithing_skill", "your Skyrim Smithing level makes anvil repairs and combining cost fewer levels (skycraft-skills.txt)"),
+		ENCHANTING_SKILL("enchanting_skill", "your Skyrim Enchanting level counts as more bookshelves at the enchanting table, and a filled soul gem can stand in for lapis (skycraft-skills.txt)"),
+		DRAGON_SOULS("dragon_souls", "every dragon soul you absorb in Skyrim gives Minecraft XP levels (skycraft-skills.txt)"),
+		ALCHEMY_BREWING("alchemy_brewing", "your Skyrim Alchemy level makes potions you take out of a brewing stand last longer, and an allium (Purple Mountain Flower) brews Stealth (skycraft-skills.txt)"),
 
 		// Economy and food
 		SELL_TO_MERCHANTS("sell_to_merchants", "Skyrim merchants buy Minecraft goods: gems, ingots and more"),

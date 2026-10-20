@@ -89,6 +89,10 @@ namespace skycraft::proto
 	};
 	static_assert(sizeof(WaterGrid) <= 0xC00);
 
+	// SkyState::skills: how many, and the ActorValue of the first (kOneHanded). Proto.SKILL_COUNT, SKILL_FIRST.
+	inline constexpr std::uint32_t kSkillCount = 18;
+	inline constexpr std::uint32_t kSkillFirst = 6;
+
 	struct SkyState
 	{
 		std::uint32_t seq;
@@ -104,9 +108,17 @@ namespace skycraft::proto
 		std::uint32_t place;     // PlaceFlags
 		std::uint32_t carried;   // CarriedFlags. Was the reserved field (always 0), so an older plugin reads as "carries nothing"
 
-		// Added within version 13, zeros from an older plugin. Set aside for the features that fill them in:
-		// skills and progression
-		std::uint8_t reservedSkills[24];  // 0x68
+		// Added within version 13, zeros from an older plugin.
+		// Skills (Skyrim's skill levels making Minecraft better), refreshed about once a second and at once after a game
+		// loads, never while loading. skills[i] is the player's level in ActorValue kSkillFirst + i (One-Handed 6 to
+		// Enchanting 23, the order RE::ActorValue has them): Skyrim's current value, rounded and clamped to 0-255. 0 means
+		// unknown (an older plugin, or no game loaded yet), and Minecraft gives no bonus for it.
+		std::uint8_t  skills[kSkillCount];  // 0x68
+		std::uint16_t dragonSouls;          // 0x7A: the Dragon Souls the player holds (ActorValue kDragonSouls, unspent), up to 65535
+		std::uint32_t skillsLoad;           // 0x7C: a new number each time a game is loaded or started (never 0 once skills are
+		                                    // written; it starts somewhere new each Skyrim run), so Minecraft tells a soul absorbed
+		                                    // (dragonSouls up, same skillsLoad) from another save's count and pays only for the first
+		// Set aside for the features that fill them in:
 		// weather
 		std::uint8_t reservedWeather[8];  // 0x80
 		// stealth and detection
@@ -121,6 +133,9 @@ namespace skycraft::proto
 	static_assert(sizeof(SkyState) == 0xA8);
 	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
 	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
+	static_assert(offsetof(SkyState, skills) == 0x68 && offsetof(SkyState, dragonSouls) == 0x7A && offsetof(SkyState, skillsLoad) == 0x7C &&
+	              offsetof(SkyState, reservedWeather) == 0x80);  // Proto.SS_SKILLS, SS_DRAGON_SOULS, SS_SKILLS_LOAD
+
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t

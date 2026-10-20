@@ -40,6 +40,12 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Companions | `companions` | Minecraft's taming rules on Skyrim's animals. A bone fed to a Skyrim dog or wolf tames it one time in three (hearts, or smoke), unless you hit it in the last 30 seconds; apples, wheat, sugar, carrots, golden carrots and golden apples tame a horse by temper, each meal standing for one mount attempt. A tamed dog or wolf becomes Skyrim's animal follower the way a stray dog joins (ally, teammate, follows the player through load doors, fights for them) and sits, as a freshly tamed wolf does; a tamed horse becomes the player's own, like a bought one. Right click a companion with an empty hand to make it sit or follow (sneak for a horse: a plain click rides it, Skyrim's way); its food heals it (meat and fish for dogs and wolves, horse food for horses). Skyrim's own animal followers (Meeko, Vigilance, stray and bought dogs, huskies), dog, wolf or horse teammates and owned horses count as tamed. Skyrim keeps one animal follower: the one you last told to follow has it, the others stay behind, still yours. Stand-ins are named "Meeko (tamed)"; a companion's death is told in chat. Kept in the SKSE co-save. See [Companions](#companions) | `companion/` (SkyCompanions, CompanionRules), `combat/SkyrimActorEntity` (actor flags synced, interact), `combat/SkyCombat` | `Companion.cpp`, `AnimalKinds.h` (which races are dogs, wolves, horses), `CoSave.cpp` (co-save record `CMPN`), `Combat.cpp` (actor table bits, `kEvCompanion`) | none | `SkyCraft-companion` (both halves) | Built |
 | Natural spawns | `natural_spawns` | Animals and monsters spawn the Minecraft way in the Nether, Tamriel Wilds and Home, never in the Skyrim mirror: the spawn game rules go on, set on every start, and the mirror turns away what they allow (natural spawns, the custom spawners, zombie reinforcements, creaking hearts, zombified piglins from portals, trial spawners, skeleton horse traps). Night comes out there with Skyrim's (Time sync). Phantoms, patrols and wandering traders stay off. Needs `minecraft_view` (with it off every world counts as the mirror). Off: no natural spawning anywhere, as before. See [Worlds](#worlds) | `SkyCraft.configureServer`, `mixin/ServerChunkCacheSpawnMixin`, `mixin/ServerLevelSpawnMixin`, `mixin/TrialSpawnerMixin`, `time/SkyTime`; spawn lists and biome tags in the worlds data | none | none | `SkyCraft` | Built |
 | Skooma and addiction | `skooma_addiction` | Three SkyCraft effects for Skyrim's potions to give (item conversion's rules name them): Skooma High (`skycraft:skooma`, level II for Redwater Skooma), per level +20% speed, higher jumps (+0.1 jump strength and a block more safe fall, as Jump Boost), +0.15 sneaking speed and stealth; Stealth (`skycraft:stealth`, for Fortify Sneak), the sneaking speed and stealth alone; Skooma Withdrawal. Stealth: mobs notice a crouching player under either from 0.6 of the distance at level I, 0.45 at II. The switch is the addiction, per player and saved with them: each dose may hook (5%, more for doses close together and for Redwater), a day without a dose brings withdrawal (I to III, worse each day: slower, weaker, hungrier, cravings on the action bar, now and then nausea; milk clears it for a while), a dose ends it, three days clean cure it once a day of withdrawal is lived through; a high that wears off leaves a comedown. The effects work with the switch off. `/skyskooma` shows your habit. See [Skooma and addiction](#skooma-and-addiction) | `skooma/` (SkyEffects, SkySkooma, SkoomaRules), `mixin/LivingEntityStealthMixin` | none | `skycraft-skooma.txt` | `SkyCraft-skooma` | Built |
+| Sneak skill | `sneak_skill` | The host's Skyrim Sneak makes a crouching host harder for Minecraft's mobs to notice: from 1 of the distance at Sneak 15 down to 0.6 at 100, on top of Skooma's and Stealth's (0.36 with Skooma I at Sneak 100), never under their 0.2. See [Skills](#skills) | `skills/` (SkySkills, SkillRules), `mixin/LivingEntityStealthMixin` | `WorldState.cpp` (`Skills`: SkyState skills, once a second), `Game.cpp`, `main.cpp` | `skycraft-skills.txt` | `SkyCraft-skills` (both halves) | Written |
+| Archery skill | `archery_skill` | Arrows the host shoots from a bow or crossbow hit harder with Skyrim Archery: x1 at 15 to x1.5 at 100, once on the arrow's base damage as it's shot (Power adds on top; Skyrim NPCs take it too) | `skills/SkySkills`, `mixin/ArcheryMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
+| Smithing skill | `smithing_skill` | Anvil repairs and combining cost the host a level less for every 25 Smithing above 15 (3 less at 100), never under 1; a rename alone, and "Too Expensive!", stay as they were | `skills/SkySkills`, `mixin/AnvilSmithingMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
+| Enchanting skill | `enchanting_skill` | The enchanting table counts a bookshelf more for the host for every 6 Enchanting above 15 (14 more at 100), 15 at most, so better offers with fewer shelves; a Filled Soul Gem goes in the lapis slot, one gem for each lapis (anyone's) | `skills/SkySkills`, `skills/SoulGemFuelSlot`, `mixin/EnchantingTableMixin`, `mixin/EnchantingCostMixin`, `mixin/EnchantingLapisSlotMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
+| Dragon souls | `dragon_souls` | Each dragon soul the host absorbs in Skyrim gives 5 Minecraft XP levels, a chat line and the level-up sound. The count last seen is kept on the player (per world), so reconnecting never pays twice, and a save loaded or a new game only records its count; souls spent on shouts aren't taken back | `skills/SkySkills` (attachment `skycraft:dragon_souls`), `skills/SkillRules` (`SoulLedger`) | `WorldState.cpp` (`Skills`: dragonSouls, skillsLoad; `SkillsReloaded` on every game loaded) | `skycraft-skills.txt` | `SkyCraft-skills` (both halves) | Written |
+| Alchemy brewing | `alchemy_brewing` | Potions the host takes out of a brewing stand last longer with Skyrim Alchemy: 0.5% a level above 15 (x1.425 at 100), counted when drunk, splashed or left as a cloud, and in the tooltip. An allium (what Purple Mountain Flower, Skyrim's Fortify Sneak flower, becomes) brews an awkward potion into a Potion of Stealth (3:00; redstone 8:00, glowstone Stealth II 1:30) | `skills/SkyAlchemy`, `mixin/BrewingTakeMixin` | as Sneak skill | `skycraft-skills.txt` | `SkyCraft-skills` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -410,6 +416,110 @@ withdrawal level reached, symptoms cleared by milk and the cure, and the setting
 Not played yet: the stealth distances against real mobs, how the icons and names look in the HUD and inventory, and the
 balance of the numbers.
 
+## Skills
+
+Minecraft play already trains Skyrim's skills (README, "Skyrim progression"); these go the other way: the host's
+Skyrim skill levels make Minecraft better. Each has its switch (`sneak_skill`, `archery_skill`, `smithing_skill`,
+`enchanting_skill`, `dragon_souls`, `alchemy_brewing`), and the numbers are in `skycraft-skills.txt`.
+
+**Where the levels come from.** Once a second (and at once after a game loads, never during a loading screen) the
+Skyrim plugin writes the player's 18 skill levels into SkyState, one byte each in ActorValue order (One-Handed to
+Enchanting): Skyrim's current value, the one its own formulas use, rounded and clamped to 0 to 255. With them go the
+Dragon Souls the player holds and `skillsLoad`, a number that's new each time a game is loaded or started
+(`WorldState::Skills`). Minecraft reads them once a second on the server (`skills/SkySkills`; kept through a loading
+screen, forgotten when Skyrim goes away). A level of 0 is unknown (a plugin from before the skills, or no game loaded
+yet) and gives no bonus.
+
+**Host only.** Only the host's own Skyrim is on the link, so only the host gets the bonuses, as only the host's Skyrim
+is trained (`SkyCombat.trainDefence`). A guest plays with vanilla numbers; giving guests theirs needs each guest's
+Skyrim levels sent to the host's world (a SkyNet packet from the guest's own link), a follow-up. The bonuses work in
+every dimension: they're the character's.
+
+**What the levels give** (`skills/SkillRules`, unit tested). Every bonus grows in a line from 15, a new character's
+skill (none), to 100 (the full bonus), and stops there (a fortified skill above 100 counts as 100).
+
+| Skill | Bonus | At 15 | At 50 | At 100 | Where |
+|---|---|---|---|---|---|
+| Sneak | A crouching player is noticed from this share of the distance mobs otherwise would (after crouching's own 0.8), times Skooma's or Stealth's (0.6 at I, 0.45 at II), never under 0.2 in all | 1 | 0.84 | 0.6 (0.36 with Skooma I, 0.27 with Redwater) | `mixin/LivingEntityStealthMixin` on `getVisibilityPercent`, which mobs' targeting scales its range by |
+| Archery | Arrows shot from a bow or crossbow hit this many times as hard (their base damage, once as they're made; Power adds on top) | x1 | x1.21 | x1.5 | `mixin/ArcheryMixin` on `ProjectileWeaponItem.createProjectile` |
+| Smithing | Anvil repairs and combining cost a level less for every 25 above 15, never under 1. A rename alone costs what it did, and a "Too Expensive!" one stays so | 0 less | 1 less | 3 less | `mixin/AnvilSmithingMixin` on `AnvilMenu.createResult` |
+| Enchanting | The enchanting table counts a bookshelf more for every 6 above 15, 15 in all at most (vanilla's limit), so a table with few shelves offers what a full one would | 0 more | 5 more | 14 more | `mixin/EnchantingTableMixin`, `mixin/EnchantingCostMixin` on `EnchantmentHelper.getEnchantmentCost` |
+| Alchemy | A potion taken out of a brewing stand lasts 0.5% longer for every level above 15 | x1 | x1.175 | x1.425 | `mixin/BrewingTakeMixin` on `Slot.mayPickup`, `skills/SkyAlchemy` |
+
+Smithing on the anvil: Minecraft takes the cost shown when you take the result, so the host's cheaper cost is what's
+paid. The host's own screen works the cost out with the same levels (its game runs the server). Enchanting: the offers'
+levels are rolled with the larger count; what they enchant is vanilla's for that level. A 30 level offer, vanilla's
+best, needs 15 bookshelves; at Enchanting 100 one shelf does it.
+
+**Soul gems for lapis** (`enchanting_skill`, anyone, any level): a Filled Soul Gem (what a filled Greater, Grand or
+Black Skyrim soul gem becomes, the portal network's key) goes in the enchanting table's lapis slot (shift-click puts it
+there too, `mixin/EnchantingTableMixin`) and stands in for lapis lazuli one for one: the first offer takes one gem, the
+third three, as with lapis (`skills/SoulGemFuelSlot` takes the vanilla slot's place, `mixin/EnchantingLapisSlotMixin`).
+In Skyrim a filled soul gem is what powers an enchantment.
+
+**Dragon souls.** When Skyrim's Dragon Souls count goes up within the same game (a soul absorbed), the host gets 5 XP
+levels a soul, "Dragon soul absorbed: +5 levels" in chat and the level-up sound. The count last seen is kept on the host
+(Fabric attachment `skycraft:dragon_souls`, saved with the player in that world, kept on death), with the game it was
+seen in (`skillsLoad`, `SkillRules.SoulLedger`): reconnecting or restarting Minecraft never pays twice; another game (a
+save loaded, a new character, the first look at a Skyrim) only records its count, so loading a save with ten souls pays
+nothing; souls spent on shouts are only taken off the count, and the next soul absorbed pays again. With the switch off
+the count is followed and nothing is paid. A soul absorbed while Minecraft is away is paid when it reconnects to the same
+Skyrim game, unless Skyrim loaded a game meanwhile.
+
+**Brewing Stealth** (`alchemy_brewing`). Skyrim's Purple Mountain Flower (Fortify Sneak) becomes an allium with item
+conversion, and an allium brews an awkward potion into a Potion of Stealth (SkyCraft's own effect: quicker crouching and
+the Stealth above), as a vanilla potion goes: 3:00; redstone makes it 8:00, glowstone Stealth II for 1:30; gunpowder and
+dragon's breath make splash and lingering ones, and fermented spider eye does nothing to it. The potions
+(`skycraft:stealth`, `long_stealth`, `strong_stealth`) are always registered; the recipes need the switch. Skooma isn't
+brewed here (`skooma_brewing`). Alchemy's longer potions use Minecraft's own `potion_duration_scale` component (a
+lingering potion's 0.25, times Alchemy's): the potion stays the potion it is, so it brews on as before, and the tooltip
+shows the longer time. Taking it again with the same Alchemy changes nothing; a potion a guest takes stays as brewed.
+
+**`skycraft-skills.txt`:**
+
+| Setting | Default | |
+|---|---|---|
+| `sneak_at_100` | 0.6 | Share of the distance a crouching player is noticed from at Sneak 100 (0.2 to 1) |
+| `archery_at_100` | 1.5 | Arrow damage multiplier at Archery 100 (1 to 10) |
+| `smithing_per_level` | 25 | Smithing levels above 15 for each anvil level less (1 to 100) |
+| `enchanting_per_bookshelf` | 6 | Enchanting levels above 15 for each bookshelf more (1 to 100) |
+| `levels_per_soul` | 5 | XP levels for each dragon soul absorbed (0 to 100) |
+| `alchemy_per_level` | 0.005 | How much longer potions last for each Alchemy level above 15 (0 to 0.1) |
+
+**Seeing it.** `/skyskills` (any player, read only) prints the host's 18 levels and what Sneak, Archery, Smithing,
+Enchanting, Alchemy and the Dragon Souls give now (a guest is told only the host's are known). Minecraft's log has a
+`SkyCraft-skills` line with the levels whenever Skyrim loads a game, and one for each of the first ten arrows, anvil
+works and enchanting tables a skill changed, the first ten potions taken, and every dragon soul paid; SkyCraft.log has
+`SkyCraft-skills: game <n>: One-Handed ...` at each load and `dragon souls a -> b` when the count changes.
+
+**Try it** (cheats on, the host). Skyrim console: `player.setav sneak 100`, `player.setav archery 100`,
+`player.setav smithing 100`, `player.setav enchanting 100`, `player.setav alchemy 100`, `player.modav dragonsouls 1`.
+Then `/skyskills` in Minecraft shows them (within a second).
+
+1. Sneak: at night, `/summon minecraft:zombie ~20 ~ ~` and crouch: at Sneak 15 it comes for you (a zombie spots a
+   crouching player at 28 blocks), at 100 it doesn't until it's within about 17. `/effect give @s skycraft:stealth 60 0`
+   on top: about 10.
+2. Archery: shoot a pig or a Skyrim NPC with a full bow draw at Archery 15 and at 100: about half again the damage (the
+   log line gives the base damage). A crossbow too.
+3. Smithing: `/give @s minecraft:anvil`, `/give @s minecraft:iron_sword` (damage it a little, or two damaged swords),
+   `/give @s minecraft:iron_ingot 4`: the repair cost is 3 less at 100 than at 15, never under 1; renaming alone is 1.
+4. Enchanting: `/give @s minecraft:enchanting_table`, `/give @s minecraft:lapis_lazuli 9`, `/xp add @s 30 levels`, no
+   bookshelves: at 100 the bottom offer for a book is 28 or 29 levels, at 15 at most 8, and one bookshelf makes it 30.
+   `/give @s skycraft:filled_soul_gem 3`: the gems go in the lapis slot and pay for an offer as lapis would.
+5. Dragon souls: `player.modav dragonsouls 1` in Skyrim's console: "Dragon soul absorbed: +5 levels". Quit Minecraft to
+   the title and back in: no second payment. Load a save: nothing paid; `player.modav dragonsouls 1` again pays.
+6. Alchemy: `/give @s minecraft:brewing_stand`, `/give @s minecraft:blaze_powder 2`, `/give @s minecraft:nether_wart 3`,
+   `/give @s minecraft:sugar 3`, `/give @s minecraft:glass_bottle 3` filled with water: Swiftness taken out at Alchemy 100
+   says 4:16 instead of 3:00. `/give @s minecraft:allium 3` on awkward potions: Potions of Stealth; redstone on one: 8:00.
+7. Each switch off in `skycraft-features.txt`, restart: that bonus is gone (the soul gem slot and the Stealth recipes go
+   with theirs).
+
+Headless: `SKYCRAFT_SKILL=100 python tools/fake_skyrim.py` gives every skill 100; `SKYCRAFT_SOULS=2
+SKYCRAFT_SOUL_EVERY=30` absorbs a soul every 30 seconds.
+
+Not built or played yet: everything above is Written (the rules are unit tested). The Minecraft calls the mixins rely on
+are listed in `.github/probe.txt` to check against 26.3.
+
 ## Planned
 
 | Feature | Notes |
@@ -477,6 +587,15 @@ plugin Skyrim's arrows go through blocks as before):
 | Addition | Direction | Used by |
 |---|---|---|
 | `kInArrowBlocked` (10) in the input ring | Skyrim to Minecraft | A Skyrim arrow or bolt reached a solid Minecraft block, where Skyrim ended it (`Arrows.cpp`): a, b, c = where it reached the block (MC coords x 1024), code = its flight, yaw in the high byte (256ths of a turn from +z toward +x), pitch in the low byte (0 down, 255 up; `Proto.arrowFlight`). Minecraft flies an arrow of its own the last 0.3 blocks into the block, where it sticks (`SkyCombat.stickSkyrimArrow`); it can be picked up |
+
+Skills added these within 13, without a version bump (they were `SkyState.reservedSkills`, always zero: an older plugin
+reads as no skills known, no bonus and no souls paid; an older Minecraft ignores the bytes):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `SkyState.skills[kSkillCount]` (0x68, 18 bytes; `kSkillCount` 18, `kSkillFirst` 6) | Skyrim to Minecraft | Skills: the player's level in ActorValue `kSkillFirst + i`, One-Handed (6) to Enchanting (23): Skyrim's current value rounded and clamped to 0-255, 0 = unknown. Refreshed about once a second and at once after a game loads, never while loading |
+| `SkyState.dragonSouls` (0x7A, u16) | Skyrim to Minecraft | Dragon souls: the player's unspent Dragon Souls (ActorValue `kDragonSouls`) |
+| `SkyState.skillsLoad` (0x7C, u32) | Skyrim to Minecraft | Dragon souls: a new number each time a game is loaded or started (never 0 once written; it starts somewhere new each Skyrim run), so Minecraft pays only for a rise within the same game |
 
 ## Testing a build
 
