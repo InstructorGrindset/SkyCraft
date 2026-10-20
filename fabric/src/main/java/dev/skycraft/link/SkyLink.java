@@ -238,6 +238,14 @@ public final class SkyLink {
 		public int place;
 		/** Proto.CARRY_* bits: quest items the Skyrim player carries (0 from a plugin that predates the field). */
 		public int carried;
+		/** Bumps each time the player or an actor near them starts a shout (0 and still from an older plugin; shared world events). */
+		public int shoutSeq;
+		/** The last shout's words of power (1 to 3), 0 when Skyrim couldn't tell. */
+		public int shoutWords;
+		/** Proto.SHOUT_* bits of the last shout. */
+		public int shoutFlags;
+		/** Who shouted last: an actor's FormID, 0x14 for the player. */
+		public int shoutActor;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -328,6 +336,10 @@ public final class SkyLink {
 			String town = readName(s, b + SS_TOWN, 32, out.town);
 			int place = s.get(JAVA_INT, b + SS_PLACE);
 			int carried = s.get(JAVA_INT, b + SS_CARRIED);
+			int shoutSeq = Short.toUnsignedInt(s.get(JAVA_SHORT, b + SS_SHOUT_SEQ));
+			int shoutWords = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_WORDS));
+			int shoutFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_SHOUT_FLAGS));
+			int shoutActor = s.get(JAVA_INT, b + SS_SHOUT_ACTOR);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -349,6 +361,10 @@ public final class SkyLink {
 				out.town = town;
 				out.place = place;
 				out.carried = carried;
+				out.shoutSeq = shoutSeq;
+				out.shoutWords = shoutWords;
+				out.shoutFlags = shoutFlags;
+				out.shoutActor = shoutActor;
 				return true;
 			}
 		}

@@ -1,6 +1,7 @@
 #include "Game.h"
 #include "Breach.h"
 #include "Loot.h"
+#include "Party.h"
 #include "Travel.h"
 #include "WorldState.h"
 
@@ -213,12 +214,13 @@ namespace skycraft
 				return;
 			}
 			auto* root = camera->cameraRoot.get();
+			const RE::NiPoint3 at = eyePos + Party::CameraOffset();  // a shared world event's small shake, if one is on
 			const bool identityParent = !root->parent || root->parent->world.translate.Length() < 0.001f;
 			if (identityParent) {
-				root->local.translate = eyePos;
+				root->local.translate = at;
 			}
-			root->world.translate = eyePos;
-			camera->GetRuntimeData2().pos = eyePos;
+			root->world.translate = at;
+			camera->GetRuntimeData2().pos = at;
 			if (auto* sky = RE::Sky::GetSingleton(); sky && sky->root) {
 				sky->root->local.translate = eyePos;
 				sky->root->world.translate = eyePos;
@@ -1196,6 +1198,7 @@ namespace skycraft
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
+			Party::Fill(a_player, sky);                     // who shouted last (shared world events)
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

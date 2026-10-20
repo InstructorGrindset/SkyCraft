@@ -115,22 +115,7 @@ public final class SkyLoot {
 			}
 			// A credited kill. Everything it pays out goes to the same killer, and the dead creature's
 			// stand-in is still there for this tick (SkyCombat.sync discards it after us).
-			ServerPlayer killer = killer(level, a);
-			if (Features.on(Features.Feature.KILL_XP)) {
-				// Straight into the killer's XP bar: orbs dropped at a Skyrim corpse can land under the terrain or
-				// out of reach, and SkyCraft doesn't draw them well.
-				int xp = KillXp.forLevel(a.level());
-				if (killer != null) {
-					killer.giveExperiencePoints(xp);
-					level.playSound(null, killer.getX(), killer.getY(), killer.getZ(), net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,
-						net.minecraft.sounds.SoundSource.PLAYERS, 0.2F, 0.6F + level.getRandom().nextFloat() * 0.6F);
-				}
-				SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP{}", a.name(), a.level(), xp, killer != null ? " to " + killer.getName().getString() : "");
-			}
-			if (Features.on(Features.Feature.KILL_DROPS)) {
-				drop(level, a, killer);
-			}
-			GearDrops.onKill(level, a, killer, tick);
+			payKill(level, a, SkyCombat.proxy(a.formId()), killer(level, a), null, tick);
 		}
 		// An actor the player just hit is remembered alive while it's briefly out of the table (out
 		// of range, Skyrim's table emptied for a frame), so dying there still counts.
@@ -173,20 +158,43 @@ public final class SkyLoot {
 		return null;
 	}
 
+	/**
+	 * What a credited kill pays {@code killer}: kill XP, kill drops at the corpse and the Minecraft version of the gear it
+	 * wore (GearDrops). {@code proxy} is the dead actor's stand-in if it's still there; {@code owner} is whose Skyrim the
+	 * actor is in: null for the host's, a guest's id for theirs (party.GuestParity, which credits a guest's kills itself).
+	 */
+	public static void payKill(ServerLevel level, SkyLink.Actor a, @Nullable SkyrimActorEntity proxy, @Nullable ServerPlayer killer, @Nullable UUID owner,
+		int tick) {
+		if (Features.on(Features.Feature.KILL_XP)) {
+			// Straight into the killer's XP bar: orbs dropped at a Skyrim corpse can land under the terrain or
+			// out of reach, and SkyCraft doesn't draw them well.
+			int xp = KillXp.forLevel(a.level());
+			if (killer != null) {
+				killer.giveExperiencePoints(xp);
+				level.playSound(null, killer.getX(), killer.getY(), killer.getZ(), net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP,
+					net.minecraft.sounds.SoundSource.PLAYERS, 0.2F, 0.6F + level.getRandom().nextFloat() * 0.6F);
+			}
+			SkyCraft.LOG.info("SkyCraft-loot: killed {} (level {}), {} XP{}", a.name(), a.level(), xp, killer != null ? " to " + killer.getName().getString() : "");
+		}
+		if (Features.on(Features.Feature.KILL_DROPS)) {
+			drop(level, a, proxy, killer);
+		}
+		GearDrops.onKill(level, owner, a, killer, tick);
+	}
+
 	/** The Looting level of what {@code player} holds, as vanilla's loot functions read it off the killer. */
 	public static int lootingLevel(ServerPlayer player) {
 		var looting = player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.LOOTING);
 		return EnchantmentHelper.getEnchantmentLevel(looting, player);
 	}
 
-	private static void drop(ServerLevel level, SkyLink.Actor a, @Nullable ServerPlayer killer) {
+	private static void drop(ServerLevel level, SkyLink.Actor a, @Nullable SkyrimActorEntity proxy, @Nullable ServerPlayer killer) {
 		LootRules.Rule rule = rules().match(a.name());
 		if (rule == null) {
 			SkyCraft.LOG.info("SkyCraft-loot: killed {}, no drop rule for that name", a.name());
 			return;
 		}
 		// The loot tables read the stand-in as the mob that died: on fire if the kill set it alight.
-		SkyrimActorEntity proxy = SkyCombat.proxy(a.formId());
 		if (proxy != null && (proxy.isRemoved() || proxy.level() != level)) {
 			proxy = null;
 		}

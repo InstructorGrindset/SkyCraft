@@ -8,6 +8,7 @@ import dev.skycraft.link.SkyLink;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -26,13 +27,15 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Looting bridge, Minecraft side. Skyrim reports every item that lands in the player's Skyrim
  * inventory; items that match a conversion rule in {@code config/skycraft-items.txt} are given to
  * the Minecraft player and Skyrim is told to remove the original (EV_TAKE_ITEM). Everything else
  * stays in Skyrim. Gear a dying actor wore comes the same way but goes to {@link GearDrops}, never
- * to the player. Server thread only.
+ * to the player. A guest's own Skyrim reaches the host's server with its items through party.GuestParity
+ * ({@link #convertForGuest}), and the same rules convert them. Server thread only.
  */
 public final class SkyBridge {
 	private static final String FILE = "skycraft-items.txt";
@@ -45,9 +48,23 @@ public final class SkyBridge {
 
 	private static final SkyLink.SkyState SKY = new SkyLink.SkyState();
 
+	/** Where a converted item's "take it away" goes: the host's Skyrim through the link, a guest's through the host's server. */
+	public interface TakeBack {
+		void take(int formId, int count);
+	}
+
 	/** Converts every queued Skyrim item for the host player. */
 	public static void tick(ServerPlayer host) {
-		SkyLink.drainItems(item -> convert(host, item));
+		SkyLink.drainItems(item -> convert(host, item, null, 0, (formId, count) -> SkyLink.pushEvent(Proto.EV_TAKE_ITEM, formId, count, 0.0F, 0.0F, 0.0F, 0)));
+	}
+
+	/**
+	 * An item from a guest's own Skyrim (party.GuestParity, which has already held it to the guest's rate): converted by
+	 * the same rules into the guest's inventory, a dungeon chest rolled for it as their Skyrim's {@code place} says, gear
+	 * an actor of theirs wore handed to Gear drops, and {@code takeBack} told what their Skyrim is to remove.
+	 */
+	public static void convertForGuest(ServerPlayer guest, SkyLink.Item item, int place, TakeBack takeBack) {
+		convert(guest, item, guest.getUUID(), place, takeBack);
 	}
 
 	/**
@@ -139,17 +156,22 @@ public final class SkyBridge {
 		}
 	}
 
-	private static void convert(ServerPlayer player, SkyLink.Item it) {
+	/** {@code guest}: null for the host's own Skyrim (its place is read off the link), else the guest whose Skyrim it came from. */
+	private static void convert(ServerPlayer player, SkyLink.Item it, @Nullable UUID guest, int place, TakeBack takeBack) {
 		if (it.source() == Proto.SRC_WORN) {
 			// Gear a dying Skyrim actor wore: never the player's, it only ever drops as Minecraft gear (Gear drops).
-			GearDrops.onWorn(player.level(), it, player.level().getServer().getTickCount());
+			GearDrops.onWorn(player.level(), guest, it, player.level().getServer().getTickCount());
 			return;
 		}
 		if (it.count() <= 0) {
 			return;
 		}
-		if (it.source() == Proto.SRC_CONTAINER && it.chest() && Features.on(Features.Feature.DUNGEON_CHESTS) && SkyLink.readSkyState(SKY)) {
-			DungeonLoot.onLooted(player, it, SKY.place);
+		if (it.source() == Proto.SRC_CONTAINER && it.chest() && Features.on(Features.Feature.DUNGEON_CHESTS)) {
+			if (guest != null) {
+				DungeonLoot.onLooted(player, it, place, guest);
+			} else if (SkyLink.readSkyState(SKY)) {
+				DungeonLoot.onLooted(player, it, SKY.place, null);
+			}
 		}
 		if (!Features.on(Features.Feature.ITEM_CONVERSION)) {
 			return;
@@ -186,11 +208,11 @@ public final class SkyBridge {
 				left -= n;
 			}
 		}
-		SkyLink.pushEvent(Proto.EV_TAKE_ITEM, it.formId(), count, 0.0F, 0.0F, 0.0F, 0);
+		takeBack.take(it.formId(), count);
 		int taken = count;
 		String became = outputs.stream().map(o -> taken * o.rule().perItem() + " " + o.rule().label()).collect(Collectors.joining(" + "));
-		SkyCraft.LOG.info("SkyCraft-loot: {} x {} became {}{}", count, it.name(), became,
-			count < it.count() ? " (" + (it.count() - count) + " more stay in Skyrim)" : "");
+		SkyCraft.LOG.info("SkyCraft-loot: {} x {} became {}{}{}", count, it.name(), became,
+			count < it.count() ? " (" + (it.count() - count) + " more stay in Skyrim)" : "", guest != null ? " for " + player.getName().getString() : "");
 	}
 
 	private static ItemRules rules() {
