@@ -297,6 +297,35 @@ public final class Proto {
 	public static final int PLACE_TOWN = 1 << 2;
 	/** SkyState.carried: an Elder Scroll is in the Skyrim player's inventory (opens the Time-Wound portal onto Home). */
 	public static final int CARRY_ELDER_SCROLL = 1;
+	/**
+	 * Weather sync (added within protocol 13, zeros from an older plugin): SkyState.weather is the WEATHER_* kind of Skyrim's
+	 * sky where the player is (WEATHER_NONE indoors), weatherFlags its WEATHER_RAINING / SNOWING / REFUSED bits, weatherAck the
+	 * last McState weatherSeq Skyrim has handled.
+	 */
+	public static final long SS_WEATHER = 0x80;    // u8
+	public static final long SS_WEATHER_FLAGS = 0x81;  // u8
+	/** SkyState.aim (u8): AIM_* bits, what Skyrim's crosshair is on. Added within 13. */
+	public static final long SS_AIM = 0x82;
+	public static final long SS_WEATHER_ACK = 0x84;  // u32
+	// WeatherKind
+	/** Not known (indoors, no sky, an older plugin): Minecraft leaves its weather as it is. */
+	public static final int WEATHER_NONE = 0;
+	public static final int WEATHER_CLEAR = 1;
+	/** Cloudy, fog, or no classification at all. */
+	public static final int WEATHER_CLOUDY = 2;
+	public static final int WEATHER_RAIN = 3;
+	public static final int WEATHER_SNOW = 4;
+	/** Rain or snow with thunder. */
+	public static final int WEATHER_STORM = 5;
+	// WeatherFlags
+	/** Rain is falling in Skyrim right now. */
+	public static final int WEATHER_RAINING = 1;
+	/** Snow is falling in Skyrim right now. */
+	public static final int WEATHER_SNOWING = 1 << 1;
+	/** The request weatherAck names found no weather of its kind in Skyrim's region (or a quest holds the weather, or indoors). */
+	public static final int WEATHER_REFUSED = 1 << 2;
+	/** SkyState.aim: Skyrim's crosshair is on a plant it can harvest (right click harvests it; a hoe doesn't till under it). */
+	public static final int AIM_HARVEST = 1;
 
 	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
 	public static final int VENDOR_ANY = 1;
@@ -358,6 +387,14 @@ public final class Proto {
 	/** McState.features: FEATURES_VALID with the FEATURE_* bits of the switched on features Skyrim runs itself. */
 	public static final long MS_FEATURES = 0xD8;
 	public static final int FEATURES_VALID = 1 << 31;
+	/** weather_sync: Skyrim switches its weather when Minecraft asks (McState weatherSeq). Added within 13. */
+	public static final int FEATURE_WEATHER_SYNC = 1 << 12;
+	/**
+	 * McState weather request (added within protocol 13): weatherSeq (u32) bumps for each weather change Minecraft asks Skyrim
+	 * for, weatherWant (u8) is the WEATHER_* kind asked for, WEATHER_NONE once Skyrim answered.
+	 */
+	public static final long MS_WEATHER_SEQ = 0xE4;
+	public static final long MS_WEATHER_WANT = 0xE8;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -408,6 +445,26 @@ public final class Proto {
 	 * the Skyrim world's terms), code = which way it flew ({@link #arrowFlight}). Minecraft sticks an arrow of its own there.
 	 */
 	public static final int IN_ARROW_BLOCKED = 10;
+	/**
+	 * The Skyrim player has a shrine's blessing (new, or cast again): code = BLESSING_* kind, a = game hours of it left x 1000,
+	 * b = Skyrim's timescale x 1000. Added within protocol 13; Minecraft gives a fitting effect for as long (blessings.Blessings).
+	 */
+	public static final int IN_BLESSING = 17;
+	// BlessingKind
+	public static final int BLESSING_NONE = 0;
+	public static final int BLESSING_AKATOSH = 1;
+	public static final int BLESSING_ARKAY = 2;
+	public static final int BLESSING_DIBELLA = 3;
+	public static final int BLESSING_JULIANOS = 4;
+	public static final int BLESSING_KYNARETH = 5;
+	public static final int BLESSING_MARA = 6;
+	public static final int BLESSING_STENDARR = 7;
+	public static final int BLESSING_TALOS = 8;
+	public static final int BLESSING_ZENITHAR = 9;
+	/** Dawnguard's Auriel. */
+	public static final int BLESSING_AURIEL = 10;
+	/** Any other "Blessing of ..." (the DLCs' and mods' shrines). */
+	public static final int BLESSING_OTHER = 11;
 
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn

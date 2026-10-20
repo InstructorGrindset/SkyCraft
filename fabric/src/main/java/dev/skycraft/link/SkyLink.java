@@ -238,6 +238,14 @@ public final class SkyLink {
 		public int place;
 		/** Proto.CARRY_* bits: quest items the Skyrim player carries (0 from a plugin that predates the field). */
 		public int carried;
+		/** Proto.WEATHER_* kind of Skyrim's sky where the player is (WEATHER_NONE indoors, or from an older plugin). */
+		public int weather;
+		/** Proto.WEATHER_RAINING, WEATHER_SNOWING, WEATHER_REFUSED. */
+		public int weatherFlags;
+		/** The last weather request (McState weatherSeq) Skyrim has handled. */
+		public int weatherAck;
+		/** Proto.AIM_* bits: what Skyrim's crosshair is on. */
+		public int aim;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -328,6 +336,10 @@ public final class SkyLink {
 			String town = readName(s, b + SS_TOWN, 32, out.town);
 			int place = s.get(JAVA_INT, b + SS_PLACE);
 			int carried = s.get(JAVA_INT, b + SS_CARRIED);
+			int weather = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_WEATHER));
+			int weatherFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_WEATHER_FLAGS));
+			int aim = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_AIM));
+			int weatherAck = s.get(JAVA_INT, b + SS_WEATHER_ACK);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -349,6 +361,10 @@ public final class SkyLink {
 				out.town = town;
 				out.place = place;
 				out.carried = carried;
+				out.weather = weather;
+				out.weatherFlags = weatherFlags;
+				out.aim = aim;
+				out.weatherAck = weatherAck;
 				return true;
 			}
 		}
@@ -446,6 +462,9 @@ public final class SkyLink {
 		s.set(JAVA_INT, b + MS_SPACE_X, mirror ? WorldSpaces.originX(space) : 0);
 		s.set(JAVA_INT, b + MS_SPACE_Z, mirror ? WorldSpaces.originZ(space) : 0);
 		s.set(JAVA_INT, b + MS_FEATURES, dev.skycraft.config.Features.skyrimBits());
+		long weather = dev.skycraft.weather.SkyWeather.request(); // the server's open weather request (weather sync)
+		s.set(JAVA_INT, b + MS_WEATHER_SEQ, (int) weather);
+		s.set(JAVA_BYTE, b + MS_WEATHER_WANT, (byte) (weather >>> 32));
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

@@ -50,10 +50,11 @@ public final class Features {
 		SKOOMA_BREWING("skooma_brewing", "moon sugar brews into Skooma in a brewing stand"),
 
 		// World
-		WEATHER_SYNC("weather_sync", "Skyrim's rain and snow are Minecraft's and the other way round; snow settles on your blocks"),
-		SKYRIM_FARMING("skyrim_farming", "Minecraft crops grow on Skyrim's farmland, and Skyrim's crops can be harvested"),
-		WILDS_VILLAGERS("wilds_villagers", "villages in Tamriel Wilds have Skyrim-style villagers with Skyrim trades"),
-		SHRINE_BLESSINGS("shrine_blessings", "a Skyrim shrine's blessing also gives a Minecraft effect"),
+		WEATHER_SYNC("weather_sync", "Skyrim's clear skies, rain, snow and thunderstorms are Minecraft's, and /weather changes Skyrim's to the nearest its region has; snow settles on your blocks open to the sky (skycraft-weather.txt)",
+			true, dev.skycraft.link.Proto.FEATURE_WEATHER_SYNC),
+		SKYRIM_FARMING("skyrim_farming", "a hoe tills Skyrim's grass, dirt and mud into farmland for Minecraft's crops; right click harvests Skyrim's own crops, hoe in hand too"),
+		WILDS_VILLAGERS("wilds_villagers", "villagers in Tamriel Wilds have Skyrim names by trade (a Nord blacksmith, an Imperial cartographer) and sell Skyrim gear, ingots and potions"),
+		SHRINE_BLESSINGS("shrine_blessings", "a Skyrim shrine's blessing also gives a Minecraft effect for as long (Talos resistance, Kynareth speed, Mara regeneration, ...)"),
 
 		// Towns
 		NPC_DOORS_LADDERS("npc_doors_ladders", "Skyrim NPCs open Minecraft doors and climb Minecraft ladders"),

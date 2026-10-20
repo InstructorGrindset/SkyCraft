@@ -3,6 +3,7 @@
 #include "Loot.h"
 #include "Travel.h"
 #include "WorldState.h"
+#include "WorldSync.h"
 
 #include "Collision.h"
 #include "Dig.h"
@@ -1196,6 +1197,7 @@ namespace skycraft
 			}
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
+			Weather::Update(a_player, haveMc ? &mc : nullptr, sky);  // Skyrim's weather for Minecraft, Minecraft's /weather for Skyrim
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;
