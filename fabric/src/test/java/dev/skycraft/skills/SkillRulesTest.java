@@ -219,7 +219,7 @@ class SkillRulesTest {
 			String.format("offsetof(SkyState, skills) == 0x%X", Proto.SS_SKILLS),
 			String.format("offsetof(SkyState, dragonSouls) == 0x%X", Proto.SS_DRAGON_SOULS),
 			String.format("offsetof(SkyState, skillsLoad) == 0x%X", Proto.SS_SKILLS_LOAD),
-			"offsetof(SkyState, reservedWeather) == 0x80",
+			"offsetof(SkyState, weather) == 0x80",
 		};
 		for (String line : expected) {
 			assertTrue(text.contains(line), "the header should say " + line);

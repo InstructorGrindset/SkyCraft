@@ -51,3 +51,24 @@ net.minecraft.world.item.alchemy.PotionBrewing$Builder
 -c net.minecraft.world.entity.player.Player getAttackStrengthScale
 -c net.minecraft.world.entity.Entity isSprinting
 -c net.minecraft.world.entity.Entity isCrouching
+# World (weather sync, Skyrim farming, Tamriel Wilds villagers, shrine blessings)
+-c net.minecraft.world.level.Level isRaining
+-c net.minecraft.world.level.Level isThundering
+-c net.minecraft.world.level.Level removeBlock
+-c net.minecraft.server.commands.WeatherCommand setRain
+data/minecraft/worldgen/biome/the_void.json
+-c net.minecraft.world.level.block.SnowLayerBlock canSurvive
+-c net.minecraft.world.level.block.state.properties.BlockStateProperties MOISTURE
+-c net.minecraft.world.level.block.state.properties.BlockStateProperties LAYERS
+-c net.minecraft.tags.ItemTags HOES
+-c net.minecraft.sounds.SoundEvents HOE_TILL
+-c net.minecraft.world.item.ItemStack hurtAndBreak
+-c net.minecraft.world.item.ItemStack isSameItemSameComponents
+-c net.minecraft.world.entity.player.Player mayBuild
+-c net.minecraft.network.codec.ByteBufCodecs BOOL
+net.minecraft.world.entity.npc.villager.Villager
+net.minecraft.world.entity.npc.villager.VillagerData
+-c net.minecraft.world.level.EntityGetter getEntitiesOfClass
+-c net.minecraft.world.item.trading.MerchantOffer getResult
+-c net.minecraft.core.Holder unwrapKey
+-c net.minecraft.world.effect.MobEffect getDisplayName

@@ -118,9 +118,13 @@ namespace skycraft::proto
 		std::uint32_t skillsLoad;           // 0x7C: a new number each time a game is loaded or started (never 0 once skills are
 		                                    // written; it starts somewhere new each Skyrim run), so Minecraft tells a soul absorbed
 		                                    // (dragonSouls up, same skillsLoad) from another save's count and pays only for the first
+		// weather and the world (added within version 13, zeros from an older plugin: no weather known, nothing aimed at)
+		std::uint8_t  weather;       // 0x80: WeatherKind of Skyrim's sky where the player is (kWeatherNone indoors)
+		std::uint8_t  weatherFlags;  // 0x81: WeatherFlags
+		std::uint8_t  aim;           // 0x82: AimFlags, what Skyrim's crosshair is on
+		std::uint8_t  worldPad;      // 0x83
+		std::uint32_t weatherAck;    // 0x84: the last McState::weatherSeq Skyrim has handled (switched its weather, or refused)
 		// Set aside for the features that fill them in:
-		// weather
-		std::uint8_t reservedWeather[8];  // 0x80
 		// stealth and detection
 		std::uint8_t reservedStealth[8];  // 0x88
 		// towns: crime and guards
@@ -134,8 +138,38 @@ namespace skycraft::proto
 	static_assert(offsetof(SkyState, gameHour) == 0x3C && offsetof(SkyState, town) == 0x40 && offsetof(SkyState, place) == 0x60 &&
 	              offsetof(SkyState, carried) == 0x64);  // Proto.SS_*
 	static_assert(offsetof(SkyState, skills) == 0x68 && offsetof(SkyState, dragonSouls) == 0x7A && offsetof(SkyState, skillsLoad) == 0x7C &&
-	              offsetof(SkyState, reservedWeather) == 0x80);  // Proto.SS_SKILLS, SS_DRAGON_SOULS, SS_SKILLS_LOAD
+	              offsetof(SkyState, weather) == 0x80);  // Proto.SS_SKILLS, SS_DRAGON_SOULS, SS_SKILLS_LOAD
 
+	static_assert(offsetof(SkyState, weather) == 0x80 && offsetof(SkyState, weatherFlags) == 0x81 && offsetof(SkyState, aim) == 0x82 &&
+	              offsetof(SkyState, weatherAck) == 0x84 && offsetof(SkyState, reservedStealth) == 0x88);  // Proto.SS_WEATHER*, SS_AIM
+
+	// Skyrim's weather as both games share it (SkyState::weather, McState::weatherWant; Weather sync), from the weather's
+	// classification flags (TESWeather DATA: pleasant, cloudy, rainy, snow) and its sounds. Added within version 13.
+	enum WeatherKind : std::uint8_t
+	{
+		kWeatherNone = 0,    // not known: indoors, no sky, an older plugin. Minecraft leaves its weather as it is
+		kWeatherClear = 1,   // pleasant
+		kWeatherCloudy = 2,  // cloudy, fog, or no classification at all
+		kWeatherRain = 3,    // rainy
+		kWeatherSnow = 4,    // snow
+		kWeatherStorm = 5,   // rainy or snow with a thunder sound: a thunderstorm
+	};
+
+	// SkyState::weatherFlags. Added within version 13.
+	enum WeatherFlags : std::uint8_t
+	{
+		kWeatherRaining = 1u << 0,  // rain is falling right now (Sky::IsRaining: past the fade in, or the last weather's still fading out)
+		kWeatherSnowing = 1u << 1,  // snow is falling right now (Sky::IsSnowing)
+		kWeatherRefused = 1u << 2,  // the request weatherAck names found no weather of that kind in the region (or a quest holds
+		                            // the weather, or the player is indoors): Skyrim's weather stayed
+	};
+
+	// SkyState::aim. Added within version 13.
+	enum AimFlags : std::uint8_t
+	{
+		kAimHarvest = 1u << 0,  // Skyrim's crosshair is on a plant it can harvest (flora, or a tree with produce, not yet picked):
+		                        // a right click harvests it (click to activate), and a hoe doesn't till the ground under it
+	};
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t
@@ -240,9 +274,11 @@ namespace skycraft::proto
 		                             // sealed in, as in a tunnel dug into the ground)
 		std::uint8_t eyeLightFlags;  // 0xDE: EyeLightFlags
 		std::uint8_t stealthPad[5];  // 0xDF
+		// weather (added within version 13, zeros from an older Minecraft: it never asks)
+		std::uint32_t weatherSeq;      // 0xE4: bumps for each weather change Minecraft asks Skyrim for (a player's /weather, a mod)
+		std::uint8_t  weatherWant;     // 0xE8: the WeatherKind asked for; kWeatherNone once Skyrim answered (SkyState::weatherAck)
+		std::uint8_t  weatherPad[3];   // 0xE9
 		// Set aside for the features that fill them in:
-		// weather
-		std::uint8_t reservedWeather[8];  // 0xE4
 		// building
 		std::uint8_t reservedBuild[8];  // 0xEC
 		std::uint8_t reserved[12];      // 0xF4
@@ -250,7 +286,7 @@ namespace skycraft::proto
 	static_assert(sizeof(McState) == 0x100);
 	static_assert(offsetof(McState, features) == 0xD8);  // Proto.MS_FEATURES
 	static_assert(offsetof(McState, eyeBlockLight) == 0xDC && offsetof(McState, eyeSkyLight) == 0xDD && offsetof(McState, eyeLightFlags) == 0xDE &&
-	              offsetof(McState, reservedWeather) == 0xE4);  // Proto.MS_EYE_*
+	              offsetof(McState, weatherSeq) == 0xE4);  // Proto.MS_EYE_*
 
 	// McState::eyeLightFlags (light_stealth).
 	enum EyeLightFlags : std::uint8_t
@@ -258,6 +294,7 @@ namespace skycraft::proto
 		kEyeLightValid = 1u << 0,  // eyeBlockLight and eyeSkyLight are this tick's: the player is in the mirror, its level is
 		                           // loaded and light_stealth is on. Clear: Skyrim keeps its own light
 	};
+	static_assert(offsetof(McState, weatherSeq) == 0xE4 && offsetof(McState, weatherWant) == 0xE8 && offsetof(McState, reservedBuild) == 0xEC);  // Proto.MS_WEATHER_*
 
 	// McState::features. Minecraft sets kFeaturesValid with the bits of every switched on feature whose Skyrim
 	// side Skyrim runs itself; an older Minecraft leaves it all 0, and those features then stay off.
@@ -271,6 +308,8 @@ namespace skycraft::proto
 		kFeatPowerAttacks = 1u << 2,  // power_attacks: a hit with kHitPowerAttack is a Skyrim power attack (HitData kPowerAttack
 		                              // and the weapon's stagger); without it sprint hits and knockback count, as before
 		kFeatLightStealth = 1u << 3,  // light_stealth: Skyrim's light on the player for detection takes in McState's eye light
+		// world
+		kFeatWeatherSync = 1u << 12,  // weather_sync: Skyrim switches its weather when Minecraft asks (McState::weatherSeq)
 
 		kFeaturesValid = 1u << 31,
 	};
@@ -331,6 +370,26 @@ namespace skycraft::proto
 		                       // where it reached the block (MC coords x 1024), code = which way it flew: yaw in the high
 		                       // byte (256ths of a turn from +z toward +x), pitch in the low byte (0 straight down, 255
 		                       // straight up). Minecraft sticks an arrow of its own there. Added within version 13
+		kInBlessing = 17,      // the player has a shrine's blessing (a spell named "Blessing of ..." among their active effects,
+		                       // new or cast again): code = BlessingKind, a = game hours of it left x 1000, b = Skyrim's
+		                       // timescale x 1000. Minecraft gives a fitting effect for as long. Added within version 13
+	};
+
+	// Which shrine's blessing kInBlessing is, by the god the spell names. Added within version 13.
+	enum BlessingKind : std::uint16_t
+	{
+		kBlessingNone = 0,
+		kBlessingAkatosh = 1,
+		kBlessingArkay = 2,
+		kBlessingDibella = 3,
+		kBlessingJulianos = 4,
+		kBlessingKynareth = 5,
+		kBlessingMara = 6,
+		kBlessingStendarr = 7,
+		kBlessingTalos = 8,
+		kBlessingZenithar = 9,
+		kBlessingAuriel = 10,  // Dawnguard
+		kBlessingOther = 11,   // any other "Blessing of ..." (the DLCs' and mods' shrines)
 	};
 
 	enum HurtKind : std::uint16_t

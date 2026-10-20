@@ -255,6 +255,14 @@ public final class SkyLink {
 			int i = skill - SKILL_FIRST;
 			return i >= 0 && i < SKILL_COUNT ? Byte.toUnsignedInt(this.skills[i]) : 0;
 		}
+		/** Proto.WEATHER_* kind of Skyrim's sky where the player is (WEATHER_NONE indoors, or from an older plugin). */
+		public int weather;
+		/** Proto.WEATHER_RAINING, WEATHER_SNOWING, WEATHER_REFUSED. */
+		public int weatherFlags;
+		/** The last weather request (McState weatherSeq) Skyrim has handled. */
+		public int weatherAck;
+		/** Proto.AIM_* bits: what Skyrim's crosshair is on. */
+		public int aim;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -348,6 +356,10 @@ public final class SkyLink {
 			MemorySegment.copy(s, JAVA_BYTE, b + SS_SKILLS, out.skillsRead, 0, SKILL_COUNT);
 			int dragonSouls = Short.toUnsignedInt(s.get(JAVA_SHORT, b + SS_DRAGON_SOULS));
 			int skillsLoad = s.get(JAVA_INT, b + SS_SKILLS_LOAD);
+			int weather = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_WEATHER));
+			int weatherFlags = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_WEATHER_FLAGS));
+			int aim = Byte.toUnsignedInt(s.get(JAVA_BYTE, b + SS_AIM));
+			int weatherAck = s.get(JAVA_INT, b + SS_WEATHER_ACK);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -372,6 +384,10 @@ public final class SkyLink {
 				System.arraycopy(out.skillsRead, 0, out.skills, 0, SKILL_COUNT);
 				out.dragonSouls = dragonSouls;
 				out.skillsLoad = skillsLoad;
+				out.weather = weather;
+				out.weatherFlags = weatherFlags;
+				out.aim = aim;
+				out.weatherAck = weatherAck;
 				return true;
 			}
 		}
@@ -475,6 +491,9 @@ public final class SkyLink {
 		s.set(JAVA_BYTE, b + MS_EYE_BLOCK_LIGHT, (byte) dev.skycraft.combat.CombatRules.lightLevel(st.eyeBlockLight));
 		s.set(JAVA_BYTE, b + MS_EYE_SKY_LIGHT, (byte) dev.skycraft.combat.CombatRules.lightLevel(st.eyeSkyLight));
 		s.set(JAVA_BYTE, b + MS_EYE_LIGHT_FLAGS, (byte) (st.eyeLightValid ? EYE_LIGHT_VALID : 0));
+		long weather = dev.skycraft.weather.SkyWeather.request(); // the server's open weather request (weather sync)
+		s.set(JAVA_INT, b + MS_WEATHER_SEQ, (int) weather);
+		s.set(JAVA_BYTE, b + MS_WEATHER_WANT, (byte) (weather >>> 32));
 		INT.setRelease(s, b + MS_SEQ, seq + 2);
 	}
 

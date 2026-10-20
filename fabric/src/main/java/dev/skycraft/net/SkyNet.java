@@ -84,6 +84,45 @@ public final class SkyNet {
 	}
 
 	/**
+	 * Client -> server: the player hoed Skyrim's soil (Skyrim farming): farmland at {@code pos} in Skyrim world {@code world},
+	 * the cell over it dug too when {@code digAbove} (SkyFarming.till). The client works it out from Skyrim's geometry.
+	 */
+	public record FarmTill(int world, BlockPos pos, boolean digAbove, boolean mainHand) implements CustomPacketPayload {
+		public static final Type<FarmTill> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "farm_till"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, FarmTill> CODEC = StreamCodec.composite(
+			ByteBufCodecs.INT, FarmTill::world,
+			BlockPos.STREAM_CODEC, FarmTill::pos,
+			ByteBufCodecs.BOOL, FarmTill::digAbove,
+			ByteBufCodecs.BOOL, FarmTill::mainHand,
+			FarmTill::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
+	 * Client -> server: a guest's Skyrim player has a shrine's blessing (Shrine blessings, as proto::InputEvent kInBlessing):
+	 * the host's server gives the guest the Minecraft effect. {@code kind} is a Proto.BLESSING_*, the times as Skyrim sent them.
+	 */
+	public record Blessing(int kind, float hours, float timescale) implements CustomPacketPayload {
+		public static final Type<Blessing> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "blessing"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, Blessing> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, Blessing::kind,
+			ByteBufCodecs.FLOAT, Blessing::hours,
+			ByteBufCodecs.FLOAT, Blessing::timescale,
+			Blessing::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
+	/**
 	 * Server -> client: where the host's world keeps each Skyrim world's blocks (SkySpace), as
 	 * {@code worlds[i]} has space {@code spaces[i]}. All of them on joining, then again whenever one is
 	 * added. A guest's client places its own Skyrim's worlds by it.
@@ -171,6 +210,17 @@ public final class SkyNet {
 					SkyDig.reveal(player, payload.world(), payload.cells(), materials);
 				}
 			});
+		});
+		PayloadTypeRegistry.serverboundPlay().register(FarmTill.TYPE, FarmTill.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(FarmTill.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.farming.SkyFarming.till(player, payload.world(), payload.pos(), payload.digAbove(),
+				payload.mainHand() ? net.minecraft.world.InteractionHand.MAIN_HAND : net.minecraft.world.InteractionHand.OFF_HAND));
+		});
+		PayloadTypeRegistry.serverboundPlay().register(Blessing.TYPE, Blessing.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(Blessing.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.blessings.SkyBlessings.give(player, payload.kind(), payload.hours(), payload.timescale()));
 		});
 		PayloadTypeRegistry.clientboundPlay().register(Died.TYPE, Died.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(Hurt.TYPE, (payload, context) -> {

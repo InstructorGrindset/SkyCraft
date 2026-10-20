@@ -3,6 +3,7 @@
 #include "Loot.h"
 #include "Travel.h"
 #include "WorldState.h"
+#include "WorldSync.h"
 
 #include "Collision.h"
 #include "Dig.h"
@@ -1198,6 +1199,9 @@ namespace skycraft
 			WorldState::Place(a_player, sky.town, sky.place);
 			sky.carried = WorldState::Carried(a_player);  // an Elder Scroll, for the portal at the Time-Wound
 			WorldState::Skills(a_player, loading, sky);   // skill levels and Dragon Souls, for Minecraft's skill bonuses
+			Weather::Update(a_player, haveMc ? &mc : nullptr, sky);  // Skyrim's weather for Minecraft, Minecraft's /weather for Skyrim
+			sky.aim = Farming::Aim();  // a plant to harvest under the crosshair: a right click harvests it, a hoe doesn't till there
+			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

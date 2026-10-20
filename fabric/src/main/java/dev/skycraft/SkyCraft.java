@@ -34,6 +34,8 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.report.SkyReport.init(); // /skycraft report: the logs and configs a tester sends, in one zip
 		dev.skycraft.guide.GuideBook.init(); // the SkyCraft guide book, once per player
 		dev.skycraft.skills.SkySkills.init(); // Skyrim's skill levels in Minecraft; Stealth potions and their brewing
+		dev.skycraft.weather.SkyWeather.init(); // Skyrim's weather is Minecraft's and the other way round; snow settles
+		dev.skycraft.villagers.SkyVillagers.init(); // Tamriel Wilds' villagers: Skyrim names and trades
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

@@ -222,6 +222,20 @@ public final class SkyBridge {
 			count < it.count() ? " (" + (it.count() - count) + " more stay in Skyrim)" : "");
 	}
 
+	/**
+	 * One of what a Skyrim item called {@code name} (with {@code tags}, Proto ItemTags) converts into by skycraft-items.txt,
+	 * as Minecraft would give it for a pickup: an empty stack when no rule takes it or a rule keeps it in Skyrim. Tamriel
+	 * Wilds' villagers sell Skyrim's potions this way (villagers.SkyVillagers). Server thread.
+	 */
+	public static ItemStack converted(String name, int tags) {
+		ItemRules.Result result = rules().match(new ItemRules.Item(tags, 0, Proto.SRC_BOUGHT, name));
+		if (result.keep()) {
+			return ItemStack.EMPTY;
+		}
+		Output o = resolve(result, name);
+		return o == null ? ItemStack.EMPTY : stack(o.item(), Math.max(1, Math.min(result.perItem(), o.max())), o.potion(), o.effects(), result.color(), result.name());
+	}
+
 	private static ItemRules rules() {
 		if (rules == null) {
 			List<String> problems = new ArrayList<>();

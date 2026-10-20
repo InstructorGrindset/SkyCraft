@@ -13,6 +13,7 @@ public final class SkyCraftClient implements ClientModInitializer {
 		DiscordPresence.start();
 		DestructionToggle.register();
 		FeaturesScreen.register(); // the pause menu's "SkyCraft settings", beside "Skyrim destruction"
+		FarmingClient.register(); // a hoe tills Skyrim's soil into farmland (skyrim_farming)
 		MinecraftView.init(); // /skyview: to the Nether (or any other dimension) and back, for testing the Minecraft view
 		// Multiplayer without editing files: the host opens their world to LAN (O, Open to LAN) and
 		// e4mc gives them a link; friends type /join <link> in chat, and /leave to come back.
