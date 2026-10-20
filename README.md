@@ -86,6 +86,12 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   (only what its shop deals in, out of its own gold). Food you eat in Skyrim fills Minecraft's
   hunger. Khajiit caravans deal in Skooma and moon sugar, and moon sugar brews Skooma in a brewing
   stand.
+- **Skyrim loot becomes Minecraft items:** food, drinks, potions, ores, gems, hides, ingredients,
+  scrolls and household goods you loot or buy in Skyrim turn into their Minecraft counterparts.
+  Gear salvages into its smithing material or, bought, becomes SkyCraft gear; enchanted gear keeps
+  its enchantment, and Daedric artifacts become named Minecraft gear (Dawnbreaker is a glass sword
+  with Fire Aspect and Smite). Clothing is dyed leather armor, plain rings and necklaces melt into
+  nuggets and gems. The full list is in [docs/CONVERSIONS.md](docs/CONVERSIONS.md).
 - **Multiplayer (Minecraft side only):** friends who also run SkyCraft can join your Minecraft
   world over the internet (see [Playing with friends](#playing-with-friends)).
 - **Looting:** food, potions, ores and salvaged gear you loot in Skyrim become Minecraft items, and the

@@ -41,15 +41,15 @@ class ItemRulesTest {
 		// Seen in the build 3 log.
 		assertEquals("minecraft:potato 1", convert(rules, tags("food"), 0, CONTAINER, "Potato"));
 		assertEquals("minecraft:pumpkin_pie 1", convert(rules, tags("food"), 0, CORPSE, "Apple Pie"));
-		assertEquals("keep", convert(rules, tags("food"), 0, CORPSE, "Wine"));
-		assertEquals("minecraft:leather 1", convert(rules, tags("hide"), 0, CONTAINER, "Bear Pelt"));
+		assertEquals("minecraft:potion{saturation:1:0+nausea:0:8} 1", convert(rules, tags("food"), 0, CORPSE, "Wine"));
+		assertEquals("minecraft:leather 3", convert(rules, tags("hide"), 0, CONTAINER, "Bear Pelt"));
 		assertEquals("keep", convert(rules, tags("gold", "clutter"), 0, CONTAINER, "Gold"));
 		assertEquals("keep", convert(rules, tags("key"), 0, CORPSE, "Key to Birna's Oddments"));
 		assertEquals("minecraft:sugar 1", convert(rules, tags("ingredient", "foodraw"), 0, CONTAINER, "Salt Pile"));
-		assertEquals("keep", convert(rules, tags("clothing"), 0, CORPSE, "Belted Tunic"));
-		assertEquals("keep", convert(rules, tags("jewelry"), 0, CORPSE, "Silver Ring"));
+		assertEquals("minecraft:leather_chestplate 1", convert(rules, tags("clothing"), 0, CORPSE, "Belted Tunic"));
+		assertEquals("minecraft:iron_nugget 3", convert(rules, tags("jewelry"), 0, CORPSE, "Silver Ring"));
 		assertEquals("minecraft:iron_ingot 1", convert(rules, tags("weapon"), 2, CORPSE, "Iron Dagger"));
-		assertEquals("keep", convert(rules, tags("weapon", "clutter"), 1, CONTAINER, "Wooden Sword"));
+		assertEquals("minecraft:wooden_sword 1", convert(rules, tags("weapon", "clutter"), 1, CONTAINER, "Wooden Sword"));
 	}
 
 	@Test
@@ -113,14 +113,14 @@ class ItemRulesTest {
 		assertEquals("skycraft:ebony_ingot 2", salvage(rules, "armor", "ebony", "Ebony Armor"));
 		assertEquals("skycraft:ebony_ingot 2 + skycraft:daedra_heart 1", salvage(rules, "armor", "daedric", "Daedric Armor"));
 		assertEquals("skycraft:ebony_ingot 2 + minecraft:bone 4", salvage(rules, "armor", "dragon", "Dragonplate Armor"));
-		assertEquals("minecraft:turtle_scute 2", salvage(rules, "armor", "falmer", "Falmer Helmet"));
+		assertEquals("minecraft:turtle_scute 2", salvage(rules, "armor", "falmer", "Falmer Armor"));
 		assertEquals("minecraft:leather 2", salvage(rules, "armor", "hide", "Studded Armor"));
 		// Bows, pickaxes and arrows keep their own rules, wherever they come from.
 		assertEquals("minecraft:bow 1", salvage(rules, "weapon", "orcish", "Orcish Bow"));
 		assertEquals("minecraft:crossbow 1", salvage(rules, "weapon", "dwarven", "Dwarven Crossbow"));
 		assertEquals("minecraft:iron_pickaxe 1", salvage(rules, "weapon", "iron", "Pickaxe"));
-		// Gear of no known material (Forsworn, Nordic, Stalhrim) and staffs still stay.
-		assertEquals("keep", salvage(rules, "weapon", "none", "Forsworn Axe"));
+		// Gear of no known material salvages into what it's made of (Forsworn and Nordic weapons are steel); staffs stay.
+		assertEquals("skycraft:steel_ingot 1", salvage(rules, "weapon", "none", "Forsworn Axe"));
 		assertEquals("keep", salvage(rules, "weapon", "none", "Staff of Firebolts"));
 		// Bought gear is still the gear itself.
 		assertEquals("skycraft:daedric_sword 1", convert(rules, tags("weapon"), material("daedric"), BOUGHT, "Daedric Sword"));
@@ -142,8 +142,8 @@ class ItemRulesTest {
 		assertEquals("skycraft:steel_boots 1", convert(rules, tags("armor"), steel, BOUGHT, "Steel Shin Boots"));
 		assertEquals("minecraft:leather_chestplate 1", convert(rules, tags("armor"), hide, BOUGHT, "Leather Armor"));
 		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), iron, BOUGHT, "Iron Shield"));
-		// Bought gear never salvages; looted gear still does.
-		assertEquals("keep", convert(rules, tags("weapon"), ItemRules.MATERIALS.indexOf("silver"), BOUGHT, "Silver Sword"));
+		// Bought gear never salvages; looted gear still does. Bought silver is Skyrim Iron with Smite, silver's bane of the undead.
+		assertEquals("skycraft:iron_sword{smite:2} 1", convert(rules, tags("weapon"), ItemRules.MATERIALS.indexOf("silver"), BOUGHT, "Silver Sword"));
 		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), steel, CONTAINER, "Steel Sword"));
 		// Gold paid by a merchant stays in Skyrim; bought food still converts.
 		assertEquals("keep", convert(rules, tags("gold", "clutter"), 0, BOUGHT, "Gold"));
@@ -212,6 +212,95 @@ class ItemRulesTest {
 				"unknown item skycraft:" + m.group(1));
 		}
 		assertTrue(found >= 8, "expected the gear material rules in the defaults");
+	}
+
+	@Test
+	void everyDefaultRuleCanBeReached() {
+		// First match wins, so a rule an earlier one always beats does nothing. The item made of exactly a rule's own
+		// conditions (its tags, its material, a source it allows, its name words) is the easiest one to reach it: when
+		// an earlier rule takes even that item, it takes every item the rule was written for.
+		List<ItemRules.Rule> rules = defaults().rules();
+		List<String> unreachable = new ArrayList<>();
+		for (int i = 0; i < rules.size(); i++) {
+			ItemRules.Rule rule = rules.get(i);
+			int beatenBy = -1;
+			for (int source = 0; source < ItemRules.SOURCES.size(); source++) {
+				if (rule.sourceMask() != 0 && (rule.sourceMask() & (1 << source)) == 0) {
+					continue;
+				}
+				int tags = rule.tagMask() | (rule.kind() >= 0 ? rule.kind() << ItemRules.KIND_SHIFT : 0);
+				ItemRules.Item item = new ItemRules.Item(tags, Math.max(0, rule.material()), source, String.join(" ", rule.nameWords()));
+				List<String> words = ItemRules.words(item.name());
+				int first = 0;
+				while (!rules.get(first).matches(item, words)) {
+					first++;
+				}
+				if (first == i) {
+					beatenBy = -1;
+					break;
+				}
+				beatenBy = first;
+			}
+			if (beatenBy >= 0) {
+				ItemRules.Rule earlier = rules.get(beatenBy);
+				unreachable.add("rule " + (i + 1) + " " + ItemRules.tagNames(rule.tagMask()) + " " + rule.nameWords() + " = " + rule.result().describe()
+					+ " (rule " + (beatenBy + 1) + " " + ItemRules.tagNames(earlier.tagMask()) + " " + earlier.nameWords() + " = " + earlier.result().describe() + " comes first)");
+			}
+		}
+		assertTrue(unreachable.isEmpty(), unreachable.size() + " unreachable: " + String.join("\n", unreachable));
+	}
+
+	@Test
+	void adoptedConversionProposalsConvert() {
+		ItemRules rules = defaults();
+		// Books and scrolls: a map is a map, the two tomes every character knows are books, a scroll is its spell.
+		assertEquals("minecraft:buried_treasure_map 1", item(rules, "book", "none", "Treasure Map VII"));
+		assertEquals("minecraft:book 1", item(rules, "book", "none", "Spell Tome: Flames"));
+		assertEquals("minecraft:book 1", item(rules, "book", "none", "Spell Tome: Healing"));
+		assertEquals("keep", item(rules, "book", "none", "Spell Tome: Healing Hands"));
+		assertEquals("minecraft:splash_potion{instant_damage:0:0} 1", item(rules, "book", "none", "Scroll of Firebolt"));
+		assertEquals("minecraft:tnt 1", item(rules, "book", "none", "Scroll of Frost Rune"));
+		assertEquals("keep", item(rules, "book", "none", "The Lusty Argonian Maid"));
+		// Food, ingredients, hides, metals and household goods.
+		assertEquals("minecraft:beetroot_soup 1", item(rules, "food", "none", "Hot Vegetable Soup"));
+		assertEquals("minecraft:cake 1", item(rules, "food", "none", "Eidar Cheese Wheel"));
+		assertEquals("minecraft:poisonous_potato 1", item(rules, "food", "none", "Poisoned Red Apple"));
+		assertEquals("minecraft:orange_tulip 1", item(rules, "ingredient", "none", "Dragon's Tongue"));
+		assertEquals("minecraft:rotten_flesh 1", item(rules, "ingredient", "none", "Hunger Tongue"));
+		assertEquals("minecraft:bone 2", item(rules, "ingredient", "none", "Ogre's Teeth"));
+		assertEquals("minecraft:phantom_membrane 1", item(rules, "ingredient", "none", "Purple Butterfly Wing"));
+		assertEquals("minecraft:leather 2", item(rules, "hide", "none", "Vale Sabre Cat Hide"));
+		assertEquals("minecraft:iron_ingot 1", item(rules, "oreingot", "none", "Silver Ingot"));
+		assertEquals("minecraft:bone_block 2", item(rules, "", "none", "Dragon Bone"));
+		assertEquals("minecraft:bowl 1", item(rules, "clutter", "none", "Wooden Plate"));
+		assertEquals("minecraft:iron_nugget 3", item(rules, "clutter", "none", "Silver Bowl"));
+		assertEquals("minecraft:bowl 1", item(rules, "clutter", "none", "Wooden Bowl"));
+		assertEquals("minecraft:skeleton_skull 1", item(rules, "clutter", "none", "Human Skull"));
+		assertEquals("minecraft:gold_nugget 6", item(rules, "", "none", "Statue of Dibella"));
+		assertEquals("minecraft:bundle 1", item(rules, "clutter", "none", "Basket"));
+		// Arrows, and the conjured bow and arrows, which would otherwise be bows and arrows from nothing.
+		assertEquals("minecraft:tipped_arrow[harming] 1", item(rules, "arrow", "daedric", "Daedric Arrow"));
+		assertEquals("keep", item(rules, "arrow", "daedric", "Bound Arrow"));
+		assertEquals("keep", item(rules, "weapon", "daedric", "Bound Bow"));
+		// Gear of no smithing material: armor sets looted or bought, never when made or picked up.
+		assertEquals("minecraft:chainmail_chestplate 1", convert(rules, tags("armor"), 0, CORPSE, "Whiterun Guard's Armor"));
+		assertEquals("minecraft:chainmail_chestplate 1", convert(rules, tags("armor"), 0, BOUGHT, "Whiterun Guard's Armor"));
+		assertEquals("keep", convert(rules, tags("armor"), 0, WORLD, "Whiterun Guard's Armor"));
+		assertEquals("minecraft:turtle_helmet 1", convert(rules, tags("armor"), material("falmer"), CORPSE, "Falmer Helmet"));
+		assertEquals("skycraft:ebony_cuirass 1", convert(rules, tags("armor"), 0, BOUGHT, "Stalhrim Armor"));
+		assertEquals("minecraft:blue_ice 2", convert(rules, tags("armor"), 0, CORPSE, "Stalhrim Armor"));
+		assertEquals("keep", convert(rules, tags("armor"), 0, WORLD, "Stalhrim Armor"));
+		assertEquals("skycraft:orcish_war_axe 1", convert(rules, tags("weapon"), 0, BOUGHT, "Nordic War Axe"));
+		assertEquals("skycraft:daedric_sword 1", convert(rules, tags("weapon"), 0, BOUGHT, "Madness Greatsword"));
+		assertEquals("minecraft:iron_chestplate 1", convert(rules, tags("armor"), 0, CONTAINER, "Silver Armor"));
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), 0, CORPSE, "Shadowed Netch Leather Tower Shield"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), 0, CONTAINER, "Nordic Dagger"));
+		assertEquals("skycraft:steel_sword 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Nord Hero Sword"));
+		assertEquals("skycraft:steel_ingot 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Ancient Nord Sword"));
+		assertEquals("skycraft:steel_sword 1", convert(rules, tags("weapon"), material("draugr"), BOUGHT, "Ancient Nord Sword"));
+		assertEquals("skycraft:daedric_cuirass 1", convert(rules, tags("armor"), material("daedric"), BOUGHT, "Daedric Mail"));
+		assertEquals("skycraft:ebony_ingot 2 + skycraft:daedra_heart 1",
+			rules.match(new ItemRules.Item(tags("armor"), material("daedric"), CORPSE, "Daedric Mail")).describe());
 	}
 
 	@Test
@@ -481,7 +570,7 @@ class ItemRulesTest {
 		assertEquals("minecraft:iron_shovel 1", item(rules, "", "none", "Shovel"));
 		assertEquals("minecraft:iron_hoe 1", item(rules, "", "none", "Pitchfork"));
 		assertEquals("minecraft:iron_pickaxe 1", item(rules, "weapon", "iron", "Pickaxe"));
-		assertEquals("minecraft:iron_pickaxe 1", convert(rules, tags("weapon"), material("iron"), CORPSE, "Notched Pickaxe"));
+		assertEquals("minecraft:iron_pickaxe{unbreaking:3} 1", convert(rules, tags("weapon"), material("iron"), CORPSE, "Notched Pickaxe"));
 		assertEquals("minecraft:iron_axe 1", convert(rules, tags("weapon"), material("iron"), BOUGHT, "Woodcutter's Axe"));
 		assertEquals("minecraft:fishing_rod 1", item(rules, "weapon", "none", "Fishing Rod"));
 		assertEquals("minecraft:bone 2", item(rules, "ingredient", "none", "Large Antlers"));
@@ -528,8 +617,9 @@ class ItemRulesTest {
 		ItemRules rules = defaults();
 		assertEquals("keep", item(rules, "", "none", "Lockpick"));
 		assertEquals("keep", item(rules, "gold,clutter", "none", "Gold"));
-		assertEquals("keep", item(rules, "book", "none", "Spell Tome: Flames"));
-		assertEquals("keep", item(rules, "book", "none", "Scroll of Call to Arms"));
+		assertEquals("keep", item(rules, "book", "none", "Spell Tome: Fireball"));
+		assertEquals("keep", item(rules, "book", "none", "Spell Tome: Wall of Flames"));
+		assertEquals("keep", item(rules, "book", "none", "Scroll of Soul Trap"));
 		assertEquals("keep", item(rules, "soulgem", "none", "Petty Soul Gem"));
 		assertEquals("keep", item(rules, "clutter", "none", "Ysgramor's Soup Spoon"));
 		assertEquals("keep", item(rules, "", "none", "Jeweled Goblet"));
@@ -540,51 +630,171 @@ class ItemRulesTest {
 		assertEquals("keep", item(rules, "foodraw", "none", "Jug of Milk"));
 		assertEquals("keep", item(rules, "foodraw,ingredient", "none", "Salmon Roe"));
 		assertEquals("keep", item(rules, "clutter", "none", "Charred Skeever Hide"));
-		// Household rules never see gear: a hammer that is a weapon stays a weapon, and so does a knife.
-		assertEquals("keep", item(rules, "weapon", "steel", "Dawnguard Rune Hammer"));
+		// Household rules never see gear: a hammer that is a weapon is a weapon (this one an enchanted war axe, not
+		// iron nuggets), and a knife that is a weapon stays one.
+		assertEquals("skycraft:orcish_war_axe{smite:2} 1", item(rules, "weapon", "steel", "Dawnguard Rune Hammer"));
 		assertEquals("keep", item(rules, "weapon,clutter", "none", "Knife"));
 		assertEquals("keep", item(rules, "armor", "steel", "Steel Shin Boots"));
-		// Clothing and jewelry wait for the user's call.
+		// Clothing and jewelry you make, enchant or pick up stay (item() is from the world).
 		assertEquals("keep", item(rules, "clothing", "none", "Fine Boots"));
 		assertEquals("keep", item(rules, "jewelry", "none", "Gold Diamond Ring"));
 		assertEquals("keep", item(rules, "", "none", "Girl's Yellow Dress"));
-		// Lockpicking enchantments are not lockpicks.
-		assertEquals("minecraft:leather 1", item(rules, "armor", "hide", "Leather Bracers of Lockpicking"));
+		// Lockpicking enchantments are not lockpicks: these are leather bracers that keep it, as Unbreaking.
+		assertEquals("minecraft:leather_leggings{unbreaking:1} 1", item(rules, "armor", "hide", "Leather Bracers of Lockpicking"));
+	}
+
+	private static ItemRules.Result looted(ItemRules rules, String tagList, int kind, String name) {
+		int t = (tagList.isEmpty() ? 0 : tags(tagList.split(","))) | kind << dev.skycraft.link.Proto.TAG_KIND_SHIFT;
+		return rules.match(new ItemRules.Item(t, 0, CONTAINER, sent(name)));
 	}
 
 	@Test
-	void pendingClothingAndJewelryRulesWorkOnceUncommented() {
-		// What the user gets by removing the '#' in front of the two pending sections.
-		StringBuilder text = new StringBuilder();
-		int uncommented = 0;
-		for (String line : ItemRules.DEFAULT_TEXT.split("\\R")) {
-			if (line.startsWith("#tag clothing") || line.startsWith("#tag jewelry") || line.startsWith("#name girl's") || line.startsWith("#name boy's")) {
-				line = line.substring(1);
-				uncommented++;
-			}
-			text.append(line).append('\n');
+	void clothingIsDyedLeatherByItsSlot() {
+		ItemRules rules = defaults();
+		int none = dev.skycraft.link.Proto.KIND_NONE, head = dev.skycraft.link.Proto.KIND_HELMET, body = dev.skycraft.link.Proto.KIND_CUIRASS;
+		int hands = dev.skycraft.link.Proto.KIND_GAUNTLETS, feet = dev.skycraft.link.Proto.KIND_BOOTS;
+		ItemRules.Result robes = looted(rules, "clothing", body, "Hooded Black Robes");
+		assertEquals("minecraft:leather_chestplate 1", robes.describe());
+		assertEquals(0x1C1C1C, robes.color());
+		assertEquals("minecraft:leather_helmet 1", looted(rules, "clothing", head, "Adept Hood").describe());
+		assertEquals("minecraft:leather_leggings 1", looted(rules, "clothing", hands, "Cicero's Gloves").describe());
+		assertEquals("minecraft:leather_boots 1", looted(rules, "clothing", feet, "Fine Boots").describe());
+		assertEquals("minecraft:leather_chestplate 1", looted(rules, "", none, "Girl's Yellow Dress").describe());
+		// Mage robes keep their magic as Mending, in their school's or rank's color.
+		ItemRules.Result destruction = looted(rules, "clothing", body, "Expert Robes of Destruction");
+		assertEquals("minecraft:leather_chestplate{mending:1} 1", destruction.describe());
+		assertEquals(0xA8321E, destruction.color());
+		assertEquals("minecraft:leather_chestplate{mending:1} 1", looted(rules, "clothing", body, "Apprentice Robes").describe());
+		ItemRules.Result archmage = looted(rules, "clothing", body, "Archmage's Robes");
+		assertEquals("Archmage's Robes", archmage.name());
+		// Bought is the same; made, enchanted or picked up stays.
+		assertEquals("minecraft:leather_chestplate 1", convert(rules, tags("clothing") | body << dev.skycraft.link.Proto.TAG_KIND_SHIFT, 0, BOUGHT, "Fine Clothes"));
+		assertEquals("keep", convert(rules, tags("clothing") | body << dev.skycraft.link.Proto.TAG_KIND_SHIFT, 0, WORLD, "Fine Clothes"));
+		// Clothing no rule names goes by the slot Skyrim gives it, undyed; enchanted clothing no rule names stays, and so
+		// does clothing an older plugin sends without a slot.
+		ItemRules.Result slippers = looted(rules, "clothing", feet, "Embroidered Slippers");
+		assertEquals("minecraft:leather_boots 1", slippers.describe());
+		assertEquals(-1, slippers.color());
+		assertEquals("keep", looted(rules, "clothing", body, "Robes of the Wanderer").describe());
+		assertEquals("keep", looted(rules, "clothing", head, "Moth Priest Blindfold").describe());
+		assertEquals("keep", looted(rules, "clothing", none, "Embroidered Slippers").describe());
+		assertEquals("minecraft:cornflower 1 + minecraft:oxeye_daisy 2", looted(rules, "clothing", head, "Wedding Wreath").describe());
+		assertEquals("minecraft:leather_helmet 1", looted(rules, "clothing", head, "Vampire Leather Hood").describe());
+	}
+
+	@Test
+	void plainJewelryMeltsDownAndEnchantedJewelryStays() {
+		ItemRules rules = defaults();
+		assertEquals("minecraft:gold_nugget 3 + minecraft:diamond 1", looted(rules, "jewelry", 0, "Gold Diamond Ring").describe());
+		assertEquals("minecraft:iron_nugget 4 + minecraft:lapis_lazuli 2", looted(rules, "jewelry", 0, "Silver Sapphire Necklace").describe());
+		assertEquals("minecraft:gold_nugget 4", looted(rules, "jewelry", 0, "Gold Necklace").describe());
+		assertEquals("minecraft:iron_nugget 3", looted(rules, "jewelry", 0, "Silver Ring").describe());
+		ItemRules.Result circlet = looted(rules, "jewelry", dev.skycraft.link.Proto.KIND_HELMET, "Copper and Onyx Circlet");
+		assertEquals("minecraft:leather_helmet 1 + minecraft:flint 1", circlet.describe());
+		assertEquals(0xB87333, circlet.color());
+		assertEquals("keep", looted(rules, "jewelry", 0, "Amulet of Mara").describe());
+		assertEquals("keep", looted(rules, "jewelry", 0, "Ring of Minor Health").describe());
+		assertEquals("keep", looted(rules, "jewelry", 0, "Savos Aren's Amulet").describe());
+		assertEquals("keep", looted(rules, "jewelry", 0, "Saarthal Amulet").describe());
+		assertEquals("keep", item(rules, "jewelry", "none", "Gold Ring"));
+	}
+
+	@Test
+	void drinksDragonArmorAndHorseArmor() {
+		ItemRules rules = defaults();
+		ItemRules.Result mead = rules.match(new ItemRules.Item(tags("food"), 0, CONTAINER, "Honningbrew Mead"));
+		assertEquals("minecraft:potion{saturation:1:0+nausea:0:8}", mead.label());
+		assertEquals("Honningbrew Mead", mead.name());
+		assertEquals("minecraft:potion{saturation:1:0+nausea:0:8} 1", convert(rules, tags("food"), 0, BOUGHT, "Mead with Juniper Berry"));
+		assertEquals("keep", convert(rules, tags("foodraw"), 0, CONTAINER, "Jug of Milk"));
+		// Dragon gear is the daedric tier when bought and salvages when looted: nothing in Skyrim is netherite.
+		assertEquals("skycraft:daedric_cuirass 1", convert(rules, tags("armor"), material("dragon"), BOUGHT, "Dragonplate Armor"));
+		assertEquals("skycraft:daedric_greaves 1", convert(rules, tags("armor"), material("dragon"), BOUGHT, "Dragonscale Gauntlets"));
+		assertEquals("skycraft:daedric_sword 1", convert(rules, tags("weapon"), material("dragon"), BOUGHT, "Dragonbone Greatsword"));
+		assertEquals("skycraft:ebony_ingot 2 + minecraft:bone 4",
+			rules.match(new ItemRules.Item(tags("armor"), material("dragon"), CORPSE, "Dragonplate Helmet")).describe());
+		assertTrue(!ItemRules.DEFAULT_TEXT.contains("netherite_"), "a default rule gives netherite gear");
+		assertEquals("minecraft:iron_horse_armor 1", item(rules, "", "none", "Steel Horse Armor"));
+		assertEquals("minecraft:golden_horse_armor 1", item(rules, "", "none", "Elven Horse Armor"));
+	}
+
+	@Test
+	void enchantedGearKeepsItsEnchantment() {
+		ItemRules rules = defaults();
+		// From anywhere, looted or bought: the tier's gear with the nearest enchantment, at the name's strength.
+		assertEquals("skycraft:ebony_sword{fire_aspect:2} 1", convert(rules, tags("weapon"), material("ebony"), CORPSE, sent("Ebony Sword of the Inferno")));
+		assertEquals("skycraft:ebony_sword{fire_aspect:2} 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, sent("Ebony Sword of the Inferno")));
+		assertEquals("skycraft:iron_sword{fire_aspect:1} 1", convert(rules, tags("weapon"), material("iron"), CONTAINER, "Iron Sword of Embers"));
+		assertEquals("skycraft:steel_sword{knockback:1} 1", convert(rules, tags("weapon"), material("steel"), CORPSE, "Steel Greatsword of Chills"));
+		assertEquals("minecraft:bow{power:2} 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, "Hallowed Ebony Bow"));
+		assertEquals("skycraft:daedric_war_axe{unbreaking:3} 1", convert(rules, tags("weapon"), material("daedric"), CORPSE, "Daedric Mace of Exhaustion"));
+		assertEquals("skycraft:orcish_war_axe{smite:3} 1", convert(rules, tags("weapon"), 0, CORPSE, "Virtuous Nordic Battleaxe"));
+		assertEquals("minecraft:crossbow{piercing:2} 1", convert(rules, tags("weapon"), 0, WORLD, "Enhanced Crossbow"));
+		assertEquals("skycraft:daedric_cuirass{protection:3} 1", convert(rules, tags("armor"), material("daedric"), CORPSE, sent("Daedric Armor of Peerless Health")));
+		assertEquals("skycraft:steel_helmet{respiration:3+aqua_affinity:1} 1", convert(rules, tags("armor"), material("steel"), CORPSE, sent("Steel Helmet of Waterbreathing")));
+		assertEquals("skycraft:iron_helmet{respiration:3+aqua_affinity:1} 1", convert(rules, tags("armor"), material("iron"), BOUGHT, sent("Iron Helmet of Waterbreathing")));
+		assertEquals("skycraft:daedric_boots{unbreaking:3} 1", convert(rules, tags("armor"), material("dragon"), CORPSE, sent("Dragonplate Boots of the Mammoth")));
+		assertEquals("minecraft:shield{unbreaking:3} 1", convert(rules, tags("armor"), material("orcish"), CONTAINER, sent("Orcish Shield of Extreme Blocking")));
+		// A shield enchanted against the elements is a plain shield: a Minecraft shield takes only Unbreaking and Mending.
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), material("glass"), CORPSE, sent("Glass Shield of Dwindling Shock")));
+		// Plain gear of the same name still salvages or is bought as before.
+		assertEquals("skycraft:ebony_ingot 1", convert(rules, tags("weapon"), material("ebony"), CORPSE, "Ebony Sword"));
+		assertEquals("skycraft:ebony_sword 1", convert(rules, tags("weapon"), material("ebony"), BOUGHT, "Ebony Sword"));
+	}
+
+	@Test
+	void namedArtifactsAreNamedMinecraftGear() {
+		ItemRules rules = defaults();
+		ItemRules.Result dawnbreaker = rules.match(new ItemRules.Item(tags("weapon"), 0, WORLD, "Dawnbreaker"));
+		assertEquals("skycraft:glass_sword{fire_aspect:2+smite:3} 1", dawnbreaker.describe());
+		assertEquals("Dawnbreaker", dawnbreaker.name());
+		assertEquals("minecraft:mace{breach:3} 1", convert(rules, tags("weapon"), 0, CORPSE, "Mace of Molag Bal"));
+		assertEquals("minecraft:bow{power:3+flame:1} 1", convert(rules, tags("weapon"), material("elven"), WORLD, "Auriel's Bow"));
+		assertEquals("Zephyr", rules.match(new ItemRules.Item(tags("weapon"), material("dwarven"), CONTAINER, "Zephyr")).name());
+		assertEquals("skycraft:steel_sword{sharpness:2+mending:1} 1", convert(rules, tags("weapon"), material("draugr"), CORPSE, "Gauldur Blackblade"));
+		assertEquals("skycraft:ebony_cuirass{thorns:3} 1", convert(rules, tags("armor"), material("ebony"), WORLD, "Ebony Mail"));
+		assertEquals("minecraft:shield{unbreaking:3} 1", convert(rules, tags("armor"), 0, WORLD, "Spellbreaker"));
+		assertEquals("skycraft:daedric_helmet{protection:4+thorns:2} 1", convert(rules, tags("armor"), 0, CORPSE, "Konahrik"));
+		ItemRules.Result cowl = rules.match(new ItemRules.Item(tags("armor"), 0, WORLD, "Gray Cowl of Nocturnal"));
+		assertEquals("Gray Cowl of Nocturnal", cowl.name());
+		assertEquals(0x4A4A4F, cowl.color());
+		assertEquals("skycraft:ebony_boots{feather_falling:3} 1", convert(rules, tags("armor"), 0, CONTAINER, "Nightingale Boots"));
+		// The guards' shields aren't the Shield of Solitude, and the Reforged Crusader pieces aren't the relics.
+		assertEquals("minecraft:shield 1", convert(rules, tags("armor"), 0, CORPSE, "Solitude Guard's Shield"));
+		assertEquals("minecraft:chainmail_chestplate 1", convert(rules, tags("armor"), 0, WORLD, sent("Reforged Cuirass of the Crusader")));
+		// Staffs and the other spell casters stay: nothing in Minecraft casts their spells.
+		for (String staff : List.of("Wabbajack", "Sanguine Rose", "Skull of Corruption", "Staff of Magnus", "Miraak's Staff", "Staff of Fireballs")) {
+			assertEquals("keep", convert(rules, tags("weapon"), 0, WORLD, staff), staff);
 		}
-		assertEquals(26, uncommented);
+		assertEquals("keep", convert(rules, tags("soulgem", "filled"), 0, WORLD, "Azura's Star"));
+	}
+
+	@Test
+	void kindsAndDyesParse() {
 		List<String> problems = new ArrayList<>();
-		ItemRules rules = ItemRules.parse(text.toString(), problems);
-		assertTrue(problems.isEmpty(), problems.toString());
-		assertEquals("minecraft:leather_boots 1", item(rules, "clothing", "none", "Fine Boots"));
-		assertEquals("minecraft:leather_boots 1", item(rules, "clothing", "none", "Barkeeper's Shoes"));
-		assertEquals("minecraft:leather_helmet 1", item(rules, "clothing", "none", "Adept Hood"));
-		assertEquals("minecraft:leather_helmet 1", item(rules, "clothing", "none", "Chef's Hat"));
-		assertEquals("minecraft:leather_leggings 1", item(rules, "clothing", "none", "Cicero's Gloves"));
-		assertEquals("minecraft:leather_chestplate 1", item(rules, "clothing", "none", "Hooded Monk Robes"));
-		assertEquals("minecraft:leather_chestplate 1", item(rules, "clothing", "none", "Fine Clothes"));
-		assertEquals("minecraft:leather_chestplate 1", item(rules, "clothing", "none", "Belted Tunic"));
-		assertEquals("minecraft:leather_chestplate 1", item(rules, "", "none", "Girl's Yellow Dress"));
-		assertEquals("minecraft:gold_nugget 3 + minecraft:diamond 1",
-			rules.match(new ItemRules.Item(tags("jewelry"), 0, WORLD, "Gold Diamond Ring")).describe());
-		assertEquals("minecraft:gold_nugget 3 + minecraft:lapis_lazuli 2",
-			rules.match(new ItemRules.Item(tags("jewelry"), 0, WORLD, "Silver Sapphire Necklace")).describe());
-		assertEquals("minecraft:gold_nugget 4", item(rules, "jewelry", "none", "Gold Necklace"));
-		assertEquals("minecraft:iron_nugget 4", item(rules, "jewelry", "none", "Silver Ring"));
-		assertEquals("minecraft:copper_nugget 4", item(rules, "jewelry", "none", "Copper and Onyx Circlet"));
-		assertEquals("minecraft:iron_nugget 3", item(rules, "jewelry", "none", "Saarthal Amulet"));
+		ItemRules rules = ItemRules.parse("""
+			tag clothing kind boots = minecraft:leather_boots{#5B4632 "Boots"} 1
+			tag clothing kind cuirass from looted from bought = minecraft:leather_chestplate{mending:1 #3b5dc9} 1
+			kind sock = minecraft:leather_boots 1
+			tag clothing = minecraft:iron_helmet{#123456} 1
+			tag clothing = minecraft:leather_helmet{#12345} 1
+			""", problems);
+		assertEquals(2, rules.size());
+		assertEquals(3, problems.size(), problems.toString());
+		assertTrue(problems.get(0).startsWith("line 3: unknown kind 'sock'"), problems.toString());
+		assertTrue(problems.get(1).startsWith("line 4: only leather armor"), problems.toString());
+		int boots = ItemRules.KINDS.indexOf("boots") << ItemRules.KIND_SHIFT, cuirass = ItemRules.KINDS.indexOf("cuirass") << ItemRules.KIND_SHIFT;
+		ItemRules.Result shoes = rules.match(new ItemRules.Item(tags("clothing") | boots, 0, WORLD, "Shoes"));
+		assertEquals(0x5B4632, shoes.color());
+		assertEquals("Boots", shoes.name());
+		assertEquals(List.of(), shoes.enchantments());
+		ItemRules.Result robe = rules.match(new ItemRules.Item(tags("clothing") | cuirass, 0, CORPSE, "Robes"));
+		assertEquals(List.of(new ItemRules.Enchant("mending", 1)), robe.enchantments());
+		assertEquals(0x3B5DC9, robe.color());
+		assertEquals("keep", convert(rules, tags("clothing") | cuirass, 0, WORLD, "Robes"));
+		assertEquals("keep", convert(rules, tags("clothing"), 0, CORPSE, "Robes"));
+		assertEquals(dev.skycraft.link.Proto.KIND_SHIELD, ItemRules.KINDS.indexOf("shield"));
+		assertEquals(dev.skycraft.link.Proto.TAG_KIND_SHIFT, ItemRules.KIND_SHIFT);
 	}
 
 	private static void assertPotion(ItemRules rules, String expected, String skyrimName) {

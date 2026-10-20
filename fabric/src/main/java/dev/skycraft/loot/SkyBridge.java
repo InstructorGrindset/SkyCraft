@@ -26,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.jspecify.annotations.Nullable;
 
@@ -98,12 +99,16 @@ public final class SkyBridge {
 	/**
 	 * {@code n} of {@code item}, holding {@code potion} and {@code effects} when it has them (potions, splash and
 	 * lingering potions, tipped arrows), in {@code color} (0xRRGGBB, -1 for Minecraft's mix), named {@code name}.
+	 * Anything else with a color is leather dyed it (ItemRules only lets a dye through on dyeable items).
 	 */
 	static ItemStack stack(Item item, int n, Holder<Potion> potion, List<MobEffectInstance> effects, int color, String name) {
 		ItemStack stack = new ItemStack(item, n);
 		if (potion != null || !effects.isEmpty()) {
 			stack.set(DataComponents.POTION_CONTENTS,
 				new PotionContents(Optional.ofNullable(potion), color >= 0 ? Optional.of(color) : Optional.empty(), effects, Optional.empty()));
+		} else if (color >= 0) {
+			// Skyrim clothing: the leather piece dyed like the robe or hood it was.
+			stack.set(DataComponents.DYED_COLOR, new DyedItemColor(color));
 		}
 		if (name != null) {
 			// A potion's own name comes from its contents, so the Skyrim name goes in CUSTOM_NAME, not italic like a renamed item's.

@@ -129,3 +129,5 @@ net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
 # Paired backups (backup/SkyBackups): autosave held while the world is zipped, players saved first
 -c net.minecraft.server.level.ServerLevel noSave
 -c net.minecraft.server.players.PlayerList saveAll
+net.minecraft.world.item.component.DyedItemColor
+-c net.minecraft.core.component.DataComponents DYED_COLOR
