@@ -35,8 +35,9 @@ public class SkyrimActorEntity extends LivingEntity {
 	private static final EntityDataAccessor<Integer> FORM_ID = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Float> WIDTH = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.FLOAT);
 	private static final EntityDataAccessor<Float> HEIGHT = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.FLOAT);
-	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant. Synced so the client
-	// knows a right click on a merchant opens the shop (and isn't one for Skyrim, client.ClickActivate).
+	// Proto.VENDOR_* mask of the Skyrim merchant behind us, 0 if not a merchant (trade.TradeRules.DEALER_ONLY for a Skooma
+	// dealer Skyrim doesn't make a merchant). Synced so the client knows a right click on a merchant opens the shop (and
+	// isn't one for Skyrim, client.ClickActivate).
 	private static final EntityDataAccessor<Integer> VENDOR = SynchedEntityData.defineId(SkyrimActorEntity.class, EntityDataSerializers.INT);
 	// The Skyrim actor's Proto.ACTOR_* flags (hostile, dead, essential, companion, waiting, its animal kind). Synced so
 	// the client knows a click on a Skyrim animal is for the companions feature (companion.SkyCompanions), not Skyrim.
@@ -112,15 +113,23 @@ public class SkyrimActorEntity extends LivingEntity {
 	}
 
 	/**
-	 * Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen.
+	 * Right-clicking a Skyrim merchant with an empty hand opens its shop as a villager trade screen;
+	 * sneaking and right-clicking it with goods in hand sells them for Skyrim gold (trade.SkySell).
 	 * Both sides take the click, as a villager does, so the client counts it as used and Skyrim
-	 * doesn't also start a conversation (client.ClickActivate). On a Skyrim dog, wolf or horse the
-	 * companions feature may take it (a bone, horse food, an empty hand on a tamed one: see
-	 * companion.SkyCompanions). Any other click passes, and with nothing else to use it on, Skyrim
-	 * activates the NPC (talks to them, rides the horse) as G does.
+	 * doesn't also start a conversation (client.ClickActivate), and the held item isn't used (eaten,
+	 * placed). On a Skyrim dog, wolf or horse the companions feature may take it (a bone, horse food,
+	 * an empty hand on a tamed one: see companion.SkyCompanions). Any other click passes, and with
+	 * nothing else to use it on, Skyrim activates the NPC (talks to them, rides the horse) as G does.
 	 */
 	@Override
 	public InteractionResult interact(Player player, InteractionHand hand, Vec3 at) {
+		if (hand == InteractionHand.MAIN_HAND && !player.getMainHandItem().isEmpty() && player.isSecondaryUseActive() && this.getVendor() != 0
+			&& dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.SELL_TO_MERCHANTS)) {
+			if (!this.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {
+				dev.skycraft.trade.SkySell.offer(serverPlayer, this);
+			}
+			return InteractionResult.SUCCESS;
+		}
 		if (hand == InteractionHand.MAIN_HAND && player.getMainHandItem().isEmpty() && this.getVendor() != 0
 			&& dev.skycraft.config.Features.on(dev.skycraft.config.Features.Feature.MERCHANTS)) {
 			if (!this.level().isClientSide() && player instanceof ServerPlayer serverPlayer) {

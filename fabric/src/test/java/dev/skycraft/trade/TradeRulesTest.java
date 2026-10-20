@@ -3,6 +3,7 @@ package dev.skycraft.trade;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.skycraft.link.Proto;
@@ -41,16 +42,158 @@ class TradeRulesTest {
 		for (TradeRules.Trade t : rules.trades()) {
 			categories.add(t.category());
 		}
-		assertEquals(Set.copyOf(TradeRules.CATEGORIES), categories);
+		Set<String> all = new HashSet<>(TradeRules.CATEGORIES);
+		all.addAll(TradeRules.DEALER_CATEGORIES);
+		assertEquals(all, categories);
+		Set<String> goldCategories = new HashSet<>();
+		for (TradeRules.GoldPrice g : rules.gold()) {
+			goldCategories.add(g.category());
+		}
+		assertEquals(all, goldCategories, "every kind of shop buys something for gold");
 	}
 
 	@Test
-	void defaultItemsAreVanillaIds() {
+	void defaultItemsAreVanillaOrSkyCraftIds() {
 		for (TradeRules.Trade t : defaults().trades()) {
-			assertTrue(t.item().matches("minecraft:[a-z_]+"), t.item());
+			assertTrue(t.item().matches("(minecraft|skycraft):[a-z_]+(\\[(minecraft|skycraft):[a-z_]+])?"), t.item());
 			assertTrue(t.count() >= 1 && t.count() <= 64, t.toString());
 			assertTrue(t.price() >= 1, t.toString());
 		}
+		for (TradeRules.GoldPrice g : defaults().gold()) {
+			assertTrue(g.item().matches("(minecraft|skycraft):[a-z_]+(\\[(minecraft|skycraft):[a-z_]+])?"), g.item());
+			assertTrue(g.count() >= 1 && g.count() <= 64 && g.gold() >= 1, g.toString());
+		}
+	}
+
+	@Test
+	void anUneditedEarlierTradesFileGetsTheNewDefaults() {
+		// Config.read swaps a trades file that still holds one of these for DEFAULT_TRADES (the gold and Skooma lines).
+		assertEquals(2, TradeRules.OLD_TRADES.size());
+		for (String old : TradeRules.OLD_TRADES) {
+			assertTrue(old.matches("sha256:[0-9a-f]{64}"), old);
+		}
+		assertFalse(dev.skycraft.config.Config.untouched(TradeRules.DEFAULT_TRADES, TradeRules.OLD_TRADES), "the current default is listed as old");
+		assertFalse(dev.skycraft.config.Config.untouched(TradeRules.DEFAULT_TRADES + "\nfood sell 1 minecraft:bread 1\n", TradeRules.OLD_TRADES));
+	}
+
+	@Test
+	void merchantsBuyForGoldOnlyWhatTheirShopDealsIn() {
+		TradeRules rules = defaults();
+		assertEquals(3, rules.goldPriceFor(Proto.VENDOR_INGOT, "Ghorza gra-Bagol", "minecraft:iron_ingot").gold());
+		assertEquals("ingot", rules.goldPriceFor(Proto.VENDOR_ANY, "Belethor", "minecraft:iron_ingot").category());
+		assertEquals(150, rules.goldPriceFor(Proto.VENDOR_JEWELRY, "Madesi", "minecraft:diamond").gold());
+		assertEquals(3, rules.goldPriceFor(Proto.VENDOR_HIDE, "", "minecraft:leather").gold());
+		assertEquals(3, rules.goldPriceFor(Proto.VENDOR_FOOD, "", "minecraft:cooked_beef").gold());
+		// A grocer doesn't buy ingots, a smith doesn't buy bread, nobody buys dirt.
+		assertNull(rules.goldPriceFor(Proto.VENDOR_FOOD, "", "minecraft:iron_ingot"));
+		assertNull(rules.goldPriceFor(Proto.VENDOR_WEAPON | Proto.VENDOR_ARMOR | Proto.VENDOR_INGOT, "", "minecraft:bread"));
+		assertNull(rules.goldPriceFor(Proto.VENDOR_ANY, "", "minecraft:dirt"));
+		// General stores don't fence; fences do.
+		assertNull(rules.goldPriceFor(Proto.VENDOR_ANY, "Belethor", "minecraft:name_tag"));
+		assertEquals("stolen", rules.goldPriceFor(Proto.VENDOR_STOLEN, "Tonilia", "minecraft:name_tag").category());
+		assertNull(rules.goldPriceFor(0, "Hulda", "minecraft:iron_ingot"));
+		// Moon sugar goes only to the caravans.
+		assertNull(rules.goldPriceFor(Proto.VENDOR_ANY, "Belethor", "skycraft:moon_sugar"));
+		assertEquals(15, rules.goldPriceFor(Proto.VENDOR_ANY, "Ri'saad", "skycraft:moon_sugar").gold());
+	}
+
+	@Test
+	void aPotionSellsByItsOwnLineOrThePlainItemsLine() {
+		TradeRules rules = TradeRules.parse("""
+			potion gold 1 minecraft:potion[healing] 8
+			potion gold 1 minecraft:potion 2
+			""", "* = copper\n", new ArrayList<>());
+		assertEquals(8, rules.goldPriceFor(Proto.VENDOR_POTION, "", "minecraft:potion[minecraft:healing]").gold());
+		assertEquals(2, rules.goldPriceFor(Proto.VENDOR_POTION, "", "minecraft:potion[minecraft:swiftness]").gold());
+		assertEquals(2, rules.goldPriceFor(Proto.VENDOR_POTION, "", "minecraft:potion").gold());
+		assertNull(rules.goldPriceFor(Proto.VENDOR_POTION, "", "minecraft:splash_potion[minecraft:healing]"));
+	}
+
+	@Test
+	void goldPricesFallWithEveryLotAndStayWithinThePurse() {
+		TradeRules rules = defaults();
+		TradeRules.GoldPrice gem = rules.goldPriceFor(Proto.VENDOR_JEWELRY, "", "minecraft:diamond");
+		// Markarth pays 1.5 times for jewelry; each diamond sold lowers the next one's price 5%.
+		assertEquals(List.of(225, 214, 203, 191), rules.goldPrices(gem, "Markarth", new Demand(), 4, 1.0));
+		assertEquals(List.of(150, 150), rules.goldPrices(gem, "Helgen", null, 2, 1.0));
+		// Half a worn sword's durability left: half the price.
+		TradeRules.GoldPrice sword = rules.goldPriceFor(Proto.VENDOR_WEAPON, "", "minecraft:diamond_sword");
+		assertEquals(List.of(30), rules.goldPrices(sword, "Helgen", null, 1, 0.5));
+		// Never under 1 gold a lot, however low demand falls; and at most a stack of lots.
+		TradeRules.GoldPrice paper = rules.goldPriceFor(Proto.VENDOR_BOOK, "", "minecraft:paper");
+		Demand glut = new Demand();
+		for (int i = 0; i < 30; i++) {
+			glut.sold("Helgen", "minecraft:paper");
+		}
+		assertTrue(rules.goldPrices(paper, "Helgen", glut, 5, 0.01).stream().allMatch(p -> p == 1));
+		assertEquals(TradeRules.MAX_GOLD_BATCHES, rules.goldPrices(paper, "Helgen", null, 1000, 1.0).size());
+		// A merchant pays for the first lots its gold covers.
+		assertEquals(2, TradeRules.affordable(List.of(225, 214, 203), 500));
+		assertEquals(3, TradeRules.affordable(List.of(225, 214, 203), 642));
+		assertEquals(0, TradeRules.affordable(List.of(225), 224));
+		assertEquals(0, TradeRules.affordable(List.of(5), -1));
+	}
+
+	@Test
+	void khajiitCaravansDealInSkooma() {
+		TradeRules rules = defaults();
+		for (String khajiit : List.of("Ri'saad", "ahkari", "MA'DRAN", "Kharjo", "Zaynabi", "Atahbah", "Ma'jhad", "Khayla")) {
+			assertEquals(Set.of("skooma"), rules.dealerCategories(khajiit), khajiit);
+		}
+		assertTrue(rules.dealerCategories("Belethor").isEmpty());
+		for (long seed = 0; seed < 50; seed++) {
+			// A caravan (Skyrim makes Ri'saad a merchant of everything) always has its Skooma and moon sugar on show.
+			List<TradeRules.Offer> risaad = rules.offersFor(Proto.VENDOR_ANY, "Ri'saad", "Whiterun", seed, null);
+			assertEquals(TradeRules.MAX_OFFERS, risaad.size());
+			Set<String> items = new HashSet<>();
+			risaad.forEach(o -> items.add(o.item()));
+			assertTrue(items.containsAll(Set.of("minecraft:potion[skycraft:skooma]", "minecraft:potion[skycraft:redwater_skooma]", "skycraft:moon_sugar")),
+				items.toString());
+			// Nobody else does.
+			for (TradeRules.Offer o : rules.offersFor(Proto.VENDOR_ANY | Proto.VENDOR_STOLEN, "Belethor", "Whiterun", seed, null)) {
+				assertNotEquals("skooma", o.category());
+			}
+		}
+		// A dealer Skyrim doesn't make a merchant: its Skooma alone.
+		List<TradeRules.Offer> kharjo = rules.offersFor(TradeRules.DEALER_ONLY, "Kharjo", "Dawnstar", 1, null);
+		assertEquals(3, kharjo.size());
+		kharjo.forEach(o -> assertEquals("skooma", o.category()));
+		assertTrue(TradeRules.categoriesFor(TradeRules.DEALER_ONLY).isEmpty());
+		assertTrue(rules.offersFor(TradeRules.DEALER_ONLY, "Belethor", "Whiterun", 1, null).isEmpty());
+	}
+
+	@Test
+	void itemsAndPotionsAreNamespaced() {
+		assertEquals("minecraft:bread", TradeRules.normalizeItem("Bread"));
+		assertEquals("minecraft:potion[minecraft:healing]", TradeRules.normalizeItem("potion[healing]"));
+		assertEquals("minecraft:potion[skycraft:skooma]", TradeRules.normalizeItem("minecraft:potion[skycraft:skooma]"));
+		assertNull(TradeRules.normalizeItem("minecraft:bread[healing]"));
+		assertNull(TradeRules.normalizeItem("minecraft:potion[healing"));
+		assertNull(TradeRules.normalizeItem("minecraft:potion[]"));
+		assertNull(TradeRules.normalizeItem("not an:id"));
+		assertEquals("minecraft:potion", TradeRules.baseItem("minecraft:potion[skycraft:skooma]"));
+		assertEquals("skycraft:skooma", TradeRules.potionOf("minecraft:potion[skycraft:skooma]"));
+		assertNull(TradeRules.potionOf("minecraft:bread"));
+	}
+
+	@Test
+	void reportsBadGoldAndDealerLines() {
+		List<String> problems = new ArrayList<>();
+		TradeRules rules = TradeRules.parse("""
+			ingot gold 1 minecraft:iron_ingot 3
+			ingot gold 1 minecraft:iron_ingot 0
+			ingot gold 1 minecraft:bread[healing] 3
+			potion buy 1 minecraft:potion[healing] 3
+			skooma sell 1 skycraft:moon_sugar 50
+			dealer skooma = Ri'saad, ,Ahkari
+			dealer smuggling = Ri'saad
+			dealer skooma =
+			dealer skooma Ri'saad
+			""", "* = copper\n", problems);
+		assertEquals(6, problems.size(), problems.toString());
+		assertEquals(1, rules.gold().size());
+		assertEquals(1, rules.trades().size());
+		assertEquals(Set.of("skooma"), rules.dealerCategories("ahkari"));
 	}
 
 	@Test

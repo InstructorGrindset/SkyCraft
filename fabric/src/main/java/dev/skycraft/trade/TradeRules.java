@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * What Skyrim merchants trade as Minecraft items, and how each town prices it.
@@ -18,19 +19,28 @@ import java.util.Set;
  * <p>Two plain text files, so both can be edited without a rebuild. {@code skycraft-trades.txt}
  * lists every trade a merchant of a category can offer, one per line:
  * <pre>
- * # category sell|buy count item price-in-coins
+ * # category sell|buy|gold count item price
  * weapon sell 1 minecraft:iron_sword 40
  * hide buy 4 minecraft:leather 4
+ * ingot gold 1 minecraft:iron_ingot 3
+ * skooma sell 1 minecraft:potion[skycraft:skooma] 30
+ * dealer skooma = Ri'saad, Ahkari, Ma'dran
  * </pre>
- * {@code sell} means the merchant sells to the player, {@code buy} that the merchant buys from the
- * player. {@code skycraft-towns.txt} sets what each town pays with and what's cheap or dear there:
+ * {@code sell} means the merchant sells to the player and {@code buy} that the merchant buys from the
+ * player, both on the villager trade screen for Minecraft coin; {@code gold} that the merchant buys
+ * from the player for Skyrim gold, out of its own (sneak and right click it with the goods, {@link SkySell}).
+ * An item that holds a potion may name it in brackets on a sell or gold line. A {@code dealer} line
+ * names merchants (by their Skyrim name) who also deal in a category no Skyrim shop lists by itself
+ * ({@link #DEALER_CATEGORIES}): their trades of it are always offered. {@code skycraft-towns.txt} sets
+ * what each town pays with and what's cheap or dear there:
  * <pre>
  * Whiterun = copper gold ; food 0.7, weapon 0.9
  * * = copper gold
  * </pre>
  * A multiplier applies both ways: a town where food is plentiful sells it cheap and pays little for
- * it. Towns match ignoring case; unknown towns use the {@code *} line. Prices are in coins (see
- * {@link Currency}). Pure Java on purpose, so it's unit tested without Minecraft.
+ * it (in coin and in gold). Towns match ignoring case; unknown towns use the {@code *} line. Prices
+ * are in coins (see {@link Currency}), gold lines' in Skyrim gold. Pure Java on purpose, so it's unit
+ * tested without Minecraft.
  */
 public final class TradeRules {
 	/** Trade categories, in Proto.VENDOR_* bit order. */
@@ -40,13 +50,32 @@ public final class TradeRules {
 		Proto.VENDOR_INGREDIENT, Proto.VENDOR_FOOD, Proto.VENDOR_ARROW, Proto.VENDOR_JEWELRY, Proto.VENDOR_BOOK, Proto.VENDOR_HIDE, Proto.VENDOR_TOOL,
 		Proto.VENDOR_STOLEN };
 
+	/**
+	 * Categories no Skyrim shop deals in by itself (no VendorBuys bit): only the merchants a {@code dealer} line names
+	 * offer their trades (Skooma and moon sugar, from the Khajiit caravans).
+	 */
+	public static final List<String> DEALER_CATEGORIES = List.of("skooma");
+	/**
+	 * Not a Skyrim VendorBuys bit (those end at bit 12): Minecraft puts it on the stand-in of an actor a {@code dealer}
+	 * line names when Skyrim doesn't make it a merchant, so a click opens its shop. It deals in no category of its own.
+	 */
+	public static final int DEALER_ONLY = 1 << 15;
+	/** Items that hold a potion, which a sell or gold line may name in brackets: {@code minecraft:potion[skycraft:skooma]}. */
+	public static final List<String> POTION_ITEMS = dev.skycraft.loot.ItemRules.POTION_ITEMS;
+
 	/** Most offers one merchant shows. */
 	public static final int MAX_OFFERS = 12;
 	/** Highest price a trades line may set, far above anything two stacks of currency can pay. */
 	public static final int MAX_PRICE = 100_000;
+	/** Most batches one sale for gold sells: a stack of a one-at-a-time item. */
+	public static final int MAX_GOLD_BATCHES = 64;
 
-	/** One line of the trades file. */
+	/** One sell or buy line of the trades file. */
 	public record Trade(String category, boolean sell, int count, String item, int price) {
+	}
+
+	/** One gold line of the trades file: a merchant dealing in {@code category} pays {@code gold} Skyrim gold for {@code count} of {@code item}. */
+	public record GoldPrice(String category, int count, String item, int gold) {
 	}
 
 	/** One line of the towns file. {@code currencies} are item ids. */
@@ -65,13 +94,18 @@ public final class TradeRules {
 
 	public static final String DEFAULT_TRADES = """
 		# SkyCraft merchant trades: what Skyrim merchants trade as Minecraft items.
-		# One trade per line:  category sell|buy count item price
-		#   sell = the merchant sells to you, buy = the merchant buys from you
-		#   price is in coins: copper ingot 1, gold nugget 2, gold ingot 18, emerald 24, diamond 96
+		# One trade per line:  category sell|buy|gold count item price
+		#   sell = the merchant sells to you, buy = the merchant buys from you (both on the trade
+		#   screen: right click a merchant with an empty hand), price in coins: copper ingot 1,
+		#   gold nugget 2, gold ingot 18, emerald 24, diamond 96
+		#   gold = the merchant buys from you for Skyrim gold, put in your Skyrim inventory: sneak and
+		#   right click it with the goods in your main hand. It pays out of its own gold, for whole
+		#   lots of count items, and every lot sold lowers what it pays for that item in town a while.
 		#   categories: weapon armor ingot potion ingredient food arrow jewelry book hide tool stolen
+		#   An item that holds a potion can name it on a sell or gold line: minecraft:potion[healing]
 		# A merchant shows up to 12 of the trades its Skyrim shop deals in; general goods stores
 		# deal in everything except stolen goods, fences in stolen goods. What each town pays with
-		# and what's cheap there is in skycraft-towns.txt. Restart Skyrim after editing.
+		# and what's cheap there is in skycraft-towns.txt. Restart Minecraft after editing.
 
 		weapon sell 1 minecraft:iron_sword 40
 		weapon sell 1 minecraft:bow 30
@@ -163,7 +197,109 @@ public final class TradeRules {
 		stolen buy 1 minecraft:name_tag 12
 		stolen buy 1 minecraft:saddle 14
 		stolen buy 1 minecraft:clock 16
+
+		# Skooma and moon sugar. No Skyrim shop lists them, so a dealer line names who deals in them, on
+		# top of what their own shop trades:  dealer category = Name, Name, ...  (Skyrim's names, any case)
+		# A dealer Skyrim doesn't make a merchant opens a shop of these alone (talk to them with G).
+		skooma sell 1 minecraft:potion[skycraft:skooma] 30
+		skooma sell 1 minecraft:potion[skycraft:redwater_skooma] 80
+		skooma sell 1 skycraft:moon_sugar 50
+		skooma gold 1 skycraft:moon_sugar 15
+		skooma gold 1 minecraft:potion[skycraft:skooma] 8
+		dealer skooma = Ri'saad, Ahkari, Ma'dran, Kharjo, Zaynabi, Atahbah, Ma'jhad, Khayla, Ra'zhinda, Dro'marash, Ma'randru-jo
+
+		# What merchants pay in Skyrim gold (gold lines): about what Skyrim's own merchants pay for the
+		# nearest Skyrim goods, less than they ask for them, so gold can't be farmed round the two games.
+		weapon gold 1 minecraft:iron_sword 8
+		weapon gold 1 minecraft:diamond_sword 60
+		weapon gold 1 minecraft:bow 6
+		weapon gold 1 minecraft:crossbow 9
+		weapon gold 1 skycraft:steel_sword 12
+		weapon gold 1 skycraft:ebony_sword 90
+
+		armor gold 1 minecraft:iron_chestplate 14
+		armor gold 1 minecraft:diamond_chestplate 100
+		armor gold 1 minecraft:leather_chestplate 4
+		armor gold 1 skycraft:steel_cuirass 20
+
+		ingot gold 1 minecraft:iron_ingot 3
+		ingot gold 1 minecraft:gold_ingot 25
+		ingot gold 4 minecraft:copper_ingot 3
+		ingot gold 1 minecraft:netherite_ingot 300
+		ingot gold 4 minecraft:raw_iron 2
+		ingot gold 1 minecraft:raw_gold 6
+		ingot gold 8 minecraft:coal 2
+		ingot gold 1 skycraft:steel_ingot 8
+		ingot gold 1 skycraft:orichalcum_ingot 14
+		ingot gold 1 skycraft:dwarven_metal_ingot 12
+		ingot gold 1 skycraft:refined_moonstone 20
+		ingot gold 1 skycraft:refined_malachite 30
+		ingot gold 1 skycraft:ebony_ingot 60
+
+		potion gold 1 minecraft:potion[healing] 8
+		potion gold 1 minecraft:experience_bottle 4
+		potion gold 4 minecraft:glass_bottle 1
+
+		ingredient gold 4 minecraft:spider_eye 2
+		ingredient gold 4 minecraft:glowstone_dust 3
+		ingredient gold 2 minecraft:blaze_powder 5
+		ingredient gold 4 minecraft:nether_wart 2
+		ingredient gold 8 minecraft:sugar 1
+
+		food gold 4 minecraft:bread 2
+		food gold 2 minecraft:cooked_beef 3
+		food gold 2 minecraft:cooked_porkchop 3
+		food gold 2 minecraft:cooked_mutton 2
+		food gold 2 minecraft:cooked_chicken 2
+		food gold 2 minecraft:cooked_salmon 3
+		food gold 4 minecraft:apple 3
+		food gold 4 minecraft:beef 2
+		food gold 8 minecraft:wheat 2
+		food gold 8 minecraft:potato 2
+		food gold 8 minecraft:carrot 2
+		food gold 1 minecraft:cake 5
+		food gold 1 minecraft:pumpkin_pie 2
+
+		arrow gold 16 minecraft:arrow 3
+		arrow gold 16 minecraft:feather 2
+
+		jewelry gold 1 minecraft:diamond 150
+		jewelry gold 1 minecraft:emerald 100
+		jewelry gold 4 minecraft:amethyst_shard 20
+		jewelry gold 8 minecraft:lapis_lazuli 24
+		jewelry gold 8 minecraft:redstone 12
+		jewelry gold 4 minecraft:quartz 6
+		jewelry gold 1 minecraft:clock 15
+
+		book gold 1 minecraft:book 2
+		book gold 1 minecraft:enchanted_book 25
+		book gold 1 minecraft:map 3
+		book gold 8 minecraft:paper 1
+
+		hide gold 1 minecraft:leather 3
+		hide gold 4 minecraft:rabbit_hide 3
+		hide gold 4 skycraft:leather_strips 1
+		hide gold 8 minecraft:bone 2
+
+		tool gold 1 minecraft:iron_pickaxe 6
+		tool gold 1 minecraft:diamond_pickaxe 50
+		tool gold 1 minecraft:shears 3
+		tool gold 1 minecraft:lantern 2
+		tool gold 16 minecraft:torch 2
+
+		stolen gold 1 minecraft:name_tag 10
+		stolen gold 1 minecraft:saddle 12
+		stolen gold 1 minecraft:clock 12
 		""";
+
+	/**
+	 * Every {@link #DEFAULT_TRADES} shipped before, by hash: the first merchants build's, and the one with obsidian for
+	 * portals. A trades file still holding one untouched gets the new defaults (config.Config.read). Add the hash of the
+	 * current default here ({@code Config.sha256(DEFAULT_TRADES)}) whenever you change it.
+	 */
+	public static final List<String> OLD_TRADES = List.of(
+		"sha256:5d4f7705376449a610d71b8691c4fe06f9416a9361bba65a18d214a21db81016",
+		"sha256:a1bc3d4215993e0b070111f093852d77c8590cf46a36ed8c385201e11ff2a962");
 
 	public static final String DEFAULT_TOWNS = """
 		# SkyCraft towns: what Skyrim towns pay with and what's cheap or dear there.
@@ -195,15 +331,26 @@ public final class TradeRules {
 		""";
 
 	private final List<Trade> trades;
+	private final List<GoldPrice> gold;
+	/** Lower case Skyrim name to the dealer categories its dealer lines give it. */
+	private final Map<String, Set<String>> dealers;
 	private final Map<String, Town> towns;
 
-	private TradeRules(List<Trade> trades, Map<String, Town> towns) {
+	private TradeRules(List<Trade> trades, List<GoldPrice> gold, Map<String, Set<String>> dealers, Map<String, Town> towns) {
 		this.trades = trades;
+		this.gold = gold;
+		this.dealers = dealers;
 		this.towns = towns;
 	}
 
+	/** The sell and buy lines: the trade screen's. */
 	public List<Trade> trades() {
 		return this.trades;
+	}
+
+	/** The gold lines: what merchants pay in Skyrim gold. */
+	public List<GoldPrice> gold() {
+		return this.gold;
 	}
 
 	public Map<String, Town> towns() {
@@ -217,20 +364,70 @@ public final class TradeRules {
 
 	/** Parses both files. Bad lines are skipped and reported to {@code problems}, once each. */
 	public static TradeRules parse(String tradesText, String townsText, List<String> problems) {
-		return new TradeRules(List.copyOf(parseTrades(tradesText, problems)), Map.copyOf(parseTowns(townsText, problems)));
+		List<Trade> trades = new ArrayList<>();
+		List<GoldPrice> gold = new ArrayList<>();
+		Map<String, Set<String>> dealers = new HashMap<>();
+		parseTrades(tradesText, trades, gold, dealers, problems);
+		Map<String, Set<String>> frozen = new HashMap<>();
+		dealers.forEach((name, categories) -> frozen.put(name, Set.copyOf(categories)));
+		return new TradeRules(List.copyOf(trades), List.copyOf(gold), Map.copyOf(frozen), Map.copyOf(parseTowns(townsText, problems)));
 	}
 
-	private static String normalizeItem(String item) {
-		String id = item.toLowerCase(Locale.ROOT);
-		return id.indexOf(':') < 0 ? "minecraft:" + id : id;
+	private static final Pattern ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
+
+	/** A namespaced id ({@code minecraft:} when it has none), or null when it isn't one. */
+	private static String normalizeId(String id) {
+		String out = id.strip().toLowerCase(Locale.ROOT);
+		out = out.indexOf(':') < 0 ? "minecraft:" + out : out;
+		return ID.matcher(out).matches() ? out : null;
+	}
+
+	/**
+	 * {@code item} as the trades keep it: {@code minecraft:bread}, or with the potion it holds, both namespaced:
+	 * {@code minecraft:potion[skycraft:skooma]}. Null when it's malformed, or brackets a potion on an item that can't
+	 * hold one.
+	 */
+	static String normalizeItem(String item) {
+		int open = item.indexOf('[');
+		if (open < 0) {
+			return normalizeId(item);
+		}
+		if (!item.endsWith("]")) {
+			return null;
+		}
+		String base = normalizeId(item.substring(0, open));
+		String potion = normalizeId(item.substring(open + 1, item.length() - 1));
+		if (base == null || potion == null || !POTION_ITEMS.contains(base)) {
+			return null;
+		}
+		return base + "[" + potion + "]";
+	}
+
+	/** The item of a trades item without its potion: {@code minecraft:potion} for {@code minecraft:potion[skycraft:skooma]}. */
+	public static String baseItem(String item) {
+		int open = item.indexOf('[');
+		return open < 0 ? item : item.substring(0, open);
+	}
+
+	/** The potion a trades item names in brackets, or null: {@code skycraft:skooma} for {@code minecraft:potion[skycraft:skooma]}. */
+	public static String potionOf(String item) {
+		int open = item.indexOf('[');
+		return open < 0 ? null : item.substring(open + 1, item.length() - 1);
+	}
+
+	private static boolean known(String category) {
+		return CATEGORIES.contains(category) || DEALER_CATEGORIES.contains(category);
 	}
 
 	private static String townKey(String town) {
 		return town == null || town.isBlank() ? "*" : town.strip().toLowerCase(Locale.ROOT);
 	}
 
-	private static List<Trade> parseTrades(String text, List<String> problems) {
-		List<Trade> out = new ArrayList<>();
+	private static String nameKey(String name) {
+		return name == null ? "" : name.strip().toLowerCase(Locale.ROOT);
+	}
+
+	private static void parseTrades(String text, List<Trade> trades, List<GoldPrice> gold, Map<String, Set<String>> dealers, List<String> problems) {
 		int n = 0;
 		for (String raw : text.split("\\R")) {
 			n++;
@@ -239,19 +436,23 @@ public final class TradeRules {
 				continue;
 			}
 			String where = "trades line " + n + ": ";
+			if (line.toLowerCase(Locale.ROOT).startsWith("dealer ")) {
+				parseDealer(line, where, dealers, problems);
+				continue;
+			}
 			String[] bits = line.split("\\s+");
 			if (bits.length != 5) {
-				problems.add(where + "expected 'category sell|buy count item price'");
+				problems.add(where + "expected 'category sell|buy|gold count item price'");
 				continue;
 			}
 			String category = bits[0].toLowerCase(Locale.ROOT);
-			if (!CATEGORIES.contains(category)) {
+			if (!known(category)) {
 				problems.add(where + "unknown category '" + bits[0] + "'");
 				continue;
 			}
 			String way = bits[1].toLowerCase(Locale.ROOT);
-			if (!way.equals("sell") && !way.equals("buy")) {
-				problems.add(where + "expected sell or buy, not '" + bits[1] + "'");
+			if (!way.equals("sell") && !way.equals("buy") && !way.equals("gold")) {
+				problems.add(where + "expected sell, buy or gold, not '" + bits[1] + "'");
 				continue;
 			}
 			int count, price;
@@ -268,12 +469,46 @@ public final class TradeRules {
 			}
 			if (price < 1 || price > MAX_PRICE) {
 				// Above that, price times multipliers could overflow into a 1-coin price.
-				problems.add(where + "price must be 1 to " + MAX_PRICE + " coins");
+				problems.add(where + "price must be 1 to " + MAX_PRICE + (way.equals("gold") ? " gold" : " coins"));
 				continue;
 			}
-			out.add(new Trade(category, way.equals("sell"), count, normalizeItem(bits[3]), price));
+			String item = normalizeItem(bits[3]);
+			if (item == null) {
+				problems.add(where + "'" + bits[3] + "' isn't an item id (a potion in brackets only on potion, splash_potion, lingering_potion or tipped_arrow)");
+				continue;
+			}
+			if (way.equals("buy") && potionOf(item) != null) {
+				// The trade screen's payment slot tells items apart, not the potions in them.
+				problems.add(where + "a buy line can't name a potion; use a gold line");
+				continue;
+			}
+			if (way.equals("gold")) {
+				gold.add(new GoldPrice(category, count, item, price));
+			} else {
+				trades.add(new Trade(category, way.equals("sell"), count, item, price));
+			}
 		}
-		return out;
+	}
+
+	/** {@code dealer category = Name, Name, ...}. */
+	private static void parseDealer(String line, String where, Map<String, Set<String>> dealers, List<String> problems) {
+		int eq = line.indexOf('=');
+		String category = eq < 0 ? "" : line.substring("dealer".length(), eq).strip().toLowerCase(Locale.ROOT);
+		if (eq < 0 || !known(category)) {
+			problems.add(where + "expected 'dealer category = Name, Name, ...' with a known category");
+			return;
+		}
+		int added = 0;
+		for (String name : line.substring(eq + 1).split(",")) {
+			String key = nameKey(name);
+			if (!key.isEmpty()) {
+				dealers.computeIfAbsent(key, k -> new HashSet<>()).add(category);
+				added++;
+			}
+		}
+		if (added == 0) {
+			problems.add(where + "a dealer line names nobody");
+		}
 	}
 
 	private static Map<String, Town> parseTowns(String text, List<String> problems) {
@@ -375,24 +610,46 @@ public final class TradeRules {
 		return out;
 	}
 
-	/**
-	 * Up to {@link #MAX_OFFERS} offers for a merchant: the trades of its categories, priced for the
-	 * town and current demand ({@code demand} may be null), picked by {@code seed} (the same seed
-	 * always picks the same trades), sells first.
-	 */
+	/** The dealer categories a {@code dealer} line gives the merchant with this Skyrim name (ignoring case), or none. */
+	public Set<String> dealerCategories(String name) {
+		return this.dealers.getOrDefault(nameKey(name), Set.of());
+	}
+
+	/** Categories a merchant deals in: its Proto.VENDOR_* mask's, and those dealer lines give its name. */
+	public Set<String> categoriesFor(int vendorMask, String name) {
+		Set<String> out = categoriesFor(vendorMask);
+		out.addAll(this.dealerCategories(name));
+		return out;
+	}
+
+	/** {@link #offersFor(int, String, String, long, Demand)} for a merchant no dealer line names. */
 	public List<Offer> offersFor(int vendorMask, String town, long seed, Demand demand) {
+		return this.offersFor(vendorMask, "", town, seed, demand);
+	}
+
+	/**
+	 * Up to {@link #MAX_OFFERS} offers for a merchant: every trade of the dealer categories its {@code name} has (a
+	 * Khajiit caravan's Skooma), then the trades of its shop's categories, picked by {@code seed} (the same seed always
+	 * picks the same trades); priced for the town and current demand ({@code demand} may be null), sells first.
+	 */
+	public List<Offer> offersFor(int vendorMask, String name, String town, long seed, Demand demand) {
+		Set<String> dealt = this.dealerCategories(name);
 		Set<String> categories = categoriesFor(vendorMask);
+		List<Trade> picked = new ArrayList<>();
 		List<Trade> pool = new ArrayList<>();
 		for (Trade t : this.trades) {
-			if (categories.contains(t.category())) {
+			if (dealt.contains(t.category())) {
+				picked.add(t);
+			} else if (categories.contains(t.category())) {
 				pool.add(t);
 			}
 		}
 		Collections.shuffle(pool, new Random(seed));
+		picked.addAll(pool);
 		Town where = this.town(town);
 		List<Offer> sells = new ArrayList<>();
 		List<Offer> buys = new ArrayList<>();
-		for (Trade t : pool.subList(0, Math.min(MAX_OFFERS, pool.size()))) {
+		for (Trade t : picked.subList(0, Math.min(MAX_OFFERS, picked.size()))) {
 			int price = Math.max(1, (int) Math.round(t.price() * where.multiplier(t.category())));
 			if (demand != null) {
 				price = demand.apply(price, town, t.item());
@@ -402,6 +659,58 @@ public final class TradeRules {
 		List<Offer> out = new ArrayList<>(sells);
 		out.addAll(buys);
 		return out;
+	}
+
+	/**
+	 * What a merchant pays in Skyrim gold for {@code item} (as {@link #normalizeItem} writes it): the first gold line for it
+	 * among the categories the merchant deals in, or null if it doesn't buy it. A potion the merchant has no line for
+	 * goes by a line for its plain item ({@code minecraft:potion}), if there is one.
+	 */
+	public GoldPrice goldPriceFor(int vendorMask, String name, String item) {
+		Set<String> categories = this.categoriesFor(vendorMask, name);
+		GoldPrice plain = null;
+		for (GoldPrice g : this.gold) {
+			if (!categories.contains(g.category())) {
+				continue;
+			}
+			if (g.item().equals(item)) {
+				return g;
+			}
+			if (plain == null && g.item().equals(baseItem(item))) {
+				plain = g;
+			}
+		}
+		return plain;
+	}
+
+	/**
+	 * What a merchant in {@code town} pays, lot by lot, for {@code lots} lots of {@code line.count()} items sold one after
+	 * another: the line's gold times the town's multiplier for its category, times demand as it falls with each lot sold
+	 * ({@code demand} may be null), times {@code share} (what's left of a worn item, 1 for anything whole); at least 1 gold
+	 * a lot. At most {@link #MAX_GOLD_BATCHES} lots.
+	 */
+	public List<Integer> goldPrices(GoldPrice line, String town, Demand demand, int lots, double share) {
+		double base = line.gold() * this.town(town).multiplier(line.category()) * Math.max(0.0, Math.min(1.0, share));
+		List<Integer> out = new ArrayList<>();
+		for (int i = 0; i < Math.min(lots, MAX_GOLD_BATCHES); i++) {
+			double factor = demand != null ? demand.factorAfter(town, line.item(), i) : 1.0;
+			out.add((int) Math.max(1L, Math.round(base * factor)));
+		}
+		return out;
+	}
+
+	/** How many of {@code prices}, the first ones, a merchant holding {@code purse} gold can pay for. */
+	public static int affordable(List<Integer> prices, int purse) {
+		int left = Math.max(0, purse);
+		int n = 0;
+		for (int price : prices) {
+			if (price > left) {
+				break;
+			}
+			left -= price;
+			n++;
+		}
+		return n;
 	}
 
 	/**

@@ -200,13 +200,15 @@ class ItemRulesTest {
 
 	@Test
 	void everySkycraftItemInTheDefaultsExists() {
-		// Items only: a potion's effect list may name a SkyCraft effect (skycraft:skooma), which isn't an item.
-		String items = ItemRules.DEFAULT_TEXT.replaceAll("\\{[^}]*}", "");
+		// Items only: a potion's effect list may name a SkyCraft effect (skycraft:skooma), and its bracket a SkyCraft potion
+		// (minecraft:potion[skycraft:skooma]), neither of which is an item.
+		String items = ItemRules.DEFAULT_TEXT.replaceAll("\\{[^}]*}", "").replaceAll("\\[[^\\]]*]", "");
 		java.util.regex.Matcher m = java.util.regex.Pattern.compile("skycraft:([a-z0-9_]+)").matcher(items);
 		int found = 0;
 		while (m.find()) {
 			found++;
-			assertTrue(dev.skycraft.gear.GearTiers.allItemIds().contains(m.group(1)) || dev.skycraft.portal.PortalStore.ITEM_IDS.contains(m.group(1)),
+			assertTrue(dev.skycraft.gear.GearTiers.allItemIds().contains(m.group(1)) || dev.skycraft.portal.PortalStore.ITEM_IDS.contains(m.group(1))
+				|| m.group(1).equals("moon_sugar"), // skooma.SkoomaBrewing.MOON_SUGAR_ID
 				"unknown item skycraft:" + m.group(1));
 		}
 		assertTrue(found >= 8, "expected the gear material rules in the defaults");

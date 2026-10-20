@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * case; {@code half-eaten} needs both words), {@code tag} one of {@link #TAGS}, {@code material}
  * one of {@link #MATERIALS}, {@code from} one of {@link #SOURCES}. The number on the right is
  * Minecraft items per Skyrim item; {@code +} joins several items. A bracket after one of the
- * {@link #POTION_ITEMS} names the vanilla potion it holds, one of {@link #POTIONS}; braces list
+ * {@link #POTION_ITEMS} names the potion it holds, one of {@link #POTIONS} or {@link #SKYCRAFT_POTIONS}; braces list
  * effects of its own instead ({@link Effect}), with an optional {@code #rrggbb} color and
  * {@code "name"}. Effect ranges scale with the Skyrim name's tier ({@link #TIERS}). Braces after any other item list
  * enchantments ({@link #ENCHANTMENTS}, {@code id:level}) and an optional name instead: Skyrim gear that keeps its enchantment.
@@ -65,6 +65,11 @@ public final class ItemRules {
 	 * Skooma's high, {@code skycraft:stealth:0-1:60-240} Fortify Sneak.
 	 */
 	public static final List<String> SKYCRAFT_EFFECTS = List.of("skycraft:skooma", "skycraft:stealth", "skycraft:skooma_withdrawal");
+	/**
+	 * SkyCraft's own potions (skooma.SkoomaBrewing), named with their namespace in a bracket: {@code minecraft:potion[skycraft:skooma]}
+	 * is the Skooma a brewing stand makes and Khajiit caravans sell.
+	 */
+	public static final List<String> SKYCRAFT_POTIONS = List.of("skycraft:skooma", "skycraft:redwater_skooma");
 	/** Items that hold a potion (the potion_contents component), so a rule can write {@code minecraft:potion[healing]}. */
 	public static final List<String> POTION_ITEMS = List.of("minecraft:potion", "minecraft:splash_potion", "minecraft:lingering_potion",
 		"minecraft:tipped_arrow");
@@ -1200,7 +1205,7 @@ public final class ItemRules {
 				problems.add("line " + n + ": '[]' names no potion");
 				return null;
 			}
-			if (!POTIONS.contains(potion)) {
+			if (!POTIONS.contains(potion) && !SKYCRAFT_POTIONS.contains(potion)) {
 				unknownPotions.computeIfAbsent(potion, k -> new ArrayList<>()).add(n);
 				return null;
 			}

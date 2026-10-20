@@ -149,7 +149,7 @@ public final class SkyCombat {
 			if (proxy == null) {
 				proxy = new SkyrimActorEntity(SKYRIM_ACTOR, level);
 				proxy.setFormId(a.formId());
-				proxy.setVendor(a.vendor());
+				proxy.setVendor(dev.skycraft.trade.SkyTrade.vendorOf(a)); // a Skooma dealer Skyrim has no shop for gets one
 				proxy.setSkyFlags(a.flags());
 				proxy.setSize(a.width(), a.height());
 				proxy.snapTo(a.x(), a.y(), a.z(), a.yaw(), 0.0F);
@@ -160,7 +160,7 @@ public final class SkyCombat {
 				PROXIES.put(a.formId(), proxy);
 				continue;
 			}
-			proxy.setVendor(a.vendor());
+			proxy.setVendor(dev.skycraft.trade.SkyTrade.vendorOf(a)); // a Skooma dealer Skyrim has no shop for gets one
 			proxy.setSkyFlags(a.flags());
 			proxy.setNames(a.name(), dev.skycraft.companion.SkyCompanions.displayName(a)); // "Meeko (tamed)" once it's the player's
 			proxy.setSize(a.width(), a.height());

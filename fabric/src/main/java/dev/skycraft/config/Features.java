@@ -45,9 +45,10 @@ public final class Features {
 		ALCHEMY_BREWING("alchemy_brewing", "your Skyrim Alchemy level makes brewed potions last longer, and Skyrim ingredients brew"),
 
 		// Economy and food
-		SELL_TO_MERCHANTS("sell_to_merchants", "Skyrim merchants buy Minecraft goods: gems, ingots and more"),
-		SKYRIM_FOOD_HUNGER("skyrim_food_hunger", "eating Skyrim food fills Minecraft's hunger"),
-		SKOOMA_BREWING("skooma_brewing", "moon sugar brews into Skooma in a brewing stand"),
+		SELL_TO_MERCHANTS("sell_to_merchants", "sneak and right click a Skyrim merchant with Minecraft goods in hand (gems, ingots, leather, food, ...) to sell them for Skyrim gold, paid out of the merchant's own gold into your Skyrim inventory; only what its shop deals in (gold lines in skycraft-trades.txt)"),
+		SKYRIM_FOOD_HUNGER("skyrim_food_hunger", "food you eat in Skyrim fills Minecraft's hunger and saturation, as much as the Minecraft food most like it", true,
+			dev.skycraft.link.Proto.FEATURE_SKYRIM_FOOD),
+		SKOOMA_BREWING("skooma_brewing", "an awkward potion and moon sugar brew Skooma in a brewing stand, Skooma and glowstone dust Redwater Skooma"),
 
 		// World
 		WEATHER_SYNC("weather_sync", "Skyrim's rain and snow are Minecraft's and the other way round; snow settles on your blocks"),

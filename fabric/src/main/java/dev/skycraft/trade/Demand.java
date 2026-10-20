@@ -46,6 +46,15 @@ public final class Demand {
 		return Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, 1.0 + s * STEP));
 	}
 
+	/**
+	 * The factor {@code item} would have in {@code town} after {@code sales} more sales to merchants there, each a step
+	 * lower, never under {@link #MIN_FACTOR}: what a merchant pays for the next lots of one sale for gold. Changes nothing.
+	 */
+	public double factorAfter(String town, String item, int sales) {
+		int s = this.steps.getOrDefault(key(town, item), 0) - Math.max(0, sales);
+		return Math.max(MIN_FACTOR, Math.min(MAX_FACTOR, 1.0 + Math.max(-MAX_STEPS, s) * STEP));
+	}
+
 	/** {@code coins} after this item's factor, at least 1. */
 	public int apply(int coins, String town, String item) {
 		return Math.max(1, (int) Math.round(coins * this.factor(town, item)));
