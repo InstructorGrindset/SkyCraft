@@ -17,6 +17,7 @@ shared memory. Minecraft runs hidden in the background, and Skyrim draws everyth
 ## What works
 
 This fork adds looting, merchants (selling for Skyrim gold too), Skyrim food for Minecraft's hunger, Skooma brewing, dungeon chests, time and sleep sync, deep creatures and Skyrim gear sets; see [docs/FEATURES.md](docs/FEATURES.md).
+This fork adds looting, merchants, dungeon chests, time and sleep sync, deep creatures, creatures that fight each other and Skyrim gear sets; see [docs/FEATURES.md](docs/FEATURES.md).
 
 - **Movement:** Minecraft movement on Skyrim's terrain and buildings. That covers walking,
   sprinting, jumping, crouching, swimming and falling, and Skyrim's collision is fed into
@@ -50,6 +51,12 @@ This fork adds looting, merchants (selling for Skyrim gold too), Skyrim food for
 - **Building (new, not played yet):** blocks you place on a Hearthfire plot (Lakeview Manor, Windstad Manor, Heljarchen
   Hall) count toward a small house, a main hall and wings (Skyrim's own house parts aren't built by them yet). Skyrim's
   levers, buttons and pressure plates give a redstone pulse, and redstone opens Dwemer doors.
+- **Creatures:** Minecraft's monsters (from spawners, eggs and commands) go for Skyrim's people
+  and creatures, and guards, your followers and your enemies swing back. Your tamed wolves fight
+  the Skyrim enemies fighting you. Skeevers and Falmer keep away from your torches, and draugr,
+  skeletons and vampires burn in daylight. Your tamed Minecraft horse ridden into Skyrim becomes
+  your Skyrim horse, and comes along when you leave for another world. Optionally
+  (`night_monsters`), Skyrim creatures come out at night away from towns.
 - **Skyrim progression:**
   - Your Skyrim skills level up from Minecraft play. Swords, maces and tools train
     One-Handed; axes and spears train Two-Handed; bows and anything thrown train Archery.

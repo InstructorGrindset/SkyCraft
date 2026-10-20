@@ -86,6 +86,10 @@ public final class Proto {
 	public static final int ANIMAL_HORSE = 3;
 	/** Towns (added within protocol 13; an older Skyrim plugin never sets it): a guard (Actor::IsGuard). Bit 17 is set aside for towns. */
 	public static final int ACTOR_GUARD = 1 << 16;
+	/** Creatures (added within protocol 13; an older Skyrim plugin never sets it): keeps away from strong light (skeevers, Falmer). */
+	public static final int ACTOR_LIGHT_SHY = 1 << 14;
+	/** Draugr, skeletons, vampires: burns in daylight outdoors; Minecraft's undead monsters leave it alone. Added within 13. */
+	public static final int ACTOR_UNDEAD = 1 << 15;
 
 	// Event ring (relative to OFF_EVENT_RING)
 	public static final int EVENT_RING_ENTRIES = 512;
@@ -186,6 +190,38 @@ public final class Proto {
 	public static final int STAGE_SMALL_HOUSE = 1;
 	public static final int STAGE_MAIN_HALL = 2;
 	public static final int STAGE_WINGS = 3;
+	/**
+	 * Minecraft's creatures and Skyrim's actors (creatures.SkyCreatures; added within protocol 13, an older Skyrim plugin ignores it).
+	 * flags bits 0-7 = MOB_HIT or MOB_NEAR. MOB_HIT: formId = the actor, a = Minecraft damage, b/c = push direction x/z, d = push
+	 * strength, flags bits 8-15 = HIT_* flags, bits 16-19 = a MOB_BY_* attacker, weapon = WEAPON_*. MOB_NEAR: formId = the creature's
+	 * entity id, a/b/c = its feet (a place: sent with pushEventAt), d = half its width, flags bits 8-15 = MOB_UNDEAD / MOB_PLAYERS_WOLF,
+	 * weapon = the FormID of the actor it goes for (0: none).
+	 */
+	public static final int EV_MOB = 27;
+	public static final int MOB_HIT = 1;
+	public static final int MOB_NEAR = 2;
+	public static final int MOB_HIT_FLAGS_SHIFT = 8;
+	public static final int MOB_ATTACKER_SHIFT = 16;
+	public static final int MOB_TRAITS_SHIFT = 8;
+	/** A Minecraft monster: credited to no player. */
+	public static final int MOB_BY_MONSTER = 0;
+	/** The player's tamed wolf: a Minecraft hit as the player's (vanilla credits a tamed wolf's hits to its owner), no skill trained. */
+	public static final int MOB_BY_WOLF = 1;
+	/** Daylight burning an undead actor: no attacker. */
+	public static final int MOB_BY_SUN = 2;
+	public static final int MOB_UNDEAD = 1;
+	public static final int MOB_PLAYERS_WOLF = 1 << 1;
+	/**
+	 * Horses carry over (creatures.SkyHorses; added within protocol 13, an older Skyrim plugin ignores it): flags = HORSE_*, formId = the
+	 * Skyrim horse (0: none yet), a/b/c = HORSE_ARRIVE's place (sent with pushEventAt), d = its yaw, weapon = HORSE_ARRIVE's stats
+	 * (HorseRules.packStats).
+	 */
+	public static final int EV_HORSE = 28;
+	public static final int HORSE_ARRIVE = 1;
+	public static final int HORSE_DEPART = 2;
+	public static final int HORSE_LOST = 3;
+	public static final int HORSE_STAT_MAX_HEALTH_SHIFT = 12;
+	public static final int HORSE_STAT_HEALTH_SHIFT = 20;
 
 	// Breach table (relative to OFF_BREACH_TABLE): Skyrim -> MC, seqlock, see BreachTable in the protocol header.
 	public static final int MAX_BREACHES = 16;
@@ -221,6 +257,9 @@ public final class Proto {
 	public static final int SPAWN_SKEEVER = 1;
 	public static final int SPAWN_SKELETON = 2;
 	public static final int SPAWN_DRAUGR = 3;
+	/** EV_SPAWN_CREATURE weapon (SpawnOrigin, added within 13): a dug tunnel (deep creatures), or outdoors at night (night monsters). */
+	public static final int SPAWN_FROM_DARK = 0;
+	public static final int SPAWN_AT_NIGHT = 1;
 
 	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
 	public static final int ITEM_RING_ENTRIES = 64;
@@ -435,6 +474,18 @@ public final class Proto {
 	public static final long SS_SHOUT_ACTOR = 0xA4;
 	public static final int SHOUT_BY_PLAYER = 1;
 	public static final int SHOUT_BY_DRAGON = 1 << 1;
+	 /**
+	 * SkyState.horse (Horses carry over, added within 13: 0 from an older plugin): FormID of the player's horse; horseInfo: HORSE_INFO_*
+	 * flags in bits 0-7, its SpeedMult (percent) in bits 8-15, its health (percent) in bits 16-23.
+	 */
+	public static final long SS_HORSE = 0x98;
+	public static final long SS_HORSE_INFO = 0x9C;
+	public static final int HORSE_INFO_NEAR = 1;
+	public static final int HORSE_INFO_AWAY = 1 << 1;
+	public static final int HORSE_INFO_ARRIVED = 1 << 2;
+	public static final int HORSE_INFO_CARRIED = 1 << 3;
+	public static final int HORSE_INFO_SPEED_SHIFT = 8;
+	public static final int HORSE_INFO_HEALTH_SHIFT = 16;
 
 	// VendorBuys (ActorRecord.vendor): what a Skyrim merchant trades in, 0 = not a merchant.
 	public static final int VENDOR_ANY = 1;
@@ -528,6 +579,11 @@ public final class Proto {
 	/** McState.hearthPlot, hearthBlocks (added within 13): the Hearthfire plot Minecraft counts for and its blocks standing. */
 	public static final long MS_HEARTH_PLOT = 0xEC;
 	public static final long MS_HEARTH_BLOCKS = 0xF0;
+	// Creatures: the switches whose Skyrim side Skyrim runs itself.
+	public static final int FEATURE_MOBS_FIGHT_NPCS = 1 << 22;
+	public static final int FEATURE_WOLVES_FIGHT_SKYRIM = 1 << 23;
+	public static final int FEATURE_CREATURES_AND_LIGHT = 1 << 24;
+	public static final int FEATURE_HORSES_CARRY_OVER = 1 << 25;
 
 	public static final int MC_IN_WORLD = 1;
 	public static final int MC_SCREEN_OPEN = 1 << 1;
@@ -620,6 +676,11 @@ public final class Proto {
 	public static final int IN_REDSTONE_PULSE = 20;
 	/** A Dwemer door near the player: a, b, c = the block at its foot, code = 1 open. Resent every 2 s; forgotten after 6 s. */
 	public static final int IN_DWEMER_DOOR = 21;
+	 /**
+	 * Mobs and NPCs fight (added within protocol 13): a Skyrim actor's swing landed on a Minecraft creature: a = its entity id, b =
+	 * Minecraft damage x 100, c = the actor's FormID, code = WEAPON_*. Minecraft hurts it as from the actor's stand-in.
+	 */
+	public static final int IN_MOB_HIT = 23;
 
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn

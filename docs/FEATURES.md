@@ -72,6 +72,11 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Guard comments | `guard_comments` | A guard within 16 blocks who sees you build, break blocks or dig in town now and then says something about it, in Skyrim's corner with their name ("Whiterun Guard: Watch it."): never more than once a minute per guard, at most one guard every 20 seconds. A notification, not speech: no CommonLib function makes an NPC say a line of ours | `town/SkyTown` (`EV_TOWN_BUILD`, only with a guard's stand-in near) | `Towns.cpp` (`OnBuild`), `TownKinds.h` (the lines), `Combat.cpp` (`kActorGuard` in the actor table) | none | `SkyCraft-town` | Written |
 | Hearthfire blocks | `hearthfire_blocks` | Minecraft blocks placed while you stand on a Hearthfire house's land (Lakeview Manor, Windstad Manor, Heljarchen Hall, as Skyrim reckons it) count for that plot while they stand: 80 make a small house, 320 a main hall, 720 the wings (you're told on the action bar, and in chat with a level-up sound when a stage is reached). Partial: Skyrim's own house parts aren't built or its quest moved by this (see [Towns and building](#towns-and-building)) | `town/SkyHearthfire`, `town/PlotTally` | `Towns.cpp` (the plot underfoot: a HearthFires.esm house location, `SkyState.hearthPlot`; stage events logged) | `skycraft-town-rules.txt` (`small_house`, `main_hall`, `wings`), `skycraft-hearthfire.txt` in the world's save folder | `SkyCraft-town` | Written (partial) |
 | Dwemer redstone | `dwemer_redstone` | A Skyrim lever, pull chain, button or pressure plate used gives a Minecraft redstone pulse at its block (a redstone block for 1 to 1.5 s, only in an empty cell; your own Skyrim doesn't draw it). Redstone power at the foot of a Dwemer door near you (24 blocks) opens it with Skyrim's own activation; when the power goes the door closes. Locked doors and doors it would be a crime to open stay shut | `town/SkyRedstone`, `town/PulseTimers`, `town/RedstoneDoors`, client `TownInput`, client `render/WorldExporter` (leaves the pulse's block out) | `Redstone.cpp` (activate events, Dwemer doors, `kEvRedstoneDoor`), `TownKinds.h` (switches and Dwemer doors by model path) | none | `SkyCraft-town` | Written |
+| Mobs and NPCs fight | `mobs_fight_npcs` | Minecraft's monsters in the mirror (from spawners, eggs and commands) go for Skyrim's people and creatures near them: one with nothing to do takes the nearest actor within 16 blocks, one after the player turns on an actor right in front of it (6 blocks) when the player is clearly further. Minecraft's undead leave Skyrim's undead be; creepers, endermen and zombified piglins keep to Minecraft's rules. They're walked straight at their target (the mirror has no paths). Their hits are real damage in Skyrim credited to no player (no crime, no kill credit, the actor doesn't turn on you), with Skyrim's blood and stagger; a melee monster strikes once a second as in Minecraft. Skyrim's guards, your followers, your enemies and whoever a monster goes for swing back when it's next to them: they turn, play an attack, and the monster takes their weapon's damage (Skyrim's damage / 5, as their hits on you) as from the actor, so it fights that actor in turn. NPCs keep fighting you as before. See [Creatures](#creatures) | `creatures/SkyCreatures`, `creatures/CreatureRules`, `combat/SkyrimActorEntity` (creature hits kept apart), `combat/SkyCombat` (`proxies`), client `InputBridge` (`IN_MOB_HIT`) | `Creatures.cpp` (`FightBack`, `TakeHit`), `CreatureKinds.h` (`FightsBack`), `Combat.cpp` (`kEvMob`) | none | `SkyCraft-creatures` | Written |
+| Tamed wolves fight | `wolves_fight_skyrim` | Your tamed Minecraft wolf (not sitting) goes for a Skyrim actor that is hostile to you and fighting (within 16 blocks of you), as a Minecraft wolf goes for whatever fights its owner. Its bites are Minecraft hits by you in Skyrim (Skyrim's hit pipeline: the enemy reacts, the kill is yours) but train none of your skills; the kill's drops and XP are yours, as vanilla Minecraft counts a tamed wolf's hits as its owner's. Your enemies next to the wolf swing at it | `creatures/SkyCreatures`, `combat/SkyrimActorEntity` (`creditPlayer`), `loot/SkyLoot` (credited kill) | `Combat.cpp` (`MobEvent`, `ApplyHit` by the wolf), `Creatures.cpp` | none | `SkyCraft-creatures` | Written |
+| Night monsters | `night_monsters` (off at first) | At Skyrim's night (20 to 5 o'clock), outdoors, out of towns and where Minecraft's block light is 0, now and then (a try every 60 to 120 s, 40% each) a skeever or skeleton comes out on Skyrim's ground 16 to 32 blocks from you where nobody can see it; draugr and skeletons within 64 blocks of a Nordic barrow's entrance. Through the deep creatures' spawn: they count with them (one cap, never past `skycraft-deep.txt`'s `max_alive`) and are taken away the same way. Never in interiors | `creatures/NightMonsters`, `creatures/NightRules`, `deep/SkyDeep` (shared count) | `Spawn.cpp` (`kSpawnAtNight`: on the ground, not under the land) | `skycraft-night.txt` | `SkyCraft-night` (both halves) | Written |
+| Horses carry over | `horses_carry_over` | Your tamed Minecraft horse and your Skyrim horse are one animal. Ride (or lead) a tamed horse into the Skyrim world, outdoors, and it becomes your Skyrim horse there (the one it was before, or a new horse you own) with its speed (SpeedMult 50 to 150%) and health; the Minecraft horse goes once Skyrim has it. Leave the Skyrim world (a portal, `/skyview`) with your Skyrim horse within 16 blocks and it comes along as a tamed, saddled Minecraft horse with its kept stats; Skyrim's is disabled until it comes back. Its death in Minecraft is its death. See [Creatures](#creatures) | `creatures/SkyHorses`, `creatures/HorseRules`, `link/SkyLink` (SkyState `horse`) | `Horses.cpp`, `CoSave.cpp` (record `HRSE`), `Game.cpp` (SkyState) | none | `SkyCraft-horse` (both halves) | Written |
+| Creatures and light | `creatures_and_light` | Skeevers and Falmer keep out of strong Minecraft light: within a torch's 6 blocks (a lantern's or glowstone's 7, light level 8 or more as Minecraft's light falls off) they're pushed back the way NPCs are pushed out of blocks. Skyrim's undead (draugr, skeletons, vampires; not essential ones) outdoors in Skyrim's daylight (6 to 19:30) under open sky, not wet, catch fire the way zombies do; the fire's damage reaches Skyrim credited to no one, with flames on the body. Which actors are light-shy or undead comes from the race (`CreatureKinds.h`) | `creatures/SkyCreatures` (`sunlight`), `combat/SkyrimActorEntity` (sun fire) | `Creatures.cpp` (`ShyFromLight`), `CreatureKinds.h`, `BlockLights.cpp` (`LightAt`), `Combat.cpp` (actor table bits) | none | `SkyCraft-creatures` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -1188,6 +1193,125 @@ theft from a container does, what `RequestDetectionLevel` returns for an NPC who
 counts as seen), whether the lifted NPC stays where it's put each frame, whether pressure plates send activate events,
 and which model paths the switches and Dwemer doors really have (the log names each one used).
 
+## Creatures
+
+Minecraft's creatures and Skyrim's people and creatures share the mirror (switches `mobs_fight_npcs`, `wolves_fight_skyrim`,
+`night_monsters`, `horses_carry_over`, `creatures_and_light`). Minecraft side: `creatures/` (SkyCreatures, NightMonsters,
+SkyHorses, and the pure, unit tested CreatureRules, NightRules, HorseRules); Skyrim side: `Creatures.cpp`, `Horses.cpp`,
+`CreatureKinds.h` (pure, unit tested in `skse/tests/CreatureKindsTest.cpp`). All of it is the host's: a guest's Skyrim has no
+stand-ins in the host's world.
+
+**Who's what.** From the race's editor ID (`CreatureKinds.h`, cached per race, sent in the actor table): "skeever" and "falmer"
+are light-shy (`kActorLightShy`), "draugr", "skeleton" and "vamp" are undead (`kActorUndead`; Dawnguard's frozen Falmer vampires
+are both). Ghosts, dragon priests and summoned undead are neither.
+
+**Mobs and NPCs fight.** Every quarter second Minecraft looks at the mobs within 48 blocks of the host. A monster (the monster
+category, but not creepers, which would blow craters in Skyrim's towns, nor endermen and zombified piglins, neutral until
+provoked) with nothing to do goes for the nearest Skyrim actor within 16 blocks; one after the player goes for an actor within 6
+blocks if the player is at least 4 blocks further. Minecraft's undead never go for Skyrim's undead. Monsters run by a brain
+(piglins, hoglins, wardens, breezes) ignore it. Minecraft finds no paths across Skyrim's ground (it's collision, not blocks), so a
+creature after a stand-in is walked straight at it (`MoveControl`) until it's in reach (archers stop 12 blocks off). Hits on a
+stand-in by a creature are kept apart from the player's (`SkyrimActorEntity.CreatureHit`) and sent as `kEvMob` `kMobHit`:
+Skyrim applies the damage scaled like the player's hits (Minecraft damage x (5 + level / 4)) with no attacker, with the impact's
+blood and sound and a stagger for a strong push. A melee creature's hit on a stand-in counts once a second (its attack goal keeps
+restarting without a path and would strike twice as often). Twice a second Minecraft tells Skyrim where its monsters near the host
+are (`kMobNear`, at most 24). Five times a second Skyrim looks for actors with one in reach (their bound radius, the creature's,
+and their weapon's reach, 1 to 3 blocks; within 2.5 blocks up or down) that fight back (`CreatureKinds::FightsBack`): guards, the
+player's followers, the player's enemies, and whoever the creature goes for; children never, and Skyrim's undead leave
+Minecraft's undead be unless one goes for them. The actor turns to it, plays `attackStart` (`bashStart` with a bow or staff) on
+its animation graph, and 0.3 s later the blow lands in Minecraft (`kInMobHit`): the weapon's damage (a fist or claw: the race's
+unarmed damage) x (1 + level / 40) / 5, as from the actor's stand-in, so the creature turns on that actor. Then it waits 1.4 to
+2.4 s before the next swing. Skyrim's own combat AI is left alone: NPCs keep fighting the player as before.
+
+**Tamed wolves.** The host's tamed wolf that isn't sitting, with nothing to do, goes for the actor nearest the host (within 16
+blocks of them) that is hostile and fighting (`kActorHostile` and `kActorInCombat`), and lets go once it isn't. Its hits are sent
+as `kMobByWolf`; Skyrim takes them as a Minecraft hit by the player (its hit pipeline, kill credit; the actor was fighting the
+player anyway, so no crime) without training a skill. Decided: the kill's drops and XP are the player's, because vanilla Minecraft
+credits a tamed wolf's hits to its owner (`lastHurtByPlayer`): the wolf's owner becomes the stand-in's last hitter and the hit is
+recorded for `SkyLoot` (10 seconds, as for the player's own). The player's enemies swing at a wolf next to them; guards and
+followers don't.
+
+**Night monsters** (`skycraft-night.txt`, off until `night_monsters = on`). A try every `cooldown` seconds (60 to 120) while it's
+Skyrim's night (`night = 20-5`), the player is outdoors and not in a town (`PlaceFlags`), Minecraft's difficulty isn't peaceful and
+fewer spawned creatures are alive than the cap; each try brings one out with `chance` (0.4). The spot: a random column 16 to 32
+blocks off, searched from 8 blocks over the player's feet to 12 under for Skyrim's ground (or a Minecraft block's top) with room for
+a body, out of Skyrim's rock and water, Minecraft's blocks and fluids, block light at most `max_block_light` (0), not a dug cell
+(tunnels are the deep creatures'), and out of every player's sight (the deep creatures' check). Within `barrow_distance` (64) of a
+Nordic dungeon's entrance (the breach table) the `barrow_creatures` (draugr 3, skeleton 1) come, else the `creatures` (skeever 3,
+skeleton 2). Minecraft sends `kEvSpawnCreature` with `kSpawnAtNight`; Skyrim checks the spot isn't in a block or more than half a
+block under the land (`TES::GetLandHeight`) and places it like a deep creature: the player's level picks the creature, it counts
+against the same cap (`max_alive` here, never past `skycraft-deep.txt`'s), is kept in the co-save and is taken away past
+`despawn_distance` (72) or when the player leaves.
+
+| Setting | Default | |
+|---|---|---|
+| `night` | 20-5 | Skyrim's night, game hours (wraps past midnight) |
+| `cooldown` | 60-120 | Seconds between tries |
+| `chance` | 0.4 | A try's chance to bring one out |
+| `max_alive` | 2 | Night monsters and deep creatures alive at once (never past the deep's `max_alive`) |
+| `distance` | 16-32 | Blocks from the player (8 to 48) |
+| `despawn_distance` | 72 | Taken away past this |
+| `max_block_light` | 0 | Minecraft block light at the spot at most |
+| `creatures` | skeever 3, skeleton 2 | Who comes out, with weights |
+| `barrow_distance` | 64 | Blocks from a Nordic dungeon's entrance |
+| `barrow_creatures` | draugr 3, skeleton 1 | Who comes out near one |
+
+**Horses carry over.** The design: one horse, two forms, never both at once.
+
+- *Into Skyrim.* Once a second Minecraft looks within 12 blocks of the host, in the mirror, outdoors, for their tamed horse (a
+  horse, not a donkey or mule). It sends `kEvHorse` `kHorseArrive` with the horse's spot and its speed and health; Skyrim moves the
+  Skyrim horse it was before (or, the first time, makes a new one from the first plain horse in the game's data: not unique, not
+  essential, Skyrim.esm's "Horse" if there is one) to the spot with Papyrus MoveTo's own function, enables it, makes it the
+  player's (ownership, as a bought or tamed horse), sets its SpeedMult from the Minecraft speed (an average 0.225 is 100%, 50 to
+  150%) and its health to the same share, and shows `kHorseArrived` for two seconds. Only then does Minecraft put down any rider
+  and let its horse go, keeping its stats (speed, jump, health, name) with the host (`skycraft:horse` attachment, saved with the
+  player). No answer within five seconds: the Minecraft horse stays, and it's tried again 30 seconds later.
+- *Out of Skyrim.* Skyrim reports the player's horse in `SkyState.horse` (the carried one, else the owned horse they last rode,
+  if it isn't summoned or essential) with whether it's near (alive, loaded, nobody on it, within 16 blocks). When the host leaves
+  the mirror (a portal, `/skyview`) with it near, Minecraft makes a tamed, saddled Minecraft horse at their side with the kept stats
+  (or the Skyrim horse's SpeedMult and an average horse's health and jump) and sends `kHorseDepart`; Skyrim disables its horse
+  (`kHorseAway`, kept in the co-save) until it comes back the same way.
+- *Death.* The Minecraft horse dying sends `kHorseLost`: Skyrim's disabled horse stays gone. A Skyrim horse marked away that this
+  Minecraft world has no horse out for (another world, a lost record) comes back to the player instead.
+
+Partial: the coat, markings and armor don't cross (each form keeps its own look), Skyrim's SpeedMult may only show once the horse's
+movement updates, the Minecraft form is made with the `summon` command (its owner, tameness and saddle in the entity data, both ways a
+saddle has been written) and is checked tamed afterwards, and whether a ridden horse goes through SkyCraft's portals with its rider
+(rather than being left at the portal) only playing can tell; a horse led or ridden back into the mirror any way works.
+
+**Creatures and light.** Every frame Skyrim pushes light-shy actors within 64 blocks out of light level 8 or more (the strongest of
+the light-emitting blocks Minecraft sends, `kRenLights`, falling off a level a block; walls in between aren't counted): away from
+the brightest block at 1.5 blocks a second, faster the brighter (up to 6), never into a block. A torch keeps them about 6 blocks
+off (a lantern or glowstone 7), a soul torch 2, a redstone torch not at all. Once a second Minecraft looks at undead stand-ins: outdoors, in Skyrim's daylight
+(6:00 to 19:30), with open sky (no Minecraft block above, no Skyrim geometry within 24 blocks above), not in water or rain, not
+burning, not essential, each catches fire with a zombie's odds (56% a second in full daylight) for 8 seconds. The stand-in's fire
+damage (1 a second) is sent as `kMobBySun` with the fire flag: Skyrim takes it with no attacker and casts Skyrim's campfire burn
+on the body for the flames.
+
+**Try it** (cheats on; Minecraft chat `/summon`, Skyrim console `player.placeatme`):
+
+1. In Whiterun, `/summon minecraft:zombie ~4 ~ ~`. It goes for the nearest guard or citizen (`SkyCraft-creatures: Zombie goes for
+   ...`); the guard turns and swings, the zombie fights the guard, and the guard's health drops in Skyrim without anyone
+   turning on you. A Skyrim citizen it goes for punches back. Stand closer to the zombie than any NPC: it comes for you.
+2. `/summon minecraft:skeleton` near a draugr in a barrow's entrance, or `player.placeatme 0003B547` (a draugr): a zombie
+   leaves the draugr be, a spider (`/summon minecraft:spider`) doesn't, and the draugr swings at the spider but not the zombie.
+3. Tame a wolf (`/summon minecraft:wolf`, bones), then pick a fight with bandits (Embershard Mine's camp outside Riverwood): the
+   wolf goes for the bandit fighting you; the bandit swings at it. Kill the bandit with the wolf alone: its drops and XP are yours
+   (`SkyCraft-loot`), and your skills don't move.
+4. `night_monsters = on`, restart, outdoors at night away from towns (`set gamehour to 23` in Skyrim's console): within a few
+   minutes `SkyCraft-night` lines, and a skeever or skeleton nearby; near Bleak Falls Barrow, draugr. None in Riverwood, none
+   indoors, none by your torches.
+5. Place torches, then `player.placeatme 00023AB7` (a skeever): it won't come within about 6 blocks of them. In Blackreach or any
+   Falmer hive, Falmer keep off your glowstone.
+6. Daylight: `set gamehour to 12`, outdoors, `player.placeatme 0003B547` (a draugr): it catches fire within a few seconds and
+   burns down; under a bridge, in rain or indoors it doesn't.
+7. Horses: `/summon minecraft:horse`, tame it with apples or by riding, in Tamriel Wilds (portal), ride it through the portal
+   back into Skyrim: it becomes your Skyrim horse (`SkyCraft-horse`); ride it in Skyrim, then take a portal out with it near: it
+   comes along as a Minecraft horse, and Skyrim's is gone until you bring it back. Kill it in Minecraft: it's gone in Skyrim too.
+
+Not played yet: everything here; in particular how Skyrim's actors take the injected attacks, how often Minecraft's monsters
+switch back to the player, and the night monsters' and horses' numbers.
+
 ## Planned
 
 | Feature | Notes |
@@ -1329,6 +1453,19 @@ the fields and the actor bit):
 | `kEvTownBuild` (24): a/b/c = where, flags = `TownBuildKind` (1 place, 2 break, 3 dig) | Minecraft to Skyrim | Guard comments |
 | `kEvHearthfireStage` (25): formId = the plot, flags = `HearthfireStage` (1 small house, 2 main hall, 3 wings), a = blocks | Minecraft to Skyrim | Hearthfire blocks: a stage reached (logged) |
 | `kEvRedstoneDoor` (26): a/b/c = the door block's centre, flags = 1 powered | Minecraft to Skyrim | Dwemer redstone: open the door on power, close it when the power goes |
+
+Creatures added these within 13, without a version bump (an older plugin never sets the bits or fields and drops the event
+types; an older Minecraft ignores the bits, the fields and the input type):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `ActorFlags` `kActorLightShy` (bit 14), `kActorUndead` (bit 15), in `ActorRecord.flags` | Skyrim to Minecraft | From the race (`CreatureKinds.h`): light-shy creatures keep out of strong light; undead burn in daylight and Minecraft's undead leave them be |
+| `SkyState.horse` (0x98), `SkyState.horseInfo` (0x9C; was `reservedCreatures`) | Skyrim to Minecraft | Horses carry over: the player's horse, and `HorseInfo` in bits 0-7 (`kHorseNear` 1, `kHorseAway` 2, `kHorseArrived` 4, `kHorseCarried` 8), its SpeedMult in bits 8-15, its health (percent) in bits 16-23 |
+| `FeatureBits` `kFeatMobsFightNpcs` (22), `kFeatWolvesFightSkyrim` (23), `kFeatCreaturesAndLight` (24), `kFeatHorsesCarryOver` (25) | Minecraft to Skyrim | The switches whose Skyrim side Skyrim runs itself (NPCs swinging back, light-shy pushes, the horse in SkyState) |
+| `kEvMob` (27), `MobEvent` `kMobHit` 1 / `kMobNear` 2 in flags bits 0-7 | Minecraft to Skyrim | `kMobHit`: formId = the actor, a = Minecraft damage, b/c = push direction, d = push strength, flags bits 8-15 = `HitFlags`, bits 16-19 = `MobAttacker` (0 monster, 1 the player's wolf, 2 the sun), weapon = `HitWeapon`. `kMobNear`: formId = the creature's entity id, a/b/c = its feet, d = half its width, flags bits 8-15 = `MobTraits` (`kMobUndead` 1, `kMobPlayersWolf` 2), weapon = the actor it goes for |
+| `kEvHorse` (28), `HorseAction` `kHorseArrive` 1, `kHorseDepart` 2, `kHorseLost` 3 in flags | Minecraft to Skyrim | formId = the Skyrim horse (0: none yet), a/b/c = the arrival's spot, d = its yaw, weapon = the Minecraft horse's speed x 10000 (bits 0-11), maximum health (12-19), health (20-27) |
+| `kInMobHit` (23) in the input ring | Skyrim to Minecraft | An actor's blow on a Minecraft creature: a = its entity id, b = Minecraft damage x 100, c = the actor's FormID, code = `HitWeapon` |
+| `SpawnOrigin` in `kEvSpawnCreature`'s weapon: `kSpawnFromDark` 0, `kSpawnAtNight` 1 | Minecraft to Skyrim | Night monsters: on Skyrim's ground outdoors rather than in a dug tunnel. An older plugin checks for a dug tunnel and refuses the spot |
 
 ## Testing a build
 

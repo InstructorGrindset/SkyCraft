@@ -275,6 +275,9 @@ public final class SkyLink {
 		public int townFlags;
 		/** With TOWN_HEARTHFIRE_PLOT: the Hearthfire house (its BGSLocation FormID) whose land the player stands on, else 0. */
 		public int hearthPlot;
+		/** The player's horse (Horses carry over; 0: none, or a plugin that predates the field) and its Proto.HORSE_INFO_* word. */
+		public int horse;
+		public int horseInfo;
 
 		public boolean inGame() {
 			return (this.flags & SKY_IN_GAME) != 0;
@@ -378,6 +381,8 @@ public final class SkyLink {
 			int shoutActor = s.get(JAVA_INT, b + SS_SHOUT_ACTOR);
 			int townFlags = s.get(JAVA_INT, b + SS_TOWN_FLAGS);
 			int hearthPlot = s.get(JAVA_INT, b + SS_HEARTH_PLOT);
+			int horse = s.get(JAVA_INT, b + SS_HORSE);
+			int horseInfo = s.get(JAVA_INT, b + SS_HORSE_INFO);
 			VarHandle.loadLoadFence();
 			int seq2 = (int) INT.getAcquire(s, b + SS_SEQ);
 			if (seq1 == seq2) {
@@ -412,6 +417,8 @@ public final class SkyLink {
 				out.shoutActor = shoutActor;
 				out.townFlags = townFlags;
 				out.hearthPlot = hearthPlot;
+				out.horse = horse;
+				out.horseInfo = horseInfo;
 				return true;
 			}
 		}
@@ -767,7 +774,7 @@ public final class SkyLink {
 
 	/** Event types whose a, b, c are a place (Minecraft coordinates) rather than amounts. */
 	private static boolean carriesPlace(int type) {
-		return type == EV_EXPLOSION || type == EV_ARROW_STUCK || type == EV_SPAWN_CREATURE || type == EV_PORTAL_TRAVEL;
+		return type == EV_EXPLOSION || type == EV_ARROW_STUCK || type == EV_SPAWN_CREATURE || type == EV_PORTAL_TRAVEL || type == EV_HORSE;
 	}
 
 	/**

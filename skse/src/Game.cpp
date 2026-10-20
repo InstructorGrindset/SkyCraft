@@ -1,5 +1,6 @@
 #include "Game.h"
 #include "Breach.h"
+#include "Horses.h"
 #include "Loot.h"
 #include "Party.h"
 #include "Towns.h"
@@ -1208,6 +1209,7 @@ namespace skycraft
 			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
 			Party::Fill(a_player, sky);                     // who shouted last (shared world events)
 			Towns::FillSkyState(a_player, sky);           // doors and ladders read here; the Hearthfire plot underfoot
+			Horses::Describe(a_player, sky.horse, sky.horseInfo);  // the player's horse, for horses_carry_over
 			link.WriteSkyState(sky);
 
 			settleTimer -= a_delta;

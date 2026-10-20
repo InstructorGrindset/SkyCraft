@@ -77,6 +77,7 @@ public final class InputBridge {
 			case Proto.IN_SKYRIM_FOOD -> skyrimFood(minecraft, code, a / 1000.0F, b, c);
 			case Proto.IN_MERCHANT_GOLD -> merchantGold(minecraft, a, b, c);
 			case Proto.IN_OPEN_DOOR, Proto.IN_REDSTONE_PULSE, Proto.IN_DWEMER_DOOR -> TownInput.accept(minecraft, type, code, a, b, c);
+			case Proto.IN_MOB_HIT -> mobHit(minecraft, a, b, c);
 			case Proto.IN_OPEN_MENU -> {
 				if (minecraft.gui.screen() == null && minecraft.player != null) {
 					releaseAll();
@@ -190,6 +191,16 @@ public final class InputBridge {
 				dev.skycraft.blessings.SkyBlessings.give(player, kind, hours, timescale);
 			}
 		});
+	}
+
+	/** A Skyrim actor's swing landed on a Minecraft creature next to it (mobs and NPCs fight): the integrated server hurts it. */
+	private static void mobHit(Minecraft minecraft, int entityId, int hundredths, int attackerFormId) {
+		var server = minecraft.getSingleplayerServer();
+		if (minecraft.player == null || server == null || MinecraftView.away()) {
+			return; // (a guest's Skyrim has no stand-ins in the host's world)
+		}
+		float damage = dev.skycraft.creatures.CreatureRules.swingDamage(hundredths);
+		server.execute(() -> dev.skycraft.creatures.SkyCreatures.npcHitMob(server, entityId, damage, attackerFormId));
 	}
 
 	private static void key(Minecraft minecraft, long handle, int scancode, boolean down) {

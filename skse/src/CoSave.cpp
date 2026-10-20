@@ -1,6 +1,7 @@
 #include "CoSave.h"
 
 #include "Companion.h"
+#include "Horses.h"
 #include "Spawn.h"
 
 namespace skycraft::CoSave
@@ -14,12 +15,14 @@ namespace skycraft::CoSave
 		{
 			Spawn::Save(a_intfc);
 			Companion::Save(a_intfc);
+			Horses::Save(a_intfc);
 		}
 
 		void OnLoad(SKSE::SerializationInterface* a_intfc)
 		{
 			Spawn::Revert();
 			Companion::Revert();
+			Horses::Revert();
 			std::uint32_t type = 0, version = 0, length = 0;
 			while (a_intfc->GetNextRecordInfo(type, version, length)) {
 				// Whatever a reader leaves unread, SKSE skips on the next GetNextRecordInfo.
@@ -29,6 +32,9 @@ namespace skycraft::CoSave
 					break;
 				case Companion::kSaveRecord:
 					Companion::Load(a_intfc, version);
+					break;
+				case Horses::kSaveRecord:
+					Horses::Load(a_intfc, version);
 					break;
 				default:
 					logger::warn("SkyCraft: the co-save has a record SkyCraft doesn't know ({:08X}, version {}, {} bytes); skipped", type, version, length);
@@ -41,6 +47,7 @@ namespace skycraft::CoSave
 		{
 			Spawn::Revert();
 			Companion::Revert();
+			Horses::Revert();
 		}
 	}
 

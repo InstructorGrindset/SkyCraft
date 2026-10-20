@@ -131,8 +131,11 @@ namespace skycraft::proto
 		std::uint32_t townFlags;   // 0x90: TownFlags
 		std::uint32_t hearthPlot;  // 0x94: with kTownHearthfirePlot, the Hearthfire house (its BGSLocation FormID) whose land the
 		                           // player stands on outdoors, else 0
-		// creatures
-		std::uint8_t reservedCreatures[8];  // 0x98
+		// creatures (added within version 13: zeros from an older plugin): the player's horse, for horses_carry_over
+		std::uint32_t horse;      // 0x98: FormID of the player's horse (the one carried over to and from Minecraft, else the owned
+		                          // horse they last rode), 0 if none or Minecraft's horses_carry_over switch is off
+		std::uint32_t horseInfo;  // 0x9C: HorseInfo flags in bits 0-7, its SpeedMult (percent) in bits 8-15, its health (percent of
+		                          // its maximum) in bits 16-23
 		// multiplayer: shared world events (the shared_world_events switch, kFeatSharedWorldEvents). Skyrim bumps
 		// shoutSeq each time the player, or an actor in the actor table, starts a shout (its voice recovery
 		// begins), with who it was; Minecraft tells the other players in the world. Added within version 13: zeros
@@ -192,6 +195,18 @@ namespace skycraft::proto
 		                                // Heljarchen Hall: a location HearthFires.esm defines with LocTypePlayerHouse or
 		                                // LocTypeHouse); hearthPlot names it
 	};
+	static_assert(offsetof(SkyState, horse) == 0x98 && offsetof(SkyState, horseInfo) == 0x9C);  // Proto.SS_HORSE, SS_HORSE_INFO
+
+	// SkyState::horseInfo bits 0-7 (Horses carry over; added within version 13).
+	enum HorseInfo : std::uint32_t
+	{
+		kHorseNear = 1u << 0,     // alive, loaded, nobody riding it, within 16 blocks of the player: it comes along into another dimension
+		kHorseAway = 1u << 1,     // in Minecraft now (kHorseDepart): disabled in Skyrim until it comes back (kHorseArrive)
+		kHorseArrived = 1u << 2,  // a kHorseArrive was carried out in the last two seconds: Minecraft lets its own horse go then
+		kHorseCarried = 1u << 3,  // it has crossed between the games before (Skyrim's co-save says so), not only the horse last ridden
+	};
+	inline constexpr std::uint32_t kHorseSpeedShift = 8;    // SkyState::horseInfo: SpeedMult, percent (0-255)
+	inline constexpr std::uint32_t kHorseHealthShift = 16;  // SkyState::horseInfo: health, percent of its maximum (0-100)
 
 	// What kind of place the player is in (SkyState::place).
 	enum PlaceFlags : std::uint32_t
@@ -348,6 +363,11 @@ namespace skycraft::proto
 		// shared_world_events (added within version 13): Skyrim watches for shouts (SkyState::shoutSeq) and
 		// shakes its camera for kEvPartyShake. Off, it does neither.
 		kFeatSharedWorldEvents = 1u << 26,
+		// Creatures (added within version 13).
+		kFeatMobsFightNpcs = 1u << 22,      // mobs_fight_npcs: NPCs next to a Minecraft monster (kEvMob kMobNear) swing at it (kInMobHit)
+		kFeatWolvesFightSkyrim = 1u << 23,  // wolves_fight_skyrim: the player's enemies next to the player's tamed Minecraft wolf swing at it
+		kFeatCreaturesAndLight = 1u << 24,  // creatures_and_light: light-shy creatures (kActorLightShy) are pushed out of strong Minecraft light
+		kFeatHorsesCarryOver = 1u << 25,    // horses_carry_over: Skyrim reports the player's horse (SkyState::horse) and answers kEvHorse
 		kFeaturesValid = 1u << 31,
 
 		// Towns and building (added within version 13):
@@ -437,6 +457,10 @@ namespace skycraft::proto
 		                        // coords), code = 1 open, 0 closed. Resent every 2 s for each one within 24 blocks; Minecraft
 		                        // forgets one not resent for 6 s and watches redstone power at that block and the one above
 		// 22: set aside for towns
+		kInMobHit = 23,        // Mobs and NPCs fight: a Skyrim actor's swing landed on a Minecraft creature next to it (kEvMob kMobNear):
+		                       // a = the creature's Minecraft entity id, b = Minecraft damage x 100, c = the actor's FormID, code =
+		                       // HitWeapon. Minecraft hurts the creature as from the actor's stand-in. Added within version 13 (an older
+		                       // Minecraft ignores the type)
 	};
 
 	// Which shrine's blessing kInBlessing is, by the god the spell names. Added within version 13.
@@ -517,6 +541,11 @@ namespace skycraft::proto
 		// Shared world events (added within version 13: an older plugin never sets it, an older Minecraft ignores it).
 		kActorDragon = 1u << 18,  // a dragon: its race has the ActorTypeDragon keyword (every dragon, Alduin, Durnehviir,
 		                          // skeletal and DLC dragons). A hostile one in combat near the player is a dragon attack
+		// Creatures (added within version 13: an older plugin never sets these bits, an older Minecraft ignores them), from the
+		// actor's race (CreatureKinds.h).
+		kActorLightShy = 1u << 14,  // keeps away from strong Minecraft light: skeevers, Falmer (creatures_and_light)
+		kActorUndead = 1u << 15,    // draugr, skeletons, vampires: burns in daylight outdoors (creatures_and_light), and Minecraft's own
+		                            // undead monsters leave it alone (mobs_fight_npcs)
 	};
 
 	// Bits 8-11 of ActorRecord::flags: what kind of animal the actor is, from its race (AnimalKind; Skyrim's
@@ -643,7 +672,61 @@ namespace skycraft::proto
 		                       // went through shakes this player's camera a little (a dragon attacking them, a dragon slain):
 		                       // a = strength (0 to 1, Skyrim's ShakeCamera), b = seconds (0.1 to 3). Nothing in this Skyrim
 		                       // changes but the camera. Added within version 13 (an older plugin ignores the type)
+		kEvMob = 27,           // Minecraft's creatures and Skyrim's actors (Mobs and NPCs fight, tamed wolves, undead in daylight; added
+		                       // within version 13: an older plugin ignores the type). flags bits 0-7 = MobEvent:
+		                       // kMobHit: a Minecraft creature, or the sun, hurt an actor's stand-in: formId = the actor, a = Minecraft
+		                       // damage, b/c = push direction x/z (MC), d = push strength, flags bits 8-15 = HitFlags, bits 16-19 =
+		                       // MobAttacker, weapon = HitWeapon. Credited to no player, except a player's tamed wolf's (kMobByWolf).
+		                       // kMobNear: a Minecraft monster, or the player's tamed wolf on the hunt, near the player, sent every half
+		                       // second while it is: formId = its Minecraft entity id, a/b/c = its feet (MC coords), d = half its width
+		                       // (blocks), flags bits 8-15 = MobTraits, weapon = FormID of the actor it's going for (0: none). Skyrim
+		                       // forgets one it hasn't heard of for 1.5 s
+		kEvHorse = 28,         // Horses carry over (added within version 13: an older plugin ignores the type): flags = HorseAction,
+		                       // formId = the Skyrim horse Minecraft has it as (0: none yet), a/b/c = kHorseArrive: where it is (its feet,
+		                       // MC coords), d = its yaw (MC degrees), weapon = kHorseArrive: the Minecraft horse's HorseStats
 	};
+
+	// What kEvMob says (its flags bits 0-7).
+	enum MobEvent : std::uint32_t
+	{
+		kMobHit = 1,
+		kMobNear = 2,
+	};
+	inline constexpr std::uint32_t kMobHitFlagsShift = 8;   // kMobHit: HitFlags in flags bits 8-15
+	inline constexpr std::uint32_t kMobAttackerShift = 16;  // kMobHit: MobAttacker in flags bits 16-19
+	inline constexpr std::uint32_t kMobTraitsShift = 8;     // kMobNear: MobTraits in flags bits 8-15
+
+	// Who landed a kEvMob kMobHit.
+	enum MobAttacker : std::uint32_t
+	{
+		kMobByMonster = 0,  // a Minecraft monster (zombie, skeleton, spider, ...): no player's hit, no kill credit, no crime
+		kMobByWolf = 1,     // the player's tamed Minecraft wolf: a Minecraft hit as the player's (Skyrim's hit pipeline, kill credit),
+		                    // as vanilla counts a tamed wolf's hits as its owner's; no skill trained
+		kMobBySun = 2,      // daylight burning an undead actor (kActorUndead) outdoors: no attacker; its flames shown
+	};
+
+	// What kind of Minecraft creature a kEvMob kMobNear is (flags bits 8-15).
+	enum MobTraits : std::uint32_t
+	{
+		kMobUndead = 1u << 0,       // one of Minecraft's undead (zombies, skeletons, ...): Skyrim's undead leave it be unless it goes for them
+		kMobPlayersWolf = 1u << 1,  // the player's tamed wolf: only the player's enemies swing at it
+	};
+
+	// What kEvHorse asks for (its flags).
+	enum HorseAction : std::uint32_t
+	{
+		kHorseArrive = 1,  // the player's tamed Minecraft horse came into the mirror at a/b/c: Skyrim's horse (formId, or a new one
+		                   // owned by the player) is put there, enabled, with the Minecraft horse's speed and health; Skyrim sets
+		                   // kHorseArrived for two seconds and Minecraft then lets its own horse go
+		kHorseDepart = 2,  // the player left the mirror with their horse near (kHorseNear) and Minecraft made it a Minecraft horse
+		                   // there: Skyrim disables formId (kHorseAway) until it comes back
+		kHorseLost = 3,    // the Minecraft horse that formId became died: Skyrim's stays disabled and is forgotten
+	};
+
+	// kEvHorse kHorseArrive's weapon: the Minecraft horse's movement speed x 10000 in bits 0-11 (a horse has 0.1125 to 0.3375), its
+	// maximum health in bits 12-19 and its health in bits 20-27 (Minecraft health points).
+	inline constexpr std::uint32_t kHorseStatMaxHealthShift = 12;
+	inline constexpr std::uint32_t kHorseStatHealthShift = 20;
 
 	enum PortalTravelFlags : std::uint32_t
 	{
@@ -694,6 +777,14 @@ namespace skycraft::proto
 		kSpawnSkeever = 1,
 		kSpawnSkeleton = 2,
 		kSpawnDraugr = 3,
+	};
+
+	// Where a kEvSpawnCreature comes out (its weapon field; added within version 13: 0 from an older Minecraft. An older plugin
+	// ignores it, so a night monster's spot, in no dug tunnel, is refused there).
+	enum SpawnOrigin : std::uint32_t
+	{
+		kSpawnFromDark = 0,  // deep creatures: in a tunnel the player dug, on a Minecraft block (Skyrim checks the floor)
+		kSpawnAtNight = 1,   // night monsters: outdoors on Skyrim's own ground, at night (Skyrim checks it isn't under the land)
 	};
 
 	enum HitFlags : std::uint32_t

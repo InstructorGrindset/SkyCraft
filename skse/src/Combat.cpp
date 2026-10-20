@@ -1,7 +1,9 @@
 #include "Breach.h"
 #include "Companion.h"
 #include "Economy.h"
+#include "Creatures.h"
 #include "Game.h"
+#include "Horses.h"
 #include "Loot.h"
 #include "Party.h"
 #include "WorldState.h"
@@ -207,7 +209,7 @@ namespace skycraft
 				r.flags = (actor->IsHostileToActor(a_player) ? proto::kActorHostile : 0u) | (actor->IsDead() ? proto::kActorDead : 0u) |
 				          (actor->IsEssential() ? proto::kActorEssential : 0u) | (actor->IsInCombat() ? proto::kActorInCombat : 0u) |
 				          (Spawn::IsOurs(actor) ? proto::kActorSpawned : 0u) | Companion::Flags(actor, a_player) |
-				          Towns::ActorFlags(actor);
+				          Towns::ActorFlags(actor) | Creatures::Flags(actor);
 				r.flags |= Party::ActorFlags(actor);  // a dragon (shared world events)
 				Party::WatchActor(actor);             // the frame it starts a shout
 				const auto mc = SkyToMc(pos);
@@ -443,7 +445,9 @@ namespace skycraft
 
 		// A Minecraft hit on an actor's stand-in: real damage, scaled so Minecraft gear stays
 		// meaningful against higher-level enemies, delivered the way a Skyrim weapon would.
-		void ApplyHit(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev)
+		// a_byWolf: the player's tamed Minecraft wolf landed it (wolves_fight_skyrim): the player's hit
+		// all the same (kill credit), but it trains none of the player's skills.
+		void ApplyHit(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev, bool a_byWolf = false)
 		{
 			auto* actor = RE::TESForm::LookupByID<RE::Actor>(a_ev.formId);
 			if (!actor || actor->IsDead()) {
@@ -519,7 +523,7 @@ namespace skycraft
 				RE::NiPoint3 pick = dir;
 				impacts->PlayImpactEffect(actor, weapon->impactDataSet, node->name.c_str(), pick, 128.0f, false, false);
 			}
-			if (damage > 0.0f) {
+			if (damage > 0.0f && !a_byWolf) {
 				TrainSkill(a_player, HitSkill(a_ev), a_ev.a);
 			}
 			// A sneak attack says so the way Skyrim does, and trains Sneak as Skyrim's do.
@@ -530,9 +534,26 @@ namespace skycraft
 			if (!actor->IsDead() && !actor->IsPlayerTeammate() && !actor->IsInCombat()) {
 				actor->StartCombat(a_player);
 			}
-			logger::info("hit {} ({:08X}, level {}) for {:.1f} Minecraft -> {:.0f} Skyrim damage{}{}{}{}{}", actor->GetDisplayFullName(), a_ev.formId,
+			logger::info("hit {} ({:08X}, level {}) for {:.1f} Minecraft -> {:.0f} Skyrim damage{}{}{}{}{}{}", actor->GetDisplayFullName(), a_ev.formId,
 				actor->GetLevel(), a_ev.a, damage, crit ? ", critical" : "", projectile ? ", projectile" : "", stagger > 0.0f ? ", stagger" : "",
-				power ? ", power attack" : "", sneak > 1.0f ? std::format(", sneak attack {:.1f}x", sneak) : std::string());
+				power ? ", power attack" : "", sneak > 1.0f ? std::format(", sneak attack {:.1f}x", sneak) : std::string(),
+				a_byWolf ? ", by the player's wolf" : "");
+		}
+
+		// Minecraft's proto::kEvMob: a tamed wolf's hit is a Minecraft hit by the player (Skyrim's hit pipeline, as
+		// Minecraft counts a tamed wolf's hits as its owner's); the rest is Creatures' (monsters' hits, daylight, where
+		// Minecraft's creatures are).
+		void MobEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev)
+		{
+			const bool hit = (a_ev.flags & 0xFF) == proto::kMobHit;
+			if (hit && ((a_ev.flags >> proto::kMobAttackerShift) & 0xF) == proto::kMobByWolf) {
+				proto::McEvent asHit = a_ev;
+				asHit.type = proto::kEvHitActor;
+				asHit.flags = (a_ev.flags >> proto::kMobHitFlagsShift) & 0xFF;
+				ApplyHit(a_player, asHit, true);
+				return;
+			}
+			Creatures::OnMobEvent(a_player, a_ev);
 		}
 
 		void KillPlayer(RE::PlayerCharacter* a_player, const proto::McEvent& a_ev)
@@ -1014,10 +1035,13 @@ namespace skycraft
 						Party::Shake(a_player, ev);  // Skyrim's own camera shake while it drives the camera
 					} else if (ev.type == proto::kEvRedstoneDoor || ev.type == proto::kEvHearthfireStage) {
 						Towns::OnEvent(a_player, ev);  // (redstone from a lever pulled in Skyrim's own animation reaches its door meanwhile)
+					} else if (ev.type == proto::kEvHorse) {
+						Horses::OnEvent(a_player, ev);  // the player's horse goes along into another dimension (they're parked here)
 					}
 					// kEvSpawnCreature is dropped: nothing comes out of the dark while Skyrim has the player.
-					// So is kEvActivate: a click from before Skyrim took the player activates nothing; and so are
-					// kEvTownCrime and kEvTownBuild, about what the player did in Minecraft before Skyrim took them.
+					// So is kEvActivate: a click from before Skyrim took the player activates nothing; so are
+					// kEvTownCrime and kEvTownBuild, about what the player did in Minecraft before Skyrim took them;
+					// and so is kEvMob: Minecraft's creatures and Skyrim's actors only fight while Minecraft has the player.
 				}
 				pendingExplosions.clear();
 				pendingFlings.clear();
@@ -1027,6 +1051,8 @@ namespace skycraft
 				Breach::Update(a_player, a_delta);
 				Travel::Update(a_player, a_delta);
 				Companion::Update(a_player, a_delta);
+				Creatures::Reset();
+				Horses::Update(a_player, a_delta);
 				return;
 			}
 			// Skyrim can't kill the player while Minecraft decides: one huge hit knocks them down
@@ -1089,6 +1115,12 @@ namespace skycraft
 				case proto::kEvRedstoneDoor:
 					Towns::OnEvent(a_player, ev);
 					break;
+				case proto::kEvMob:
+					MobEvent(a_player, ev);
+					break;
+				case proto::kEvHorse:
+					Horses::OnEvent(a_player, ev);
+					break;
 				case proto::kEvSkillUse:
 					if (ev.formId >= static_cast<std::uint32_t>(RE::ActorValue::kOneHanded) && ev.formId <= static_cast<std::uint32_t>(RE::ActorValue::kEnchanting)) {
 						TrainSkill(a_player, static_cast<RE::ActorValue>(ev.formId), ev.a);
@@ -1104,6 +1136,8 @@ namespace skycraft
 			Breach::Update(a_player, a_delta);
 			Travel::Update(a_player, a_delta);
 			Companion::Update(a_player, a_delta);
+			Creatures::Update(a_player, a_delta);
+			Horses::Update(a_player, a_delta);
 			for (auto it = pendingExplosions.begin(); it != pendingExplosions.end();) {
 				it->delay -= a_delta;
 				if (it->delay <= 0.0f) {

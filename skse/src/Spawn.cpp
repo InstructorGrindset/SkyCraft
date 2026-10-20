@@ -33,6 +33,9 @@ namespace skycraft::Spawn
 		// Never right next to the player, whatever Minecraft says: the closest skycraft-deep.txt allows
 		// (4 blocks), less a little for Skyrim's player trailing Minecraft's.
 		constexpr float       kMinSpawnBlocks = 3.5f;
+		// Night monsters (proto::kSpawnAtNight) stand on Skyrim's own ground: a spot more than this under the land is a hollow
+		// in Minecraft's picture of the ground, not a place to stand.
+		constexpr float       kUnderLandUnits = 35.0f;
 		constexpr float       kDefaultDespawnBlocks = 64.0f;
 		constexpr std::uint32_t kDefaultCap = 3;
 		constexpr std::size_t kMaxTracked = 12;           // corpses beyond this are taken away first
@@ -318,6 +321,8 @@ namespace skycraft::Spawn
 	void OnEvent(RE::PlayerCharacter* a_player, const proto::McEvent& a_event)
 	{
 		const std::uint32_t kind = a_event.formId;
+		const bool          night = a_event.weapon == proto::kSpawnAtNight;  // night monsters, outdoors (else the deep's, in a tunnel)
+		const char*         tag = night ? "SkyCraft-night" : "SkyCraft-deep";
 		if (kind < proto::kSpawnSkeever || kind > proto::kSpawnDraugr) {
 			logger::warn("SkyCraft-deep: Minecraft asked for creature kind {}, which isn't one", kind);
 			return;
@@ -329,7 +334,7 @@ namespace skycraft::Spawn
 		const std::uint32_t cap = a_event.flags > 0 ? std::min<std::uint32_t>(a_event.flags, 16) : kDefaultCap;
 		const std::uint32_t alive = Prune();
 		if (alive >= cap) {
-			logger::info("SkyCraft-deep: {} spawned creatures alive already (at most {}); no more", alive, cap);
+			logger::info("{}: {} spawned creatures alive already (at most {}); no more", tag, alive, cap);
 			return;
 		}
 		const float despawn = a_event.d > 0.0f && std::isfinite(a_event.d) ? a_event.d : kDefaultDespawnBlocks;
@@ -349,7 +354,16 @@ namespace skycraft::Spawn
 		const auto bx = static_cast<std::int32_t>(std::floor(a_event.a));
 		const auto by = static_cast<std::int32_t>(std::floor(a_event.b + 0.01f));
 		const auto bz = static_cast<std::int32_t>(std::floor(a_event.c));
-		if (!NpcBlocks::SolidAt(bx, by - 1, bz) || !Dig::IsDug(bx, by, bz)) {
+		if (night) {
+			// Out at night on Skyrim's ground (or a Minecraft block on it): not inside a block, not under the land.
+			const auto spot = McToSky(a_event.a, a_event.b, a_event.c);
+			float      land = 0.0f;
+			auto*      tes = RE::TES::GetSingleton();
+			if (NpcBlocks::SolidAt(bx, by, bz) || NpcBlocks::SolidAt(bx, by + 1, bz) || (tes && tes->GetLandHeight(spot, land) && spot.z < land - kUnderLandUnits)) {
+				logger::info("SkyCraft-night: the spot at {} {} {} is in a block or under the land; no spawn", bx, by, bz);
+				return;
+			}
+		} else if (!NpcBlocks::SolidAt(bx, by - 1, bz) || !Dig::IsDug(bx, by, bz)) {
 			logger::info("SkyCraft-deep: Skyrim doesn't know the floor of the tunnel at {} {} {} yet; no spawn", bx, by, bz);
 			return;
 		}
@@ -387,8 +401,8 @@ namespace skycraft::Spawn
 		s.spot = { a_event.a, a_event.b, a_event.c };
 		s.age = 0.0f;
 		const auto at = SkyToMc(ref->GetPosition());
-		logger::info("SkyCraft-deep: a {} ({:08X}, ref {:08X}) comes out of the dark at {:.1f} {:.1f} {:.1f}, {:.0f} blocks from the player; {} of {} alive (placed at {:.1f} {:.1f} {:.1f} in cell {:08X}, {})",
-			creature->name, creature->base, s.formId, a_event.a, a_event.b, a_event.c, away, alive + 1, cap, at.x, at.y, at.z,
+		logger::info("{}: a {} ({:08X}, ref {:08X}) comes out of the {} at {:.1f} {:.1f} {:.1f}, {:.0f} blocks from the player; {} of {} alive (placed at {:.1f} {:.1f} {:.1f} in cell {:08X}, {})",
+			tag, creature->name, creature->base, s.formId, night ? "night" : "dark", a_event.a, a_event.b, a_event.c, away, alive + 1, cap, at.x, at.y, at.z,
 			ref->GetParentCell() ? ref->GetParentCell()->GetFormID() : 0u, ref->Is3DLoaded() ? "3D loaded at once" : "3D still loading");
 		spawned.push_back(s);
 	}
