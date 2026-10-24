@@ -263,6 +263,30 @@ public final class SkyNet {
 		}
 	}
 
+	/**
+	 * Guest -> server (Shouts, Spells): the guest's own Skyrim shouted or cast (its answer, Proto.IN_SHOUT_RESULT or
+	 * IN_CAST_RESULT, said done), so the host's server gives it its Minecraft side around the guest (magic.MagicEffects), as
+	 * for the host's own. {@code what} is MagicEffects.SHOUT or SPELL, {@code kind} a Proto.SHOUT_KIND_* or SPELL_KIND_*,
+	 * {@code words} the shout's words, {@code magicka} what the spell took, {@code delivery} its Proto.DELIVERY_*. The server
+	 * holds them to rates and sizes (MagicEffects.fromGuest).
+	 */
+	public record MagicCast(int what, int kind, int words, float magicka, int delivery) implements CustomPacketPayload {
+		public static final Type<MagicCast> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "magic_cast"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, MagicCast> CODEC = StreamCodec.composite(
+			ByteBufCodecs.VAR_INT, MagicCast::what,
+			ByteBufCodecs.VAR_INT, MagicCast::kind,
+			ByteBufCodecs.VAR_INT, MagicCast::words,
+			ByteBufCodecs.FLOAT, MagicCast::magicka,
+			ByteBufCodecs.VAR_INT, MagicCast::delivery,
+			MagicCast::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
 	/** Server -> client (shared world events): shake this player's Skyrim camera a little (proto kEvPartyShake). */
 	public record WorldEventShake(float strength, float seconds) implements CustomPacketPayload {
 		public static final Type<WorldEventShake> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "world_event_shake"));
@@ -383,6 +407,13 @@ public final class SkyNet {
 		ServerPlayNetworking.registerGlobalReceiver(GuestDragon.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			context.server().execute(() -> dev.skycraft.party.SharedWorldEvents.onGuestDragon(player, payload.kind(), payload.name()));
+		});
+		// A guest's own Skyrim shouted or cast: its Minecraft side around them (magic.MagicEffects holds it to rates and sizes).
+		PayloadTypeRegistry.serverboundPlay().register(MagicCast.TYPE, MagicCast.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(MagicCast.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.magic.MagicEffects.fromGuest(player, payload.what(), payload.kind(), payload.words(), payload.magicka(),
+				payload.delivery()));
 		});
 	}
 

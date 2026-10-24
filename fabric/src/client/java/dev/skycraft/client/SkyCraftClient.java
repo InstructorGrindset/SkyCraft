@@ -14,6 +14,7 @@ public final class SkyCraftClient implements ClientModInitializer {
 		DestructionToggle.register();
 		FeaturesScreen.register(); // the pause menu's "SkyCraft settings", beside "Skyrim destruction"
 		FarmingClient.register(); // a hoe tills Skyrim's soil into farmland (skyrim_farming)
+		MagicClient.register(); // Shout, Cast spell and their HUD: Skyrim's shouts and spells from Minecraft's keys (shouts, spells)
 		MinecraftView.init(); // /skyview: to the Nether (or any other dimension) and back, for testing the Minecraft view
 		// Multiplayer without editing files: the host opens their world to LAN (O, Open to LAN) and
 		// e4mc gives them a link; friends type /join <link> in chat, and /leave to come back.

@@ -3,6 +3,7 @@
 #include "Breach.h"
 #include "Horses.h"
 #include "Loot.h"
+#include "Magic.h"
 #include "Party.h"
 #include "Towns.h"
 #include "Travel.h"
@@ -1209,6 +1210,7 @@ namespace skycraft
 			Weather::Update(a_player, haveMc ? &mc : nullptr, sky);  // Skyrim's weather for Minecraft, Minecraft's /weather for Skyrim
 			sky.aim = Farming::Aim();  // a plant to harvest under the crosshair: a right click harvests it, a hoe doesn't till there
 			Blessings::Update(a_player, haveMc && st.mcInWorld, a_delta);  // a shrine's blessing becomes a Minecraft effect
+			Magic::Update(a_player, loading, a_delta);  // the shouts and spells the player knows, for Minecraft's keys (shouts, spells)
 			Party::Fill(a_player, sky);                     // who shouted last (shared world events)
 			Towns::FillSkyState(a_player, sky);           // doors and ladders read here; the Hearthfire plot underfoot
 			Horses::Describe(a_player, sky.horse, sky.horseInfo);  // the player's horse, for horses_carry_over

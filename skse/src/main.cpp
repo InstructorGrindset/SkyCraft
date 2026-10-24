@@ -6,6 +6,7 @@
 #include "Dig.h"
 #include "Economy.h"
 #include "Loot.h"
+#include "Magic.h"
 #include "Game.h"
 #include "Horses.h"
 #include "Spawn.h"
@@ -67,6 +68,7 @@ namespace
 			skycraft::Travel::Reset();  // portal network
 			skycraft::WorldState::SkillsReloaded();  // the new game's skills, under a new skillsLoad
 			skycraft::Towns::Reset();
+			skycraft::Magic::Reset();  // the new game's shouts and spells, at once
 			break;
 		default:
 			break;

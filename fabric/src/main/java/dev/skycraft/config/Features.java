@@ -108,8 +108,12 @@ public final class Features {
 		QUEST_MARKERS("quest_markers", "Skyrim's quest markers show on Minecraft's locator bar"),
 
 		// Magic
-		SHOUTS("shouts", "the shouts you know in Skyrim work from a Minecraft key, on Minecraft's mobs as well as Skyrim's people"),
-		SPELLS("spells", "the spells you know in Skyrim can be cast from Minecraft, with Skyrim's magicka"),
+		SHOUTS("shouts", "the shouts you know in Skyrim work from a Minecraft key (Shout, V: tap for one word, hold for more; Next shout, B), "
+			+ "on Minecraft's mobs as well as Skyrim's people: Unrelenting Force pushes, Fire and Frost Breath burn and slow, Whirlwind Sprint dashes, "
+			+ "Become Ethereal, Slow Time, Clear Skies (skycraft-magic.txt)", true, dev.skycraft.link.Proto.FEATURE_SHOUTS),
+		SPELLS("spells", "the spells you know in Skyrim can be cast from Minecraft with Skyrim's magicka (Cast spell, R; Next spell, N): fire, frost "
+			+ "and shock spells hurt Minecraft's mobs too, healing heals you, a ward shields you (skycraft-magic.txt)", true,
+			dev.skycraft.link.Proto.FEATURE_SPELLS),
 
 		// Maps
 		SKYRIM_MAPS("skyrim_maps", "a Minecraft map filled in the Skyrim world draws Skyrim's land, roads and water");
