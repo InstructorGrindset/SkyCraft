@@ -38,6 +38,8 @@ namespace skycraft
 		void WriteBreaches(const proto::BreachRecord* a_records, std::uint32_t a_count, std::uint32_t a_worldId);
 		// Quest target table (producer, main thread): the quest markers of Skyrim's compass, positions in world a_worldId.
 		void WriteQuestTargets(const proto::QuestTargetRecord* a_records, std::uint32_t a_count, std::uint32_t a_worldId);
+		// Map table (producer, main thread): Skyrim's map markers near the player and its last land sample (Skyrim maps).
+		void WriteMapTable(const proto::MapTable& a_table);
 		// Event ring (consumer, main thread). Returns false when empty.
 		bool PopEvent(proto::McEvent& a_out);
 		// Skyrim -> MC: an item the player just got (see proto::ItemEvent). Dropped if MC is a full ring behind.

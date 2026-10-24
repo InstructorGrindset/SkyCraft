@@ -84,6 +84,9 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   Kynareth speed, Mara regeneration, ...).
 - **Tamriel Wilds villages:** their villagers have Skyrim names by trade (a Nord blacksmith, an Imperial
   cartographer) and sell Skyrim gear, ingots and potions.
+- **Maps (new, not played yet):** a Minecraft map filled in Skyrim draws Skyrim's land, roads, buildings, lakes and rivers,
+  shaded the way Minecraft shades its own maps, and fills in as you explore; blocks you place still show over it. The places
+  on Skyrim's own map near you (towns, dungeons, camps, shrines) go on it as banners with their names (`skyrim_maps`).
 - **Merchants and food:** right click a Skyrim merchant with an empty hand to trade on a villager
   screen, or sneak and right click it with Minecraft goods in hand to sell them for Skyrim gold
   (only what its shop deals in, out of its own gold). Food you eat in Skyrim fills Minecraft's

@@ -113,7 +113,9 @@ public final class Features {
 		SPELLS("spells", "the spells you know in Skyrim can be cast from Minecraft, with Skyrim's magicka"),
 
 		// Maps
-		SKYRIM_MAPS("skyrim_maps", "a Minecraft map filled in the Skyrim world draws Skyrim's land, roads and water");
+		SKYRIM_MAPS("skyrim_maps", "a Minecraft map filled in the Skyrim world draws Skyrim's land, roads, buildings and water, with hills shaded, "
+			+ "and the places on Skyrim's own map (towns, dungeons, camps) as named banners; blocks you place still show over it", true,
+			dev.skycraft.link.Proto.FEATURE_SKYRIM_MAPS);
 
 		public final String key;
 		public final String about;

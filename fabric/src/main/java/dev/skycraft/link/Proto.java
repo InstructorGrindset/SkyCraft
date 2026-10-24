@@ -293,6 +293,46 @@ public final class Proto {
 	public static final int QUEST_ACTOR = 1 << 4;
 	/** QuestTargetRecord questType (Skyrim's QUEST_DATA::Type) of the main quest; 6 is miscellaneous. */
 	public static final int QUEST_TYPE_MAIN = 1, QUEST_TYPE_MISC = 6;
+	/**
+	 * Skyrim maps (maps.SkyMaps; added within protocol 13): the map table (relative to OFF_MAP_TABLE), Skyrim -> MC, seqlock,
+	 * see MapTable in the protocol header. It sits in the unused space between the actor table and the event ring, so an
+	 * older plugin leaves it all zeros: nothing yet.
+	 */
+	public static final long OFF_MAP_TABLE = 0x16100;
+	public static final long MAP_TABLE_BYTES = 0xE00;
+	public static final int MAX_MAP_MARKERS = 48;
+	/** Land samples along each side of an EV_MAP_SAMPLE square. */
+	public static final int MAP_SAMPLE_SIDE = 20;
+	/** Blocks: Skyrim lists the markers this close to its player. */
+	public static final float MAP_MARKER_REACH = 1024.0F;
+	public static final long MAPT_SEQ = 0x00, MAPT_WORLD_ID = 0x04, MAPT_MARKER_COUNT = 0x08, MAPT_MARKER_VERSION = 0x0C;
+	public static final long MAPT_CENTER_X = 0x10, MAPT_CENTER_Z = 0x14, MAPT_MARKER_REACH = 0x18, MAPT_MARKERS = 0x20;
+	public static final long MAP_MARKER_BYTES = 40;
+	// MapMarkerRecord fields
+	public static final long MM_X = 0, MM_Z = 4, MM_FORM_ID = 8, MM_TYPE = 12, MM_FLAGS = 14, MM_NAME = 16;
+	public static final int MM_NAME_BYTES = 24;
+	// MapMarkerFlags
+	/** Shown on Skyrim's own map: seen, or heard of. */
+	public static final int MARKER_VISIBLE = 1;
+	/** Discovered: the player can fast travel there. */
+	public static final int MARKER_DISCOVERED = 1 << 1;
+	/** MapMarkerType kMarkerTypeCount: marker types from here on aren't places. */
+	public static final int MARKER_TYPE_COUNT = 60;
+	// The answer to the last EV_MAP_SAMPLE.
+	public static final long MAPT_SAMPLE_REQUEST = 0x7A0, MAPT_SAMPLE_X = 0x7A4, MAPT_SAMPLE_Z = 0x7A8, MAPT_SAMPLE_SPACING = 0x7AC;
+	public static final long MAPT_SAMPLE_WORLD = 0x7B0, MAPT_SAMPLE_KNOWN = 0x7B4, MAPT_SAMPLES = 0x7C0;
+	/** MapSample: i16 height (MC y x 4, of the water's surface when water > 0), u8 DIG_* material, u8 water depth (blocks). */
+	public static final long MAP_SAMPLE_BYTES = 4;
+	/** MapSample height: not in a cell Skyrim has loaded. */
+	public static final int SAMPLE_UNKNOWN = -32768;
+	/**
+	 * A Minecraft map in the mirror wants Skyrim's land under it: a, c = the north-west sample's x and z (sent with
+	 * SkyLink.pushEventAt, so in the current world's terms), b = blocks between samples (1 to 256), flags = a request number
+	 * (never 0). Skyrim answers into the map table's samples. Added within protocol 13; an older plugin ignores it.
+	 */
+	public static final int EV_MAP_SAMPLE = 39;
+	/** skyrim_maps: Skyrim lists its map markers in the map table and answers EV_MAP_SAMPLE. Added within protocol 13. */
+	public static final int FEATURE_SKYRIM_MAPS = 1 << 7;
 
 	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
 	public static final int ITEM_RING_ENTRIES = 64;

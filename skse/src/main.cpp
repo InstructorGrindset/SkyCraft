@@ -7,6 +7,7 @@
 #include "Economy.h"
 #include "Loot.h"
 #include "Game.h"
+#include "Maps.h"
 #include "Horses.h"
 #include "Spawn.h"
 #include "Towns.h"
@@ -67,6 +68,7 @@ namespace
 			skycraft::Travel::Reset();  // portal network
 			skycraft::WorldState::SkillsReloaded();  // the new game's skills, under a new skillsLoad
 			skycraft::Towns::Reset();
+			skycraft::Maps::Reset();  // Skyrim maps: the markers are gathered again
 			break;
 		default:
 			break;

@@ -3,6 +3,7 @@
 #include "Breach.h"
 #include "Horses.h"
 #include "Loot.h"
+#include "Maps.h"
 #include "Party.h"
 #include "Quests.h"
 #include "Towns.h"
@@ -866,6 +867,7 @@ namespace skycraft
 				NpcBlocks::PushActorsOut(a_player, a_delta);
 			}
 			Towns::Update(a_player, puppet, a_delta);  // switches and Dwemer doors to Minecraft; NPCs up its ladders
+			Maps::Update(a_player, a_delta);           // Skyrim's map markers near the player, for Minecraft's maps
 
 			// Interpolate Minecraft's 20 Hz physics ticks on our own clock (what MC's renderer does
 			// with partial ticks). Sampling MC's per-frame position instead judders, because the two
