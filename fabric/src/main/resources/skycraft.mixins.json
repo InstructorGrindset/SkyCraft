@@ -20,6 +20,8 @@
     "FlowingFluidMixin",
     "ItemMixin",
     "LivingEntityStealthMixin",
+    "MapItemMixin",
+    "MapItemSavedDataInvoker",
     "MinecraftServerFlightMixin",
     "NetherPortalBlockMixin",
     "PlayerAttackMixin",

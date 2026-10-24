@@ -45,6 +45,12 @@ public final class SkyCollision {
 	// since the client last looked (the walls of dug holes are drawn from them).
 	private static final ConcurrentHashMap<Long, Long> TRI_HASH = new ConcurrentHashMap<>();
 	private static final java.util.concurrent.ConcurrentLinkedQueue<Long> CHANGED = new java.util.concurrent.ConcurrentLinkedQueue<>();
+	// Maps (maps.SkyMaps): per column of regions (rx, 0, rz as a BlockPos long), the lowest and highest ry whose triangles
+	// are held (packed high and low), and a count that moves each time triangles in that column change. Everything held
+	// dropped or moved bumps the generation.
+	private static final ConcurrentHashMap<Long, Long> COLUMN_SPAN = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Long, Integer> COLUMN_CHANGES = new ConcurrentHashMap<>();
+	private static volatile int generation;
 
 	/** Regions (min corner, as BlockPos longs) whose triangles changed since the last call. */
 	public static void takeChangedRegions(java.util.function.LongConsumer out) {
@@ -135,6 +141,33 @@ public final class SkyCollision {
 						}
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * A count that moves whenever triangles in the column of regions (rx, rz) change (0: none ever held), for a cache of
+	 * what's in it (maps.SkyMaps). It starts over with each {@link #generation}.
+	 */
+	public static int columnStamp(int rx, int rz) {
+		return COLUMN_CHANGES.getOrDefault(regionKey(rx, 0, rz), 0);
+	}
+
+	/** Moves whenever everything held is dropped (a new epoch) or moved (its world's space changed). */
+	public static int generation() {
+		return generation;
+	}
+
+	/** Adds every triangle held in the column of regions (rx, rz), all the way up and down. */
+	public static void columnTriangles(int rx, int rz, java.util.List<SkyTri> out) {
+		Long span = COLUMN_SPAN.get(regionKey(rx, 0, rz));
+		if (span == null) {
+			return;
+		}
+		for (int ry = (int) (span >> 32); ry <= (int) (long) span; ry++) {
+			SkyTri[] tris = TRIS.get(regionKey(rx, ry, rz));
+			if (tris != null) {
+				java.util.Collections.addAll(out, tris);
 			}
 		}
 	}
@@ -338,6 +371,9 @@ public final class SkyCollision {
 		moveTris(TRIS, rx, rz, dx, dz);
 		moveTris(GHOSTS, rx, rz, dx, dz);
 		moveKeys(TRI_HASH, rx, 0, rz);
+		moveKeys(COLUMN_SPAN, rx, 0, rz);
+		moveKeys(COLUMN_CHANGES, rx, 0, rz);
+		generation++;
 		java.util.List<Long> known = new java.util.ArrayList<>(KNOWN_REGIONS);
 		KNOWN_REGIONS.clear();
 		for (long key : known) {
@@ -396,6 +432,9 @@ public final class SkyCollision {
 		TRIS.clear();
 		GHOSTS.clear();
 		TRI_HASH.clear();
+		COLUMN_SPAN.clear();
+		COLUMN_CHANGES.clear();
+		generation++;
 		KNOWN_REGIONS.clear();
 		epoch = newEpoch;
 		epochWorldKnown = false;
@@ -498,10 +537,15 @@ public final class SkyCollision {
 		} else {
 			GHOSTS.put(region, ghosts.toArray(new SkyTri[0]));
 		}
+		int rx = Math.floorDiv(minX, REGION_SIZE), ry = Math.floorDiv(minY, REGION_SIZE), rz = Math.floorDiv(minZ, REGION_SIZE);
+		long column = regionKey(rx, 0, rz);
+		COLUMN_SPAN.merge(column, (long) ry << 32 | ry & 0xFFFFFFFFL,
+			(a, b) -> (long) Math.min((int) (a >> 32), ry) << 32 | Math.max((int) (long) a, ry) & 0xFFFFFFFFL);
 		TRIS.put(region, java.util.Arrays.copyOf(tris, kept));
 		Long before = TRI_HASH.put(region, hash);
 		if (before == null || before != hash) {
 			CHANGED.add(BlockPos.asLong(minX, minY, minZ));
+			COLUMN_CHANGES.merge(column, 1, Integer::sum);
 		}
 	}
 

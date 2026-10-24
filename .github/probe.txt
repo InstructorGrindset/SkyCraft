@@ -131,3 +131,19 @@ net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
 -c net.minecraft.server.players.PlayerList saveAll
 net.minecraft.world.item.component.DyedItemColor
 -c net.minecraft.core.component.DataComponents DYED_COLOR
+# Skyrim maps (maps/SkyMaps, mixin/MapItemMixin, mixin/MapItemSavedDataInvoker): vanilla's map update (its parameters, and the
+# updateColor call storing each pixel's colour, which the mixin wraps), the saved data's fields and its private decoration
+# methods (banners with a name), the banner decoration types, map colours and the block lookup the pixel rule repeats.
+-c net.minecraft.world.item.MapItem update
+-c net.minecraft.world.item.MapItem inventoryTick
+net.minecraft.world.level.saveddata.maps.MapItemSavedData
+-c net.minecraft.world.level.saveddata.maps.MapItemSavedData updateColor
+-c net.minecraft.world.level.saveddata.maps.MapItemSavedData addDecoration
+-c net.minecraft.world.level.saveddata.maps.MapItemSavedData removeDecoration
+-c net.minecraft.world.level.saveddata.maps.MapItemSavedData tickCarriedBy
+net.minecraft.world.level.saveddata.maps.MapDecorationTypes
+net.minecraft.world.level.saveddata.maps.MapDecorationType
+net.minecraft.world.level.saveddata.maps.MapDecoration
+net.minecraft.world.level.material.MapColor
+-c net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase getMapColor
+net.minecraft.world.level.levelgen.Heightmap$Types
