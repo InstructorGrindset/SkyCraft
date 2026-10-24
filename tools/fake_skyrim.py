@@ -18,6 +18,9 @@ Breach doors: outside (no interior place flag) it publishes two dungeon entrance
 player, a Nordic crypt 40 blocks east and a mine 60 blocks south, and prints the kEvEnterDungeon
 events Minecraft sends back (SKYCRAFT_BREACHES=0 publishes none).
 
+Shouts and spells: SKYCRAFT_MAGIC=1 publishes a magic table and answers Minecraft's shouts and casts as the plugin
+does, then presses the magic keys after the main script: see MAGIC below.
+
 World spaces: the fake player is in a made-up Skyrim world (SKYCRAFT_WORLD, hex; default FF0FA4E0),
 so Minecraft gives it a space of its own and the test blocks never land in a real Skyrim world's.
 Every coordinate here is in that world's own terms, as a real Skyrim's are; kColClear names the world.
@@ -113,6 +116,40 @@ FAKE_BANDIT_GEAR = [
     (0x0001397D, 12, TAG_ARROW, MAT_IRON, "Iron Arrow"),
 ]
 
+# Shouts and spells: SKYCRAFT_MAGIC=1 publishes a magic table (MagicTable @0x11800: three shouts, Unrelenting Force
+# equipped, and four spells, 100 of 150 magicka) refreshed twice a second, and answers kEvShout / kEvCastSpell as
+# Magic.cpp does (the voice recovers, magicka is taken), printing each. From t=38 s of the script (a run of 55 s or more)
+# it presses the keys at their defaults: Shout tapped (one word), Shout again while the voice recovers (refused), Next
+# shout and Shout held (Whirlwind Sprint, both its words), Next spell and Cast spell (Firebolt), Next spell and Cast spell
+# held two seconds (Healing, in pulses); then checks what came and saves the overlay frame with the HUD as
+# <out>_magic.png. Minecraft's own side (the dash, a mob pushed) shows in Minecraft.
+MAGIC = os.environ.get("SKYCRAFT_MAGIC", "0") != "0"
+OFF_MAGIC = 0x11800
+EV_SHOUT, EV_CAST_SPELL = 35, 36
+IN_SHOUT_RESULT, IN_CAST_RESULT = 31, 32
+SHOUT_DONE, SHOUT_RECOVERING, SHOUT_UNKNOWN = 1, 2, 3
+CAST_DONE, CAST_NO_MAGICKA, CAST_UNKNOWN = 1, 2, 3
+CAST_PULSE = 1
+MAGIC_SHOUTS, MAGIC_SPELLS = 1, 2
+FEATURE_SHOUTS, FEATURE_SPELLS = 1 << 5, 1 << 6
+SDL_V, SDL_B, SDL_R, SDL_N = 25, 5, 21, 17
+# FormID (made up, load order FF), words unlocked, ShoutKind, voice recovery for 1, 2, 3 words, name
+FAKE_SHOUTS = [
+    (0xFF0DA001, 3, 1, (2.0, 5.0, 10.0), "Unrelenting Force"),  # recovers quickly, so the script's next shout is free
+    (0xFF0DA002, 2, 4, (20.0, 25.0, 35.0), "Whirlwind Sprint"),
+    (0xFF0DA003, 1, 2, (30.0, 50.0, 100.0), "Fire Breath"),
+]
+# FormID, magicka cost (per second for concentration), school (ActorValue), SpellKind, MagicSpellFlags (1 concentration,
+# 8 hostile), delivery (0 self, 2 aimed), name
+FAKE_SPELLS = [
+    (0xFF0DB001, 14.0, 20, 1, 1 | 8, 2, "Flames"),
+    (0xFF0DB002, 41.0, 20, 1, 8, 2, "Firebolt"),
+    (0xFF0DB003, 25.0, 22, 4, 1, 0, "Healing"),
+    (0xFF0DB004, 30.0, 22, 5, 1, 0, "Lesser Ward"),
+]
+MAGICKA_MAX = 150.0
+MAGICKA_REGEN = 5.0  # a second
+
 # BreachTheme / BreachFlags (skycraft_protocol.h)
 THEME_CAVE, THEME_NORDIC, THEME_DWEMER, THEME_FALMER, THEME_MINE, THEME_FORT, THEME_LAIR = range(7)
 BREACH_DISCOVERED, BREACH_CLEARED = 1, 2
@@ -151,6 +188,7 @@ class Link:
         self.m[OFF_ITEMS:OFF_ITEMS + 0x80] = bytes(0x80)
         self.m[OFF_ENTITIES:OFF_ENTITIES + 0x40] = bytes(0x40)
         self.m[OFF_BREACHES:OFF_BREACHES + 0x10] = bytes(0x10)
+        self.m[OFF_MAGIC:OFF_MAGIC + 0x800] = bytes(0x800)
         self.m[OFF_RENDER:OFF_RENDER + 0x80] = bytes(0x80)
         struct.pack_into("<IIII", self.m, 0, MAGIC, VERSION, os.getpid(), 0)
         self.front = 2
@@ -169,6 +207,13 @@ class Link:
         self.clears = 0
         self.companions = {}  # FormID -> "waiting" / "following": what Minecraft tamed (SKYCRAFT_COMPANION)
         self.wolf_health = 0.5  # the fake wolf starts hurt, so meat heals it once it's tamed
+        self.magic_seq = 0
+        self.magic_refresh = int(time.time()) | 1
+        self.magicka = 100.0
+        self.voice_ends = 0.0
+        self.equipped = FAKE_SHOUTS[0][0]
+        self.shouts = []  # (FormID, words asked, answer) of every kEvShout
+        self.casts = []   # (FormID, flags, pulse seconds, answer) of every kEvCastSpell
 
     def heartbeat(self):
         struct.pack_into("<Q", self.m, 0x10, tick())
@@ -197,12 +242,78 @@ class Link:
             elif typ == EV_COMPANION:
                 kind = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
                 self.companion_event(form, flags, a, kind)
+            elif typ in (EV_SHOUT, EV_CAST_SPELL):
+                request = struct.unpack_from("<I", self.m, OFF_EVENTS + 0x80 + (tail % 512) * 32 + 28)[0]
+                if typ == EV_SHOUT:
+                    self.shout_event(form, flags, a, b, request)
+                else:
+                    self.cast_event(form, flags, a, b, c, request)
             else:
                 named = "".join(f", {name}" for bit, name in HIT_FLAG_NAMES if typ == EV_HIT_ACTOR and flags & bit)
                 print(f"  event from Minecraft: type={typ} form={form:08X} damage={a:.2f} push=({b:.2f},{c:.2f})x{d:.2f} flags={flags:#x}{named}")
             self.events.append(typ)
             tail += 1
         struct.pack_into("<Q", self.m, OFF_EVENTS + 0x40, tail)
+
+    def write_magic(self):
+        """Skyrim -> MC: the magic table (MagicTable @0x11800, seqlock), as Magic.cpp fills it."""
+        self.magic_seq += 1
+        self.magic_refresh = (self.magic_refresh + 1) & 0xFFFFFFFF or 1
+        struct.pack_into("<I", self.m, OFF_MAGIC, self.magic_seq * 2 - 1)
+        voice = max(0.0, self.voice_ends - time.time())
+        shouts = sorted(FAKE_SHOUTS, key=lambda s: s[0] != self.equipped)  # the equipped one first
+        struct.pack_into("<IIffffBBBB", self.m, OFF_MAGIC + 4, self.magic_refresh, self.equipped, voice, self.magicka, MAGICKA_MAX, 1.0,
+                         len(shouts), len(FAKE_SPELLS), MAGIC_SHOUTS | MAGIC_SPELLS, 0)
+        for i, (form, words, kind, recovery, name) in enumerate(shouts):
+            struct.pack_into("<IBBBB3f20s", self.m, OFF_MAGIC + 0x40 + i * 40, form, words, kind, 1 if form == self.equipped else 0, 0, *recovery,
+                             name.encode("utf-8")[:19])
+        for i, (form, cost, school, kind, flags, delivery, name) in enumerate(FAKE_SPELLS):
+            struct.pack_into("<IfBBBB24s", self.m, OFF_MAGIC + 0x360 + i * 36, form, cost, school, kind, flags, delivery, name.encode("utf-8")[:23])
+        struct.pack_into("<I", self.m, OFF_MAGIC, self.magic_seq * 2)
+
+    def shout_event(self, form, words, yaw, pitch, request):
+        """kEvShout, answered as Magic.cpp answers it: the voice checked, then shouted and its recovery begun."""
+        shout = next((s for s in FAKE_SHOUTS if s[0] == form), None)
+        if shout is None:
+            self.push_input(IN_SHOUT_RESULT, SHOUT_UNKNOWN, request, 0, 0)
+            self.shouts.append((form, words, "unknown"))
+            print(f"  event from Minecraft: shout {form:08X}: not one the fake player knows")
+            return
+        form, unlocked, kind, recovery, name = shout
+        left = self.voice_ends - time.time()
+        if left > 0.05:
+            self.push_input(IN_SHOUT_RESULT, SHOUT_RECOVERING | kind << 8, request, 0, int(left * 1000))
+            self.shouts.append((form, words, "recovering"))
+            print(f"  event from Minecraft: shout {name} ({words} words): the voice needs {left:.1f} s more")
+            return
+        words = max(1, min(words, unlocked))
+        self.voice_ends = time.time() + recovery[words - 1]
+        self.equipped = form
+        self.push_input(IN_SHOUT_RESULT, SHOUT_DONE | kind << 8, request, words, int(recovery[words - 1] * 1000))
+        self.shouts.append((form, words, "done"))
+        print(f"  event from Minecraft: shout {name}, {words} words, looking yaw {yaw:.0f} pitch {pitch:.0f}: shouted (recovery {recovery[words - 1]:.0f} s)")
+
+    def cast_event(self, form, flags, yaw, pitch, seconds, request):
+        """kEvCastSpell, answered as Magic.cpp answers it: the magicka checked and taken."""
+        spell = next((s for s in FAKE_SPELLS if s[0] == form), None)
+        if spell is None:
+            self.push_input(IN_CAST_RESULT, CAST_UNKNOWN, request, 0, form)
+            self.casts.append((form, flags, seconds, "unknown"))
+            print(f"  event from Minecraft: cast {form:08X}: not a spell the fake player knows")
+            return
+        form, cost, school, kind, spell_flags, delivery, name = spell
+        if flags & CAST_PULSE and spell_flags & 1:
+            cost *= max(0.05, min(seconds, 1.0))
+        if self.magicka < cost:
+            self.push_input(IN_CAST_RESULT, CAST_NO_MAGICKA | kind << 8, request, int(cost * 100), form)
+            self.casts.append((form, flags, seconds, "no magicka"))
+            print(f"  event from Minecraft: cast {name}: not enough magicka ({self.magicka:.0f} of {cost:.0f})")
+            return
+        self.magicka -= cost
+        self.push_input(IN_CAST_RESULT, CAST_DONE | kind << 8, request, int(cost * 100), form)
+        self.casts.append((form, flags, seconds, "done"))
+        pulse = f", a {seconds:.2f} s pulse" if flags & CAST_PULSE else ""
+        print(f"  event from Minecraft: cast {name}{pulse}: {cost:.1f} magicka taken, {self.magicka:.0f} left")
 
     def drain_render(self):
         base = OFF_RENDER
@@ -491,6 +602,12 @@ def main():
     last_light = None
     door = 0  # world-change check: 0 not yet, 1 in world B, 2 back in world A, 3 done
     results = []
+    last_magic = 0.0
+    magic_checked = False
+    # The magic keys after the main script (SKYCRAFT_MAGIC): (time, SDL scancode, 1 down / 0 up).
+    magic_keys = [(38.0, SDL_V, 1), (38.05, SDL_V, 0), (39.0, SDL_V, 1), (39.1, SDL_V, 0), (40.5, SDL_B, 1), (40.55, SDL_B, 0),
+                  (41.0, SDL_V, 1), (42.0, SDL_V, 0), (42.5, SDL_N, 1), (42.55, SDL_N, 0), (43.0, SDL_R, 1), (43.05, SDL_R, 0),
+                  (44.0, SDL_N, 1), (44.05, SDL_N, 0), (44.5, SDL_R, 1), (46.5, SDL_R, 0)]
     while time.time() - start < seconds:
         link.heartbeat()
         link.write_sky(1, spawn, yaw, pitch, tseq, epoch, town, place)
@@ -509,6 +626,10 @@ def main():
                         link.write_col(2, region_payload(rx, ry, rz, epoch, world))
             sent = True
             print(f"collision sent (world {link.world:08X}, epoch {epoch})")
+        if MAGIC and time.time() - last_magic >= 0.5:  # Magic.cpp refreshes its table about twice a second
+            link.magicka = min(MAGICKA_MAX, link.magicka + MAGICKA_REGEN * (time.time() - last_magic if last_magic else 0.0))
+            last_magic = time.time()
+            link.write_magic()
         mc = link.read_mc()
         if mc["light"] != last_light:
             last_light = mc["light"]
@@ -621,6 +742,33 @@ def main():
                 results.append(("world A again: Minecraft's space is A's", mc["space"][0] == WORLD_ID, f"space {mc['space']}"))
                 for what, ok, detail in results:
                     print(f"{'PASS' if ok else 'FAIL'} {what} ({detail})")
+            if MAGIC:
+                for at, key, down in magic_keys:
+                    if at <= t < at + 0.05:
+                        link.push_input(1, key, down)
+                if 45.5 <= t and not magic_checked:
+                    magic_checked = True
+                    frame = link.acquire_overlay()
+                    if frame:
+                        w, h, flags, px = frame
+                        save_png(os.path.splitext(out)[0] + "_magic.png", w, h, px, flags & 1)
+                        print(f"saved overlay with the magic HUD -> {os.path.splitext(out)[0]}_magic.png")
+                if 47.5 <= t and magic_checked is True:
+                    magic_checked = 2
+                    sprint = FAKE_SHOUTS[1][0]
+                    firebolt, healing = FAKE_SPELLS[1][0], FAKE_SPELLS[2][0]
+                    pulses = [c for c in link.casts if c[0] == healing and c[1] & CAST_PULSE]
+                    checks = [
+                        ("magic: Minecraft has the shouts and spells switches on", mc["features"] & (FEATURE_SHOUTS | FEATURE_SPELLS) == FEATURE_SHOUTS | FEATURE_SPELLS,
+                         f"features {mc['features']:#x}"),
+                        ("magic: a tap shouted one word", link.shouts[:1] == [(FAKE_SHOUTS[0][0], 1, "done")], f"{link.shouts[:1]}"),
+                        ("magic: a shout while the voice recovers was refused", any(r == "recovering" for _, _, r in link.shouts), f"{link.shouts}"),
+                        ("magic: Next shout, then held: Whirlwind Sprint, both words", (sprint, 2, "done") in link.shouts, f"{link.shouts}"),
+                        ("magic: Next spell, Cast spell: one Firebolt", sum(1 for c in link.casts if c[0] == firebolt) == 1, f"{link.casts}"),
+                        ("magic: Healing held two seconds came in pulses", 3 <= len(pulses) <= 6 and all(abs(c[2] - 0.5) < 0.01 for c in pulses), f"{pulses}"),
+                    ]
+                    for what, ok, detail in checks:
+                        print(f"{'PASS' if ok else 'FAIL'} {what} ({detail})")
             if 10 <= t and not saved:
                 frame = link.acquire_overlay()
                 if frame:
