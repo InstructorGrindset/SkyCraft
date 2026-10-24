@@ -776,6 +776,115 @@ public final class Proto {
 	 */
 	public static final int EV_PAIRED_BACKUP = 32;
 
+	// Magic (shouts and spells; added within protocol 13: an older Skyrim plugin leaves the table zero and ignores the events,
+	// an older Minecraft never reads the table or sets the bits).
+	/** Shouts: Skyrim fills the magic table's shouts and shouts what EV_SHOUT asks for. */
+	public static final int FEATURE_SHOUTS = 1 << 5;
+	/** Spells: Skyrim fills the magic table's spells and casts what EV_CAST_SPELL asks for. */
+	public static final int FEATURE_SPELLS = 1 << 6;
+	/**
+	 * Shout formId (a TESShout the player knows; Skyrim equips it if another is in the voice slot) with flags = words (1 to 3),
+	 * a = look yaw, b = look pitch (MC degrees), weapon = a request number. Answered with IN_SHOUT_RESULT.
+	 */
+	public static final int EV_SHOUT = 35;
+	/**
+	 * Cast the hand-cast spell formId toward a = look yaw, b = look pitch, flags = CAST_PULSE for a pulse of a concentration spell
+	 * held down (c = the seconds it pays for), weapon = a request number. Answered with IN_CAST_RESULT.
+	 */
+	public static final int EV_CAST_SPELL = 36;
+	/** EV_CAST_SPELL flags: a pulse of a concentration spell held down. */
+	public static final int CAST_PULSE = 1;
+	/**
+	 * Skyrim's answer to EV_SHOUT: code = a SHOUT_* result in bits 0-7 and the shout's SHOUT_KIND_* in bits 8-15, a = the request
+	 * number, b = SHOUT_DONE: the words shouted, c = the voice recovery in milliseconds (begun, or left).
+	 */
+	public static final int IN_SHOUT_RESULT = 31;
+	/**
+	 * Skyrim's answer to EV_CAST_SPELL: code = a CAST_* result in bits 0-7 and the spell's SPELL_KIND_* in bits 8-15, a = the
+	 * request number, b = magicka x 100 (taken, or needed), c = the spell's FormID.
+	 */
+	public static final int IN_CAST_RESULT = 32;
+	/** IN_SHOUT_RESULT / IN_CAST_RESULT code: the kind in bits 8-15. */
+	public static final int MAGIC_KIND_SHIFT = 8;
+	// ShoutResult
+	public static final int SHOUT_DONE = 1;
+	public static final int SHOUT_RECOVERING = 2;
+	public static final int SHOUT_UNKNOWN = 3;
+	public static final int SHOUT_CANT_NOW = 4;
+	// CastResult
+	public static final int CAST_DONE = 1;
+	public static final int CAST_NO_MAGICKA = 2;
+	public static final int CAST_UNKNOWN = 3;
+	public static final int CAST_CANT_NOW = 4;
+	// ShoutKind: what Minecraft does for a shout on its own side
+	public static final int SHOUT_KIND_OTHER = 0;
+	public static final int SHOUT_KIND_FORCE = 1;
+	public static final int SHOUT_KIND_FIRE_BREATH = 2;
+	public static final int SHOUT_KIND_FROST_BREATH = 3;
+	public static final int SHOUT_KIND_SPRINT = 4;
+	public static final int SHOUT_KIND_ETHEREAL = 5;
+	public static final int SHOUT_KIND_SLOW_TIME = 6;
+	public static final int SHOUT_KIND_CLEAR_SKIES = 7;
+	// SpellKind: what Minecraft does for a spell on its own side
+	public static final int SPELL_KIND_OTHER = 0;
+	public static final int SPELL_KIND_FIRE = 1;
+	public static final int SPELL_KIND_FROST = 2;
+	public static final int SPELL_KIND_SHOCK = 3;
+	public static final int SPELL_KIND_HEAL = 4;
+	public static final int SPELL_KIND_WARD = 5;
+	public static final int SPELL_KIND_SUMMON = 6;
+	public static final int SPELL_KIND_ILLUSION = 7;
+	public static final int SPELL_KIND_TELEKINESIS = 8;
+	// MagicSystem::Delivery (a spell's delivery in the table)
+	public static final int DELIVERY_SELF = 0;
+	public static final int DELIVERY_TOUCH = 1;
+	public static final int DELIVERY_AIMED = 2;
+	public static final int DELIVERY_TARGET_ACTOR = 3;
+	public static final int DELIVERY_TARGET_LOCATION = 4;
+	// The schools (ActorValue) a spell's school byte names
+	public static final int SCHOOL_ALTERATION = 18;
+	public static final int SCHOOL_CONJURATION = 19;
+	public static final int SCHOOL_DESTRUCTION = 20;
+	public static final int SCHOOL_ILLUSION = 21;
+	public static final int SCHOOL_RESTORATION = 22;
+	/**
+	 * Magic table (relative to OFF_MAGIC_TABLE): Skyrim -> MC, seqlock, refreshed about twice a second. Refresh 0: nothing
+	 * written yet (an older plugin). See MagicTable in the protocol header; magic.MagicTable decodes it.
+	 */
+	public static final long OFF_MAGIC_TABLE = 0x11800;
+	public static final int MAGIC_TABLE_BYTES = 0x7E0;
+	public static final int MAX_MAGIC_SHOUTS = 20;
+	public static final int MAX_MAGIC_SPELLS = 32;
+	public static final int MT_SEQ = 0x00;
+	public static final int MT_REFRESH = 0x04;
+	public static final int MT_EQUIPPED_SHOUT = 0x08;
+	public static final int MT_VOICE_RECOVERY = 0x0C;
+	public static final int MT_MAGICKA = 0x10;
+	public static final int MT_MAGICKA_MAX = 0x14;
+	public static final int MT_SHOUT_RECOVERY_MULT = 0x18;
+	public static final int MT_SHOUT_COUNT = 0x1C;
+	public static final int MT_SPELL_COUNT = 0x1D;
+	public static final int MT_FLAGS = 0x1E;
+	public static final int MT_SHOUTS = 0x40;
+	public static final int MT_SPELLS = 0x360;
+	// MagicTableFlags
+	public static final int MAGIC_SHOUTS = 1;
+	public static final int MAGIC_SPELLS = 1 << 1;
+	public static final int MAGIC_FAVOURITES = 1 << 2;
+	/** MagicShout: u32 formId, u8 words, u8 kind, u8 flags, u8 pad, float recovery[3], char name[20]. */
+	public static final int MAGIC_SHOUT_BYTES = 40;
+	public static final int MSH_WORDS = 4, MSH_KIND = 5, MSH_FLAGS = 6, MSH_RECOVERY = 8, MSH_NAME = 20, MSH_NAME_BYTES = 20;
+	/** MagicShout flags: in the player's voice slot. */
+	public static final int MAGIC_SHOUT_EQUIPPED = 1;
+	/** MagicSpell: u32 formId, float cost, u8 school, u8 kind, u8 flags, u8 delivery, char name[24]. */
+	public static final int MAGIC_SPELL_BYTES = 36;
+	public static final int MSP_COST = 4, MSP_SCHOOL = 8, MSP_KIND = 9, MSP_FLAGS = 10, MSP_DELIVERY = 11, MSP_NAME = 12, MSP_NAME_BYTES = 24;
+	// MagicSpellFlags
+	public static final int MAGIC_SPELL_CONCENTRATION = 1;
+	public static final int MAGIC_SPELL_FAVOURITE = 1 << 1;
+	public static final int MAGIC_SPELL_TWO_HANDED = 1 << 2;
+	public static final int MAGIC_SPELL_HOSTILE = 1 << 3;
+
 	/**
 	 * IN_ARROW_BLOCKED's flight direction (MC axes, unit length) from its code: yaw in the high byte (256ths of a turn
 	 * from +z toward +x), pitch in the low byte (0 straight down, 255 straight up).

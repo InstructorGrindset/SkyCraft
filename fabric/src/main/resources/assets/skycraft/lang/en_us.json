@@ -76,5 +76,10 @@
   "item.skycraft.daedric_cuirass": "Daedric Cuirass",
   "item.skycraft.daedric_greaves": "Daedric Greaves",
   "item.skycraft.daedric_boots": "Daedric Boots",
-  "itemGroup.skycraft.gear": "SkyCraft Gear"
+  "itemGroup.skycraft.gear": "SkyCraft Gear",
+  "key.category.skycraft.skycraft": "SkyCraft",
+  "key.skycraft.shout": "Shout",
+  "key.skycraft.next_shout": "Next shout",
+  "key.skycraft.cast_spell": "Cast spell",
+  "key.skycraft.next_spell": "Next spell"
 }

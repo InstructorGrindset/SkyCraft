@@ -85,6 +85,8 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Far block detail | `far_block_detail` (off by default) | Block sections more than 64 blocks from the camera aren't drawn into the sun's shadow map, so each is drawn once less a frame: they cast no sun shadows (on Skyrim's ground or on other blocks) and aren't shaded by other far blocks; Skyrim's own shadows still fall on them, and everything nearer is as before. With it on or off, SkyCraft.log's perf line (every minute) has the block drawing time and how many sections and triangles were drawn, and latest.log what meshing them cost Minecraft. See [Far block detail and profiling](#far-block-detail-and-profiling) | client `render/WorldExporter` (meshing stats) | `WorldRender.cpp` (`RenderPasses`), `Perf.h` (`kBlocks`, block amounts), bit `kFeatFarBlockDetail` | none | `perf:` and `far block detail` in SkyCraft.log; `SkyCraft-render` | Written |
 | Quest markers | `quest_markers` | The targets Skyrim's compass shows for your active quests are markers on Minecraft's locator bar (the bar over the hotbar, where Minecraft shows other players), each its own marker: Skyrim's quest arrow, a small triangle pointing down, white, the main quest's gold. A target in an interior or another worldspace is marked at the door Skyrim's compass points to, and the marker moves on as you go through. Looking toward a marker names its quest on the action bar ("Bleak Falls Barrow, 230 blocks, ahead"). In the Skyrim mirror only; each guest sees their own Skyrim's. See [Quests](#quests) | `quests/` (SkyQuests, QuestRules, QuestTable, QuestCodec), `link/SkyLink` (`readQuestTargets`), `net/SkyNet` (QuestTargets), client `QuestClient`; the waypoint style `assets/skycraft/waypoint_style/quest_marker.json` and its sprites | `Quests.cpp` (the compass's quest targets, twice a second), `QuestTargets.h` (order, texts cut to fit; tested in `tests/QuestTargetsTest.cpp`), `Link.cpp` (`WriteQuestTargets`), bit `kFeatQuestMarkers` | `skycraft-quests.txt` | `SkyCraft-quests` (both halves) | Written |
 | Skyrim maps | `skyrim_maps` | A Minecraft map filled in the Skyrim world draws Skyrim. Where vanilla's map finds no block in a column, the pixel shows Skyrim's highest surface there, from the collision Minecraft holds round where you've been (so a map fills in as you explore, as vanilla's does): grass, dirt, rock, snow, ice, sand, mud and roads (the land's gravel and cobbles) by what the ground is made of, grass on a slope as dirt and cliffs as rock, buildings a light stone gray, trees and wood brown, and Skyrim's lakes and rivers in vanilla's water colour, darker where deeper. It's shaded north to south as vanilla shades its own ground, so hills read as hills. A block you place still shows over Skyrim's ground under it. Further out, the cells Skyrim has loaded (about 150 blocks round you) fill in coarsely from Skyrim's own land heights. The places on Skyrim's own map within 1024 blocks (cities, towns, dungeons, camps, shrines, ...) go on maps of that area as banners with their names, coloured by the kind of place (gray: heard of, not visited yet). Never in other dimensions. See [Maps](#maps) | `maps/` (SkyMaps, MapRules, MapSurface, MapMarkers, LandSamples, SkyMapLink), `mixin/MapItemMixin`, `mixin/MapItemSavedDataInvoker`, `world/SkyCollision` (its regions by column) | `Maps.cpp` (markers, land samples), `MapKinds.h` | none | `SkyCraft-maps` | Written |
+| Shouts | `shouts` | Shout (V, in Minecraft's Controls under SkyCraft) shouts Skyrim's equipped shout, or the one Next shout (B; sneak for the one before) picked, which Skyrim then equips: a tap is one word, held 0.35 s two and 0.8 s three, never more than are unlocked (held to the last it goes at once). Skyrim checks the voice and shouts it for real (the variation's spell through the player's voice caster: Skyrim's visuals, sounds and effects on its people) and begins the voice recovery, or says the voice is still recovering. Minecraft adds its side on its own mobs in front: Unrelenting Force pushes them back (harder each word), Fire Breath sets them alight and hurts them, Frost Breath slows and hurts them, Whirlwind Sprint dashes the player forward, Become Ethereal is Resistance V for its time, Slow Time slows the mobs around, Clear Skies clears Minecraft's weather; other shouts only do their Skyrim part. A voice bar beside the hotbar fills as the voice recovers. A guest's keys work their own Skyrim, the Minecraft side through the host's server | `magic/` (MagicTable, MagicRules, ShoutCharge, SpellCycle, MagicRequests, MagicHudLayout, MagicEffects), client `MagicClient`, `MagicHud` | `Magic.cpp`, `MagicKinds.h` | `skycraft-magic.txt` | `SkyCraft-magic` | Written |
+| Spells | `spells` | Cast spell (R) casts the selected spell, picked with Next spell (N; sneak for the one before) from the Skyrim magic favourites that are spells (else every spell the player casts by hand), by school and cost: once a press, a concentration spell (Flames, Healing) in half second pulses while held. Skyrim takes the magicka (its cost for this player; per second for a pulse) and casts it from the right hand toward Minecraft's look, or says there isn't enough magicka; Skyrim's own casting trains its magic skills. Minecraft adds its side by the spell's kind: fire hurts and sets alight the mob it's aimed at (or the mobs and a Minecraft block where it hits), frost slows and hurts, shock hurts more, healing heals the player (aimed: whoever it hits), a ward gives a moment's Resistance; other spells only do their Skyrim part. The spell's name and a magicka bar show beside the hotbar while casting | the same as shouts | `Magic.cpp`, `MagicKinds.h` | `skycraft-magic.txt` | `SkyCraft-magic` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -1521,6 +1523,119 @@ loaded cells), though what's drawn stays on the map. Skyrim's banners aren't sav
 banners): they come back when it's held near the place again. In multiplayer only the host's Skyrim counts: its collision,
 its land samples, its markers and discoveries. A map made inside a dungeon draws the tops of its rooms.
 
+## Shouts and spells
+
+Skyrim's controls are cut off from its player while Minecraft drives it, so Minecraft's keys ask Skyrim for shouts and
+spells, and Skyrim carries them out for real: its voice recovery and magicka, its visuals and sounds, its people hit and
+staggered, its magic skills trained by its own casting. Minecraft then adds what its own mobs and player get. Switches
+`shouts` and `spells` (each with a Skyrim bit, `kFeatShouts` / `kFeatSpells`: an older Minecraft leaves Skyrim's side off).
+Minecraft side: `magic/` (the pure, unit tested MagicTable, MagicRules, ShoutCharge, CastKey, SpellCycle, MagicRequests,
+MagicHudLayout; MagicEffects on the server), client `MagicClient` (keys, answers) and `MagicHud`; Skyrim side: `Magic.cpp`
+and `MagicKinds.h` (pure, unit tested in `skse/tests/MagicKindsTest.cpp`).
+
+| Key (default) | Does |
+|---|---|
+| **Shout** (V) | Shouts the selected shout: a tap is one word, held `two_words_after` (0.35 s) two, `three_words_after` (0.8 s) three, never more than you have unlocked. Held to the last word you have, it goes at once, and the key must come up before the next |
+| **Next shout** (B) | The next shout with a word unlocked (sneak: the one before); Skyrim equips it when you shout it. The selection follows Skyrim's equipped shout whenever that changes in Skyrim |
+| **Cast spell** (R) | Casts the selected spell once a press; a concentration spell again every `pulse_seconds` (0.5) while held |
+| **Next spell** (N) | The next spell (sneak: the one before), among Skyrim's magic favourites that are spells if there are any, else every spell you cast by hand, sorted by school, then cost, then name |
+
+They are in Minecraft's Controls under SkyCraft and can be rebound there. Minecraft and SkyCraft use none of them by default;
+G, H, J, M, O, Esc, F9 and ~ never reach Minecraft while it drives the player, so they couldn't be.
+
+**Skyrim's magic table.** About twice a second (and at once after each shout or cast, never while loading) Skyrim writes the
+table at 0x11800: the shouts the player knows (the character's spell list's shouts, the equipped one first, at most 20), each
+with its name, its words unlocked (in order: a word learned at a wall and unlocked with a dragon soul; `TESForm` flag
+`kUnlocked`), each variation's recovery and what Minecraft does for it; the shout in the voice slot, the voice recovery left
+and the ShoutRecoveryMult; the player's magicka and maximum; and the spells cast by hand (the character's, their race's and
+those learned since; spell type Spell, fire and forget or concentration: never abilities, powers, diseases or scrolls; at most
+32, favourites first, then by school and cost), each with its name, school, magicka cost for this player
+(`MagicItem::CalculateMagickaCost`), delivery and kind. Kinds (`MagicKinds.h`): a spell is its first effect: a ward
+(WardPower), a hostile effect resisted by fire, frost or shock resistance, one restoring health, a summon or raise,
+telekinesis, illusion; a shout is Become Ethereal (Etherealize) or Slow Time by any effect, a fire or frost breath by any
+hostile effect, else by its name (Unrelenting Force, Whirlwind Sprint, Clear Skies: Skyrim's English names), and a first
+effect that staggers is a push like Unrelenting Force's in any language.
+
+**Shouting.** Minecraft sends `kEvShout` with the shout, the words and where the player looks. Skyrim refuses one it doesn't
+know or has no word of (`kShoutUnknown`), one while the voice recovers (`kShoutRecovering`, with what's left) and any while it
+has the player itself (a menu, riding, a scene, the switch off: `kShoutCantNow`). Otherwise it equips the shout if another is
+in the voice slot, turns the player to Minecraft's look, casts the variation's spell through the player's voice caster
+(`MagicCaster::CastSpellImmediate` with the voice's casting source; a self delivered shout at the player), begins the voice
+recovery (the variation's recovery times the ShoutRecoveryMult, in the player's high process, where Skyrim's own shout keeps
+it) and answers `kShoutDone` with the words and the recovery. Shared world events sees the voice recovery jump and tells the
+other players, as for any shout.
+
+**Casting.** Minecraft sends `kEvCastSpell` with the spell and the look; a concentration spell's every cast is a pulse
+(`kCastPulse`, `c` = its seconds). Skyrim refuses a spell the player doesn't know or doesn't cast by hand (`kCastUnknown`),
+any while it has the player, and casts that come too fast (sooner than 0.1 s after the last, a fire and forget spell sooner
+than its own charge time, a pulse sooner than 0.8 of its stretch: `kCastCantNow`). Its cost is Skyrim's for the player (per
+second times the pulse for a concentration spell); without that much magicka it answers `kCastNoMagicka` with what's needed.
+Otherwise it casts from the right hand's caster toward Minecraft's look (at the player for a self spell, at the actor under the
+crosshair for a touch or target actor one; none there: `kCastCantNow`), takes the magicka (`DamageActorValue`) and holds its
+regeneration back for `fMagickaRegenDelay` as after Skyrim's own casting, and answers `kCastDone` with what it took.
+
+**Minecraft's side** (server, `MagicEffects`; numbers in `skycraft-magic.txt`). Only once Skyrim said done, with the switch on,
+in the mirror; never on players (but healing), Skyrim's stand-ins (Skyrim's own spell met those actors) or anyone's tamed
+animals and horses; never through a wall, Minecraft's blocks or Skyrim's own geometry (`SkyClip`).
+
+| Shout | Minecraft |
+|---|---|
+| Unrelenting Force | Mobs within `force_reach` (6, 8, 10 blocks) and `cone_degrees` (35) of the look: `force_damage_per_word` and a push of `force_push_per_word` (0.9) knockback a word, three words throwing them up `force_lift` (0.3) too |
+| Fire Breath | Mobs within `breath_reach` (5, 6, 7) in the cone: set alight `breath_seconds_per_word` (3 s) a word and hurt `breath_damage_per_word` (2) a word |
+| Frost Breath | The same, slowed (Slowness II to IV) instead of set alight |
+| Whirlwind Sprint | The player (the client's own movement) dashes `sprint_blocks` (5, 9, 14) the way it looks at `sprint_speed` (1.4 blocks a tick); Skyrim's player follows Minecraft's |
+| Become Ethereal | Resistance V for `ethereal_seconds` (8, 13, 18): nothing in Minecraft hurts the player (but the void and /kill) |
+| Slow Time | Mobs within `slow_time_reach` (24) slowed (`slow_time_level` 4) for `slow_time_seconds` (8, 12, 16) |
+| Clear Skies | `weather clear` for `clear_skies_seconds` (300); with weather sync on, Minecraft then asks Skyrim for clear skies too |
+
+| Spell kind | Minecraft |
+|---|---|
+| Fire | The first mob along the look within `spell_reach` (32 blocks; a touch spell `touch_reach`, 4): hurt `damage_per_magicka` (0.12) a point of the magicka the cast took (a Firebolt's 40 or so: about 5, never past `max_spell_damage` 20) and set alight `fire_seconds` (4); hitting a block instead, the mobs within `fire_splash` (1.5 blocks) of it catch fire and, with `fire_lights_blocks`, a fire is lit on a Minecraft block's face (never on Skyrim's ground) |
+| Frost | Hurt `frost_damage` (0.8) times that and slowed `frost_seconds` (4) |
+| Shock | Hurt `shock_damage` (1.3) times that |
+| Heal | Self: the player heals `heal_per_magicka` (0.12) a point of magicka; aimed: whoever it hits first (another player too) |
+| Ward | Resistance (`ward_level` 2) for `ward_seconds` (3), each cast |
+| Summon, illusion, telekinesis, other | Skyrim's part only |
+
+**The HUD.** Beside the hotbar on its right, level with it, as wide as the hearts (`MagicHudLayout`): at the bottom the shout's
+name over its voice bar (the shout's pale colour as it fills while the voice recovers, with the seconds left; white for a
+moment once it's ready; while Shout is held, I, II, III for the words gathered), above it the spell's name over the magicka bar
+(red for a moment when there wasn't enough), and above both a line when Skyrim said no ("Your voice needs 12 more seconds",
+"Not enough magicka for Firebolt (41)"). The voice bar shows while the voice recovers and for `hud_seconds` (6) after a shout key,
+the magicka bar for `hud_seconds` after a spell key and while a concentration spell is held. F1 hides it with the rest.
+
+**Guests.** A guest's keys ask their own Skyrim, as the host's do; done, their client sends `SkyNet.MagicCast` (with their
+guest_parity on) and the host's server gives the Minecraft side around the guest, with the host's shouts or spells switch and
+guest_parity on, at most two shouts in two seconds and eight spells a second, the words and magicka held to what a shout and a
+cast can be. Their own dash is their client's, as the host's is.
+
+**Try it** (cheats on; Skyrim's console with the `~` key):
+
+1. `player.teachword` the words of Unrelenting Force and `player.unlockword` them (or play to Bleak Falls Barrow), then
+   `player.addshout` it if it isn't there yet. Equip it in Skyrim's magic menu, or press B in Minecraft. `SkyCraft.log` says
+   `SkyCraft-magic: magic table: ... shouts (equipped Unrelenting Force, 3 words unlocked ...)`.
+2. `/summon minecraft:zombie ~5 ~ ~`, look at it, tap V: Skyrim shouts one word (its sound and push), the zombie is knocked
+   back, and the voice bar fills beside the hotbar. Tap V again at once: "Your voice needs ... more seconds". Once it's ready,
+   hold V: II, then III, then it goes by itself: the zombie flies. `SkyCraft-magic: shouted Unrelenting Force (3 of 3 words ...)`
+   in `SkyCraft.log`, `SkyCraft-magic: Skyrim shouted ...` in Minecraft's log.
+3. Fire Breath and Frost Breath on a few mobs (burning, slowed); Whirlwind Sprint (a dash, Skyrim's player along); Become
+   Ethereal and `/damage @s 10` (no harm); Slow Time near mobs; Clear Skies in the rain (`/weather rain` first).
+4. `player.addspell` Firebolt, or use the Flames and Healing every character starts with. Press N until the HUD names one; R:
+   Skyrim casts it from the hand toward the crosshair and the magicka bar drops. Hold R on Flames: a stream of flames, the
+   magicka draining, until you let go or it runs out ("Not enough magicka"). Firebolt a zombie: it burns; Firebolt the side of a
+   Minecraft block: a fire there. Healing while hurt in Minecraft: your hearts come back. Mark spells favourite in Skyrim's magic
+   menu: N then goes through those only.
+5. Switch `shouts` off in SkyCraft settings: V only says so; `spells` off: R the same.
+6. Without Skyrim, `SKYCRAFT_MAGIC=1 python tools/fake_skyrim.py 60` stands in for the plugin: it publishes three shouts and four
+   spells, answers as Skyrim does, presses the keys from t=38 s and prints PASS or FAIL for each, and saves the frame with the HUD
+   beside the overlay PNG (`<out>_magic.png`).
+
+Not played yet: all of it. In particular whether the voice caster's immediate cast plays a shout's spoken words (its spell's
+own visuals and sounds play; Skyrim's shout animation and voice may need the shout key's own path), how a concentration spell
+looks cast in pulses, whether a cast outside Skyrim's casting state trains the skills by itself (`SkyCraft-magic: cast ...` logs
+the school's level for the first casts, to watch), the target location spells (runes, summons) where they land, the HUD's
+place at every GUI scale, and the numbers.
+
 ## Planned
 
 | Feature | Notes |
@@ -1711,6 +1826,20 @@ so Minecraft, getting no answer three times running, stops asking for a minute):
 | `FeatureBits` `kFeatSkyrimMaps` (bit 7) in `McState.features` | Minecraft to Skyrim | `skyrim_maps` is on: Skyrim lists its map markers in the map table and answers `kEvMapSample` |
 | `MapTable` at `kOffMapTable` 0x16100 (0xE00 bytes, in the 0xF00 set aside for maps between the actor table's end, 0x16040, and the event ring; seqlock, written whole when something in it changed) | Skyrim to Minecraft | worldId (0x04, the worldspace the markers are in; 0 indoors), markerCount (0x08), markerVersion (0x0C, moves when the markers change), centerX, centerZ (0x10, where the player was), markerReach (0x18: every visible marker closer than this to the centre is listed, 1024 or less when more than 48 were), then 48 `MapMarkerRecord`s from 0x20, nearest first: x, z (floats, MC coords), formId (the marker reference), u16 type (`MapMarkerType`, RE::MARKER_TYPE's numbering, places only), u8 flags (`kMarkerVisible` 1: on Skyrim's map; `kMarkerDiscovered` 2: can fast travel there), name[24]. From 0x7A0 the answer to the last `kEvMapSample`: sampleRequest (its request number), sampleX, sampleZ (the north-west sample's block), sampleSpacing, sampleWorld, sampleKnown, then 20 x 20 `MapSample`s from 0x7C0: i16 height (MC y x 4 of the land, or of the water's surface when water > 0; `kSampleUnknown` -32768 outside the loaded cells), u8 material (DigMaterial), u8 water (blocks deep) |
 | `kEvMapSample` (39) | Minecraft to Skyrim | A map wants Skyrim's land under it: a, c = the north-west sample's x and z (MC block coords, the current world's terms), b = blocks between samples (1 to 256), flags = request number (never 0). Event 40 and input types 35 and 36 are set aside for maps |
+
+Shouts and spells added these within 13, without a version bump (an older plugin leaves the magic table all zeros and
+ignores the event types, so Minecraft has nothing to show and gives up on its requests after 3 seconds; an older Minecraft never
+sets the bits or reads the table, so Skyrim leaves both halves of the table empty and refuses shouts and casts):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatShouts` (bit 5), `kFeatSpells` (bit 6) in `McState.features` | Minecraft to Skyrim | The switches: Skyrim fills the table's shouts or spells and shouts or casts only while each is set |
+| `MagicTable` at `kOffMagicTable` 0x11800 (0x7E0 of the 0x800 bytes set aside, in the gap nothing used between the input ring's end at 0x11080 and the actor table at 0x12000; seqlock; `refresh` 0: nothing written yet) | Skyrim to Minecraft | Header: `refresh` 0x04, `equippedShout` 0x08, `voiceRecovery` 0x0C (seconds left), `magicka` 0x10, `magickaMax` 0x14, `shoutRecoveryMult` 0x18, `shoutCount` 0x1C, `spellCount` 0x1D, `flags` 0x1E (`MagicTableFlags`: `kMagicShouts` 1, `kMagicSpells` 2, `kMagicFavourites` 4). `MagicShout[20]` from 0x40, 40 bytes: formId, words unlocked, `ShoutKind`, flags (`kMagicShoutEquipped` 1), recovery[3] (seconds), name[20]. `MagicSpell[32]` from 0x360, 36 bytes: formId, cost (magicka; per second for concentration), school (ActorValue 18 to 22), `SpellKind`, flags (`kMagicSpellConcentration` 1, `kMagicSpellFavourite` 2, `kMagicSpellTwoHanded` 4, `kMagicSpellHostile` 8), delivery (`MagicSystem::Delivery`), name[24]. Refreshed about twice a second and after each shout or cast |
+| `ShoutKind` (0 other, 1 force, 2 fire breath, 3 frost breath, 4 sprint, 5 ethereal, 6 slow time, 7 clear skies), `SpellKind` (0 other, 1 fire, 2 frost, 3 shock, 4 heal, 5 ward, 6 summon, 7 illusion, 8 telekinesis) | Skyrim to Minecraft | What Minecraft does on its own side (`MagicKinds.h` decides) |
+| `kEvShout` (35) | Minecraft to Skyrim | formId = the shout, flags = words (1 to 3), a/b = look yaw/pitch (MC degrees), weapon = a request number |
+| `kEvCastSpell` (36), `CastFlags` `kCastPulse` (bit 0) | Minecraft to Skyrim | formId = the spell, a/b = look yaw/pitch, flags = `CastFlags`, c = with `kCastPulse` the seconds a concentration pulse pays for, weapon = a request number. 37 and 38 are set aside for magic |
+| `kInShoutResult` (31), `ShoutResult` (1 done, 2 recovering, 3 unknown, 4 can't now) | Skyrim to Minecraft | code = the result in bits 0-7 and the `ShoutKind` in bits 8-15 (`kMagicKindShift`), a = the request number, b = the words shouted, c = the voice recovery in ms (begun; or what's left) |
+| `kInCastResult` (32), `CastResult` (1 done, 2 no magicka, 3 unknown, 4 can't now) | Skyrim to Minecraft | code = the result in bits 0-7 and the `SpellKind` in bits 8-15, a = the request number, b = magicka x 100 (taken; or needed), c = the spell's FormID. 33 and 34 are set aside for magic |
 
 ## Testing a build
 

@@ -6,6 +6,7 @@
 #include "Dig.h"
 #include "Economy.h"
 #include "Loot.h"
+#include "Magic.h"
 #include "Game.h"
 #include "Maps.h"
 #include "Horses.h"
@@ -69,6 +70,7 @@ namespace
 			skycraft::WorldState::SkillsReloaded();  // the new game's skills, under a new skillsLoad
 			skycraft::Towns::Reset();
 			skycraft::Maps::Reset();  // Skyrim maps: the markers are gathered again
+			skycraft::Magic::Reset();  // the new game's shouts and spells, at once
 			break;
 		default:
 			break;

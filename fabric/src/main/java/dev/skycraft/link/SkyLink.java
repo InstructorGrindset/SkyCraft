@@ -712,6 +712,43 @@ public final class SkyLink {
 		return -1;
 	}
 
+	// ---- magic table (read) ----------------------------------------------------------------
+
+	/** The magic table's refresh number, read without the seqlock (0: nothing written yet, or no link): has it changed? */
+	public static int magicRefresh() {
+		MemorySegment s = shm;
+		return s == null ? 0 : (int) INT.getAcquire(s, OFF_MAGIC_TABLE + MT_REFRESH);
+	}
+
+	/**
+	 * Seqlock copy of the magic table (Shouts, Spells) into {@code out}, at least Proto.MAGIC_TABLE_BYTES long, for
+	 * magic.MagicTable to decode. Returns its refresh number: 0 when Skyrim hasn't written one (an older plugin), -1 with no
+	 * link or when Skyrim kept writing ({@code out} may then hold a mix of two refreshes: don't decode it).
+	 */
+	public static int readMagic(byte[] out) {
+		MemorySegment s = shm;
+		if (s == null || out.length < MAGIC_TABLE_BYTES) {
+			return -1;
+		}
+		long b = OFF_MAGIC_TABLE;
+		for (int attempt = 0; attempt < 16; attempt++) {
+			int seq1 = (int) INT.getAcquire(s, b + MT_SEQ);
+			if ((seq1 & 1) != 0) {
+				Thread.onSpinWait();
+				continue;
+			}
+			if (s.get(JAVA_INT, b + MT_REFRESH) == 0) {
+				return 0;
+			}
+			MemorySegment.copy(s, JAVA_BYTE, b, out, 0, MAGIC_TABLE_BYTES);
+			VarHandle.loadLoadFence();
+			if ((int) INT.getAcquire(s, b + MT_SEQ) == seq1) {
+				return java.nio.ByteBuffer.wrap(out).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt(MT_REFRESH);
+			}
+		}
+		return -1;
+	}
+
 	// ---- quest target table (read) ---------------------------------------------------------
 
 	/**

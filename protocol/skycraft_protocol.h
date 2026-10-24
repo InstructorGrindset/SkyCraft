@@ -47,6 +47,7 @@ namespace skycraft::proto
 	inline constexpr std::uint32_t kMaxOverlayH = 2160;
 	inline constexpr std::uint64_t kOverlaySlotBytes = std::uint64_t(kMaxOverlayW) * kMaxOverlayH * 4;
 	inline constexpr std::uint32_t kOverlaySlots = 3;
+	inline constexpr std::uint64_t kOffMagicTable = 0x11800;   // Skyrim -> MC, see MagicTable (added within 13)
 	inline constexpr std::uint64_t kOffActorTable = 0x12000;   // Skyrim -> MC, see ActorTable
 	inline constexpr std::uint64_t kOffMapTable = 0x16100;     // Skyrim -> MC, see MapTable (Skyrim maps; added within 13)
 	inline constexpr std::uint64_t kOffEventRing = 0x17000;    // MC -> Skyrim, see McEvent
@@ -358,6 +359,10 @@ namespace skycraft::proto
 		kFeatLightStealth = 1u << 3,  // light_stealth: Skyrim's light on the player for detection takes in McState's eye light
 		// Quests (added within version 13: an older Minecraft never sets it, so Skyrim leaves the quest table empty).
 		kFeatQuestMarkers = 1u << 4,  // quest_markers: Skyrim writes its compass's quest targets into the QuestTargetTable
+		// Magic (added within version 13: an older Minecraft never sets them, so Skyrim leaves the magic table empty and refuses
+		// kEvShout and kEvCastSpell).
+		kFeatShouts = 1u << 5,  // shouts: Skyrim fills the magic table's shouts and shouts what kEvShout asks for
+		kFeatSpells = 1u << 6,  // spells: Skyrim fills the magic table's spells and casts what kEvCastSpell asks for
 		// world
 		kFeatWeatherSync = 1u << 12,  // weather_sync: Skyrim switches its weather when Minecraft asks (McState::weatherSeq)
 		// Economy (added within version 13): Skyrim food eaten in Skyrim fills Minecraft's hunger. Skyrim
@@ -479,6 +484,13 @@ namespace skycraft::proto
 		                       // endian, byte 0 lowest in a). The text is UTF-8 "<stamp>|<save name>", the stamp Skyrim's local
 		                       // time as "YYYY-MM-DD_hh-mm-ss". Added within version 13 (an older Minecraft ignores the type)
 		// 35 and 36: set aside for maps (Skyrim maps answers through MapTable, not the input ring)
+		// Magic (added within version 13; an older Minecraft ignores them).
+		kInShoutResult = 31,  // Skyrim's answer to kEvShout: code = ShoutResult in bits 0-7 and the shout's ShoutKind in bits 8-15,
+		                      // a = the request number, b = kShoutDone: the words shouted, c = the voice recovery in milliseconds
+		                      // (kShoutDone: the recovery the shout began; kShoutRecovering: what is left of it)
+		kInCastResult = 32,   // Skyrim's answer to kEvCastSpell: code = CastResult in bits 0-7 and the spell's SpellKind in bits 8-15,
+		                      // a = the request number, b = the magicka x 100 (kCastDone: what the cast took; kCastNoMagicka: what
+		                      // it needs), c = the spell's FormID. 33 and 34 are set aside for magic
 	};
 
 	// Which shrine's blessing kInBlessing is, by the god the spell names. Added within version 13.
@@ -589,6 +601,143 @@ namespace skycraft::proto
 	// After the input ring (its InputEvents are 16 bytes), and within the 0x700 bytes set aside for quests (magic's begin at 0x11800).
 	static_assert(kOffQuestTargets >= kOffInputRing + kInputRingDataOff + 16ull * kInputRingEntries);
 	static_assert(kOffQuestTargets + sizeof(QuestTargetTable) <= 0x11800);
+	// ---- magic table @0x11800 (Skyrim -> MC, seqlock; added within version 13) ---------------
+	// The shouts and hand-cast spells the Skyrim player knows, the shout in their voice slot, their voice recovery and
+	// magicka, for Minecraft's Shout and Cast spell keys and its HUD (Shouts and Spells, kFeatShouts / kFeatSpells).
+	// Skyrim refreshes it about twice a second and at once after each shout or cast it carried out, never while loading.
+	// It sits in space between the input ring and the actor table that nothing used before: an older plugin leaves it
+	// all zeros (refresh 0: nothing yet), and an older Minecraft never reads it.
+	inline constexpr std::uint32_t kMaxMagicShouts = 20;
+	inline constexpr std::uint32_t kMaxMagicSpells = 32;
+
+	// MagicTable::flags: which halves are filled (the switch is on).
+	enum MagicTableFlags : std::uint8_t
+	{
+		kMagicShouts = 1u << 0,      // shouts, equippedShout, voiceRecovery and shoutRecoveryMult are filled (kFeatShouts)
+		kMagicSpells = 1u << 1,      // spells, magicka and magickaMax are filled (kFeatSpells)
+		kMagicFavourites = 1u << 2,  // at least one spell is among Skyrim's magic favourites (kMagicSpellFavourite)
+	};
+
+	// What Minecraft does for a shout on its own side (MagicShout::kind, kInShoutResult), from the shout's effects
+	// (MagicKinds.h): everything else only does its Skyrim part.
+	enum ShoutKind : std::uint8_t
+	{
+		kShoutKindOther = 0,
+		kShoutKindForce = 1,        // Unrelenting Force: Minecraft's mobs in front are pushed back
+		kShoutKindFireBreath = 2,   // set on fire and hurt
+		kShoutKindFrostBreath = 3,  // slowed and hurt
+		kShoutKindSprint = 4,       // Whirlwind Sprint: Minecraft's player dashes forward
+		kShoutKindEthereal = 5,     // Become Ethereal: Minecraft's player can't be hurt for its time
+		kShoutKindSlowTime = 6,     // Minecraft's mobs around are slowed
+		kShoutKindClearSkies = 7,   // Minecraft's weather clears
+	};
+
+	// What Minecraft does for a spell on its own side (MagicSpell::kind, kInCastResult), from its first effect's archetype and
+	// resist / actor value (MagicKinds.h).
+	enum SpellKind : std::uint8_t
+	{
+		kSpellKindOther = 0,
+		kSpellKindFire = 1,         // damages health, resisted by fire resistance
+		kSpellKindFrost = 2,        // resisted by frost resistance
+		kSpellKindShock = 3,        // resisted by shock resistance
+		kSpellKindHeal = 4,         // restores health
+		kSpellKindWard = 5,         // a ward (WardPower)
+		kSpellKindSummon = 6,       // summons or raises a creature
+		kSpellKindIllusion = 7,     // calm, fear, fury, courage, invisibility, muffle
+		kSpellKindTelekinesis = 8,
+	};
+
+	// MagicShout::flags.
+	enum MagicShoutFlags : std::uint8_t
+	{
+		kMagicShoutEquipped = 1u << 0,  // the shout in the player's voice slot (equippedShout)
+	};
+
+	// MagicSpell::flags.
+	enum MagicSpellFlags : std::uint8_t
+	{
+		kMagicSpellConcentration = 1u << 0,  // a concentration spell: cost is per second, cast in pulses while the key is held
+		kMagicSpellFavourite = 1u << 1,      // among Skyrim's magic favourites (MagicFavorites)
+		kMagicSpellTwoHanded = 1u << 2,      // a ritual spell, cast with both hands in Skyrim
+		kMagicSpellHostile = 1u << 3,        // hostile (MagicItem::IsHostile)
+	};
+
+	struct MagicShout
+	{
+		std::uint32_t formId;       // the TESShout
+		std::uint8_t  words;        // its words of power the player has unlocked, in order (0 to 3; 0: none yet, it can't be shouted)
+		std::uint8_t  kind;         // ShoutKind
+		std::uint8_t  flags;        // MagicShoutFlags
+		std::uint8_t  pad;
+		float         recovery[3];  // seconds of voice recovery after 1, 2 and 3 words (the variations' own, before shoutRecoveryMult)
+		char          name[20];     // display name, UTF-8, NUL-terminated (truncated)
+	};
+	static_assert(sizeof(MagicShout) == 40);
+	static_assert(offsetof(MagicShout, words) == 4 && offsetof(MagicShout, recovery) == 8 && offsetof(MagicShout, name) == 20);  // Proto.MSH_*
+
+	struct MagicSpell
+	{
+		std::uint32_t formId;    // the SpellItem
+		float         cost;      // magicka it costs this player now (MagicItem::CalculateMagickaCost; per second for concentration)
+		std::uint8_t  school;    // ActorValue of its school: 18 Alteration, 19 Conjuration, 20 Destruction, 21 Illusion, 22 Restoration; 0 none
+		std::uint8_t  kind;      // SpellKind
+		std::uint8_t  flags;     // MagicSpellFlags
+		std::uint8_t  delivery;  // MagicSystem::Delivery: 0 self, 1 touch, 2 aimed, 3 target actor, 4 target location
+		char          name[24];  // display name, UTF-8, NUL-terminated (truncated)
+	};
+	static_assert(sizeof(MagicSpell) == 36);
+	static_assert(offsetof(MagicSpell, cost) == 4 && offsetof(MagicSpell, school) == 8 && offsetof(MagicSpell, name) == 12);  // Proto.MSP_*
+
+	struct MagicTable
+	{
+		std::uint32_t seq;                // 0x00: seqlock, odd while Skyrim writes
+		std::uint32_t refresh;            // 0x04: a new number with each refresh, never 0 once written (0: nothing yet)
+		std::uint32_t equippedShout;      // 0x08: FormID of the TESShout in the player's voice slot; 0 none (or a power there)
+		float         voiceRecovery;      // 0x0C: seconds of voice recovery left
+		float         magicka;            // 0x10: the player's magicka now
+		float         magickaMax;         // 0x14: and its maximum
+		float         shoutRecoveryMult;  // 0x18: the player's ShoutRecoveryMult (an Amulet of Talos lowers it): recovery times it
+		std::uint8_t  shoutCount;         // 0x1C: shouts in use (equipped first, then the others as Skyrim lists them)
+		std::uint8_t  spellCount;         // 0x1D: spells in use (favourites first, then by school and cost)
+		std::uint8_t  flags;              // 0x1E: MagicTableFlags
+		std::uint8_t  pad;                // 0x1F
+		std::uint8_t  reserved[0x20];     // 0x20
+		MagicShout    shouts[kMaxMagicShouts];  // 0x40
+		MagicSpell    spells[kMaxMagicSpells];  // 0x360
+	};
+	static_assert(sizeof(MagicTable) == 0x7E0);
+	static_assert(offsetof(MagicTable, refresh) == 0x04 && offsetof(MagicTable, equippedShout) == 0x08 && offsetof(MagicTable, voiceRecovery) == 0x0C &&
+	              offsetof(MagicTable, magicka) == 0x10 && offsetof(MagicTable, magickaMax) == 0x14 && offsetof(MagicTable, shoutRecoveryMult) == 0x18 &&
+	              offsetof(MagicTable, shoutCount) == 0x1C && offsetof(MagicTable, spellCount) == 0x1D && offsetof(MagicTable, flags) == 0x1E &&
+	              offsetof(MagicTable, shouts) == 0x40 && offsetof(MagicTable, spells) == 0x360);  // Proto.MT_*
+	// In the gap between the input ring's end (InputEvent is 16 bytes) and the actor table, the 0x800 bytes set aside for it.
+	static_assert(kOffMagicTable >= kOffInputRing + kInputRingDataOff + 16 * kInputRingEntries);
+	static_assert(kOffMagicTable + sizeof(MagicTable) <= kOffMagicTable + 0x800 && kOffMagicTable + 0x800 <= kOffActorTable);
+
+	// What kInShoutResult says (code bits 0-7).
+	enum ShoutResult : std::uint16_t
+	{
+		kShoutDone = 1,        // shouted: b = words, c = the voice recovery it began (ms)
+		kShoutRecovering = 2,  // the voice is still recovering: c = milliseconds left
+		kShoutUnknown = 3,     // the player doesn't know that shout, or no word of it is unlocked
+		kShoutCantNow = 4,     // not now: Skyrim has the player (a menu, riding, a scene), the shouts switch is off, or no voice caster
+	};
+
+	// What kInCastResult says (code bits 0-7).
+	enum CastResult : std::uint16_t
+	{
+		kCastDone = 1,       // cast: b = magicka taken x 100
+		kCastNoMagicka = 2,  // not enough magicka: b = what it needs x 100
+		kCastUnknown = 3,    // the player doesn't know that spell, or it isn't one cast by hand
+		kCastCantNow = 4,    // not now: Skyrim has the player, the spells switch is off, no caster, or casts come too fast
+	};
+	inline constexpr std::uint32_t kMagicKindShift = 8;  // kInShoutResult / kInCastResult code: the kind in bits 8-15
+
+	// kEvCastSpell flags.
+	enum CastFlags : std::uint32_t
+	{
+		kCastPulse = 1u << 0,  // a pulse of a concentration spell held down: c = the seconds it pays for
+	};
 
 	// ---- actor table @0x12000 (Skyrim -> MC, seqlock) ----------------------------------------
 	// Nearby Skyrim actors, mirrored in Minecraft as invisible hittable proxy entities.
@@ -847,6 +996,18 @@ namespace skycraft::proto
 		kEvHorse = 28,         // Horses carry over (added within version 13: an older plugin ignores the type): flags = HorseAction,
 		                       // formId = the Skyrim horse Minecraft has it as (0: none yet), a/b/c = kHorseArrive: where it is (its feet,
 		                       // MC coords), d = its yaw (MC degrees), weapon = kHorseArrive: the Minecraft horse's HorseStats
+		// Magic (added within version 13; an older plugin ignores them, so Minecraft, never answered, gives up on the request).
+		// a/b are where the player looks, not a place. Skyrim answers each one with the request number in weapon.
+		kEvShout = 35,      // Shouts (kFeatShouts): shout formId (a TESShout the player knows; MagicTable::equippedShout unless
+		                    // Minecraft's player picked another, which Skyrim then equips) with flags = words of power (1 to 3;
+		                    // Skyrim shouts at most as many as are unlocked), a = look yaw, b = look pitch (MC degrees), weapon = a
+		                    // request number. Skyrim checks the voice recovery, casts the variation's spell through the player's
+		                    // voice caster, begins its recovery, and answers with kInShoutResult
+		kEvCastSpell = 36,  // Spells (kFeatSpells): cast formId (a hand-cast spell the player knows) toward a = look yaw, b = look
+		                    // pitch (MC degrees), flags = CastFlags, c = with kCastPulse: the seconds of a concentration spell this
+		                    // pulse pays for, weapon = a request number. Skyrim takes the magicka (per second times c for a
+		                    // concentration spell), casts it through the player's right hand caster and answers with kInCastResult.
+		                    // 37 and 38 are set aside for magic
 		kEvPairedBackup = 32,  // Paired backups: Minecraft is done with kInPairedBackup's request: formId = its id, flags = 1
 		                       // if Minecraft's world backup was written (0 failed), a = how many pairs to keep (0: all;
 		                       // Skyrim deletes its older copies past that), b = the world backup's size in MB. Added within

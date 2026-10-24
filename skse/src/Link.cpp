@@ -106,6 +106,7 @@ namespace skycraft
 		std::memset(base_ + proto::kOffBreachTable, 0, sizeof(proto::BreachTable));
 		std::memset(base_ + proto::kOffQuestTargets, 0, sizeof(proto::QuestTargetTable));
 		std::memset(base_ + proto::kOffMapTable, 0, sizeof(proto::MapTable));
+		std::memset(base_ + proto::kOffMagicTable, 0, sizeof(proto::MagicTable));
 		std::memset(base_ + proto::kOffRenderRing, 0, proto::kRenRingDataOff);
 		header->version = proto::kVersion;
 		header->skyrimPid = ::GetCurrentProcessId();
@@ -307,6 +308,20 @@ namespace skycraft
 		seq.store(s + 1, std::memory_order_relaxed);
 		std::atomic_thread_fence(std::memory_order_release);
 		std::memcpy(reinterpret_cast<std::uint8_t*>(dst) + 4, reinterpret_cast<const std::uint8_t*>(&a_table) + 4, sizeof(proto::MapTable) - 4);
+		seq.store(s + 2, std::memory_order_release);
+	}
+
+	void Link::WriteMagic(const proto::MagicTable& a_table)
+	{
+		if (!base_) {
+			return;
+		}
+		auto*      dst = At<proto::MagicTable>(proto::kOffMagicTable);
+		auto       seq = Atomic(dst->seq);
+		const auto s = seq.load(std::memory_order_relaxed);
+		seq.store(s + 1, std::memory_order_relaxed);
+		std::atomic_thread_fence(std::memory_order_release);
+		std::memcpy(reinterpret_cast<std::uint8_t*>(dst) + 4, reinterpret_cast<const std::uint8_t*>(&a_table) + 4, sizeof(proto::MagicTable) - 4);
 		seq.store(s + 2, std::memory_order_release);
 	}
 

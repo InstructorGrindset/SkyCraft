@@ -58,6 +58,13 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   skeletons and vampires burn in daylight. Your tamed Minecraft horse ridden into Skyrim becomes
   your Skyrim horse, and comes along when you leave for another world. Optionally
   (`night_monsters`), Skyrim creatures come out at night away from towns.
+- **Shouts and spells (new, not played yet):** the shouts and spells your Skyrim character knows work from Minecraft's
+  keys. **V** shouts your equipped shout (tap for one word, hold for two and three) and **B** picks another; **R** casts the
+  selected spell (hold it for Flames, Healing and other concentration spells) and **N** picks the next (among your favourite
+  spells, if you've marked any in Skyrim). Skyrim really shouts and casts: its voice recovery, its magicka, its people knocked down and burned. Minecraft's
+  mobs feel it too: Unrelenting Force throws them back, Fire Breath and fire spells set them alight, frost slows them,
+  Whirlwind Sprint dashes you forward, Become Ethereal and wards shield you, healing heals your hearts. A voice bar and a
+  magicka bar sit beside the hotbar. Numbers in `config/skycraft-magic.txt`.
 - **Skyrim progression:**
   - Your Skyrim skills level up from Minecraft play. Swords, maces and tools train
     One-Handed; axes and spears train Two-Handed; bows and anything thrown train Archery.
@@ -210,7 +217,14 @@ Minecraft has priority. These keys still go to Skyrim:
 | **O** | Minecraft pause / options menu |
 
 Every other key is Minecraft's: **E** inventory, **F5** camera, **T** chat, **/** commands,
-**Shift** crouch/sneak, and so on.
+**Shift** crouch/sneak, and so on. SkyCraft adds four, in Minecraft's Controls under SkyCraft (rebind them there):
+
+| Key | Does |
+|---|---|
+| **V** | Shout: tap for one word, hold for two and three (as many as you've unlocked) |
+| **B** | Next shout (sneak: the one before) |
+| **R** | Cast spell: once a press; Flames, Healing and the like while held |
+| **N** | Next spell: your Skyrim favourite spells, or all you know (sneak: the one before) |
 
 **Right click** is Minecraft's use button first: it places blocks, eats, draws bows, raises shields
 and trades with merchants (empty hand; sneak with goods in hand to sell them for Skyrim gold). When Minecraft has no use for a click (empty hand, a sword
@@ -237,7 +251,8 @@ click counts, so holding right click to draw a bow or block stays Minecraft's. S
 
 - Skyrim's opening (cart ride and Helgen) may leave you stuck. Use
   [Alternate Start](https://www.nexusmods.com/skyrimspecialedition/mods/272) or a save made after Helgen.
-- Skyrim's inventory, magic, shouts and perks can't be opened while Minecraft drives the player.
+- Skyrim's inventory, magic, shouts and perks can't be opened while Minecraft drives the player (shouts and spells you
+  know work from SkyCraft's keys, above).
 - Minecraft hits only reach NPCs, not Skyrim objects such as the web around Arvel in Bleak Falls
   Barrow. There's no in-game switch back to plain Skyrim yet. Closing Minecraft hands control
   back to Skyrim; Minecraft keeps what it last autosaved, every few minutes. Deal with the object,

@@ -167,3 +167,26 @@ net.minecraft.world.level.saveddata.maps.MapDecoration
 net.minecraft.world.level.material.MapColor
 -c net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase getMapColor
 net.minecraft.world.level.levelgen.Heightmap$Types
+# Shouts and spells (client MagicClient and MagicHud, magic/MagicEffects): key mappings, the HUD's drawing, aimed spells and their effects
+net.minecraft.client.KeyMapping
+net.minecraft.client.KeyMapping$Category
+-c net.minecraft.client.KeyMapping isDown
+-c net.minecraft.client.KeyMapping consumeClick
+com.mojang.blaze3d.platform.InputConstants
+com.mojang.blaze3d.platform.InputConstants$Type
+-c com.mojang.blaze3d.platform.InputConstants KEY_V
+net.minecraft.client.gui.GuiGraphicsExtractor
+-c net.minecraft.client.gui.GuiGraphicsExtractor fill
+-c net.minecraft.client.gui.GuiGraphicsExtractor text
+-c net.minecraft.client.Minecraft font
+-c net.minecraft.client.Minecraft getWindow
+-c com.mojang.blaze3d.platform.Window getGuiScaledWidth
+-c net.minecraft.world.phys.AABB clip
+-c net.minecraft.world.entity.LivingEntity heal
+-c net.minecraft.world.level.block.BaseFireBlock canBePlacedAt
+-c net.minecraft.world.level.block.BaseFireBlock getState
+-c net.minecraft.core.particles.ParticleTypes FLAME
+-c net.minecraft.core.particles.ParticleTypes ELECTRIC_SPARK
+# Fabric API (not on this probe's class path; check against fabric-api's 26.3 source):
+# net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper registerKeyMapping (keybinding.v1.KeyBindingHelper registerKeyBinding before the Mojang names)
+# net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry attachElementAfter, HudElement, VanillaHudElements HOTBAR
