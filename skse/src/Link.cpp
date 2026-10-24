@@ -104,6 +104,7 @@ namespace skycraft
 		std::memset(base_ + proto::kOffEventRing, 0, proto::kEventRingDataOff);
 		std::memset(base_ + proto::kOffWorldEntities, 0, sizeof(proto::WorldEntities));
 		std::memset(base_ + proto::kOffBreachTable, 0, sizeof(proto::BreachTable));
+		std::memset(base_ + proto::kOffQuestTargets, 0, sizeof(proto::QuestTargetTable));
 		std::memset(base_ + proto::kOffRenderRing, 0, proto::kRenRingDataOff);
 		header->version = proto::kVersion;
 		header->skyrimPid = ::GetCurrentProcessId();
@@ -271,6 +272,25 @@ namespace skycraft
 		table->worldId = a_worldId;
 		if (count) {
 			std::memcpy(table->records, a_records, sizeof(proto::BreachRecord) * count);
+		}
+		seq.store(s + 2, std::memory_order_release);
+	}
+
+	void Link::WriteQuestTargets(const proto::QuestTargetRecord* a_records, std::uint32_t a_count, std::uint32_t a_worldId)
+	{
+		if (!base_) {
+			return;
+		}
+		auto*      table = At<proto::QuestTargetTable>(proto::kOffQuestTargets);
+		auto       seq = Atomic(table->seq);
+		const auto s = seq.load(std::memory_order_relaxed);
+		seq.store(s + 1, std::memory_order_relaxed);
+		std::atomic_thread_fence(std::memory_order_release);
+		const auto count = a_records ? std::min(a_count, proto::kMaxQuestTargets) : 0u;
+		table->count = count;
+		table->worldId = a_worldId;
+		if (count) {
+			std::memcpy(table->records, a_records, sizeof(proto::QuestTargetRecord) * count);
 		}
 		seq.store(s + 2, std::memory_order_release);
 	}

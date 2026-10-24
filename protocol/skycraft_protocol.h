@@ -39,6 +39,7 @@ namespace skycraft::proto
 	inline constexpr std::uint64_t kOffOverlaySlotHdr = 0x340;  // 3 x 0x40
 	inline constexpr std::uint64_t kOffWaterGrid = 0x400;       // Skyrim -> MC, see WaterGrid
 	inline constexpr std::uint64_t kOffInputRing = 0x1000;
+	inline constexpr std::uint64_t kOffQuestTargets = 0x11100;  // Skyrim -> MC, see QuestTargetTable (added within 13)
 	inline constexpr std::uint64_t kOffCollisionRing = 0x20000;
 	inline constexpr std::uint64_t kCollisionRingBytes = 32ull << 20;
 	inline constexpr std::uint64_t kOffOverlayPixels = kOffCollisionRing + kCollisionRingBytes;
@@ -354,6 +355,8 @@ namespace skycraft::proto
 		kFeatPowerAttacks = 1u << 2,  // power_attacks: a hit with kHitPowerAttack is a Skyrim power attack (HitData kPowerAttack
 		                              // and the weapon's stagger); without it sprint hits and knockback count, as before
 		kFeatLightStealth = 1u << 3,  // light_stealth: Skyrim's light on the player for detection takes in McState's eye light
+		// Quests (added within version 13: an older Minecraft never sets it, so Skyrim leaves the quest table empty).
+		kFeatQuestMarkers = 1u << 4,  // quest_markers: Skyrim writes its compass's quest targets into the QuestTargetTable
 		// world
 		kFeatWeatherSync = 1u << 12,  // weather_sync: Skyrim switches its weather when Minecraft asks (McState::weatherSeq)
 		// Economy (added within version 13): Skyrim food eaten in Skyrim fills Minecraft's hunger. Skyrim
@@ -526,6 +529,61 @@ namespace skycraft::proto
 		kHurtBlockedInSkyrim = 1u << 0,
 		kHurtPowerAttack = 1u << 1,
 	};
+
+	// ---- quest targets @0x11100 (Skyrim -> MC, seqlock) --------------------------------------
+	// Quest markers (quest_markers, kFeatQuestMarkers): the targets Skyrim's compass has for the player's quests, for
+	// Minecraft's locator bar. Refreshed about twice a second on Skyrim's main thread from Skyrim's own quest target map
+	// (PlayerCharacter questTargets, TESQuestTarget), tracked quests first, then nearest first. Added within version 13:
+	// the space between the input ring's end (0x11080) and the actor table was unused, so an older plugin leaves it all
+	// zeros (seq 0: nothing yet) and an older Minecraft never reads it. Empty (count 0) while the switch is off, while
+	// loading, and while Minecraft isn't in its world.
+	inline constexpr std::uint32_t kMaxQuestTargets = 16;
+	inline constexpr std::uint32_t kQuestNameBytes = 40;
+	inline constexpr std::uint32_t kQuestObjectiveBytes = 40;
+	inline constexpr std::uint16_t kQuestNoObjective = 0xFFFF;
+
+	// QuestTargetRecord::flags.
+	enum QuestTargetFlags : std::uint8_t
+	{
+		kQuestTracked = 1u << 0,  // the quest is active (the journal's "show on map"): Skyrim's compass shows its markers
+		kQuestViaDoor = 1u << 1,  // the target is in another world (an interior, another worldspace): x/y/z is the load door
+		                          // in the player's world that Skyrim's compass points to, the first door of the path Skyrim
+		                          // worked out to it (TESQuestTarget teleportPath). A target with no such door isn't sent
+		kQuestInside = 1u << 2,   // the target itself is in an interior cell
+		kQuestMain = 1u << 3,     // the quest is the main quest (its type, QUEST_DATA::Type kMainQuest)
+		kQuestActor = 1u << 4,    // the marker is on an actor (it moves with them)
+	};
+
+	struct QuestTargetRecord
+	{
+		float         x, y, z;     // where the marker is, MC coords: the target's position, or its door's with kQuestViaDoor
+		std::uint32_t quest;       // the quest's FormID
+		std::uint32_t ref;         // the reference the marker is on (the target, or the door), 0 if none
+		std::uint16_t objective;   // the objective's index (BGSQuestObjective QOBJ), kQuestNoObjective if not found
+		std::uint8_t  flags;       // QuestTargetFlags
+		std::uint8_t  questType;   // QUEST_DATA::Type: 0 none, 1 main quest, 2 College, 3 Thieves Guild, 4 Dark Brotherhood,
+		                           // 5 Companions, 6 miscellaneous, 7 Daedric, 8 side quest, 9 Civil War, 10 Dawnguard, 11 Dragonborn
+		char          name[kQuestNameBytes];                // the quest's name, UTF-8, NUL-terminated (cut at a character's start)
+		char          objectiveText[kQuestObjectiveBytes];  // the objective's display text as Skyrim keeps it (it may hold
+		                                                    // <Alias=...> tags the journal fills in), cut the same way
+	};
+	static_assert(sizeof(QuestTargetRecord) == 104);
+	static_assert(offsetof(QuestTargetRecord, quest) == 12 && offsetof(QuestTargetRecord, ref) == 16 && offsetof(QuestTargetRecord, objective) == 20 &&
+	              offsetof(QuestTargetRecord, flags) == 22 && offsetof(QuestTargetRecord, questType) == 23 && offsetof(QuestTargetRecord, name) == 24 &&
+	              offsetof(QuestTargetRecord, objectiveText) == 64);  // Proto.QR_*
+
+	struct QuestTargetTable
+	{
+		std::uint32_t     seq;      // seqlock: odd while Skyrim writes; 0 = never written (an older plugin)
+		std::uint32_t     count;    // records in use
+		std::uint32_t     worldId;  // the Skyrim world (as SkyState::worldId) the positions are in
+		std::uint32_t     pad;
+		QuestTargetRecord records[kMaxQuestTargets];
+	};
+	static_assert(sizeof(QuestTargetTable) == 16 + 104 * kMaxQuestTargets);
+	// After the input ring (its InputEvents are 16 bytes), and within the 0x700 bytes set aside for quests (magic's begin at 0x11800).
+	static_assert(kOffQuestTargets >= kOffInputRing + kInputRingDataOff + 16ull * kInputRingEntries);
+	static_assert(kOffQuestTargets + sizeof(QuestTargetTable) <= 0x11800);
 
 	// ---- actor table @0x12000 (Skyrim -> MC, seqlock) ----------------------------------------
 	// Nearby Skyrim actors, mirrored in Minecraft as invisible hittable proxy entities.

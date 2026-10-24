@@ -43,6 +43,7 @@ public final class SkyCraft implements ModInitializer {
 		dev.skycraft.town.SkyTown.init(); // NPCs and Minecraft doors, town crime, guards, Hearthfire plots, Dwemer redstone
 		dev.skycraft.creatures.SkyCreatures.init(); // mobs and NPCs fight, tamed wolves, undead in daylight, night monsters, horses
 		dev.skycraft.backup.SkyBackups.init(); // paired backups: the world zipped with each Skyrim save loaded
+		dev.skycraft.quests.SkyQuests.init(); // Skyrim's quest markers on each player's locator bar
 		ServerLifecycleEvents.SERVER_STARTED.register(SkyCraft::configureServer);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
 			giveStarterKit(handler.getPlayer());

@@ -72,6 +72,9 @@ This fork adds looting, merchants, dungeon chests, time and sleep sync, deep cre
   gives Skyrim's death camera with your Minecraft body ragdolling.
 - **Skyrim's own animations:** chairs, crafting stations, beds, pull levers, horses and scripted
   scenes hand control to Skyrim until they finish.
+- **Quest markers (new, not played yet):** the targets Skyrim's compass shows for your active quests are markers on
+  Minecraft's locator bar over the hotbar (a door when the target is behind one), and looking toward one names its quest
+  on the action bar: "Bleak Falls Barrow, 230 blocks, ahead". Friends see their own Skyrim's (`skycraft-quests.txt`).
 - **Weather:** Skyrim's clear skies, rain, snow and thunderstorms are Minecraft's, and snow slowly settles on
   the tops of your blocks open to the sky (and melts in the sun). `/weather` in Minecraft changes Skyrim's sky to the
   nearest weather its region has.

@@ -278,6 +278,24 @@ public final class SkyNet {
 		}
 	}
 
+	/**
+	 * Guest -> server (quest markers): the targets the guest's own Skyrim's compass has (its quest table, positions already
+	 * moved into the mirror's terms), packed by quests.QuestCodec; empty when there are none. Twice a second at most, when
+	 * they change (and every few seconds); the host's server shows them on that guest's locator bar.
+	 */
+	public record QuestTargets(List<Integer> data) implements CustomPacketPayload {
+		public static final Type<QuestTargets> TYPE = new Type<>(Identifier.fromNamespaceAndPath(SkyCraft.MOD_ID, "quest_targets"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, QuestTargets> CODEC = StreamCodec.composite(
+			ByteBufCodecs.INT.apply(ByteBufCodecs.list(dev.skycraft.quests.QuestCodec.MAX_INTS)), QuestTargets::data,
+			QuestTargets::new
+		);
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return TYPE;
+		}
+	}
+
 	/** The host's world's spaces, for sending. */
 	public static Spaces spaces() {
 		var table = dev.skycraft.link.SkySpace.table();
@@ -383,6 +401,12 @@ public final class SkyNet {
 		ServerPlayNetworking.registerGlobalReceiver(GuestDragon.TYPE, (payload, context) -> {
 			ServerPlayer player = context.player();
 			context.server().execute(() -> dev.skycraft.party.SharedWorldEvents.onGuestDragon(player, payload.kind(), payload.name()));
+		});
+		// A guest's own Skyrim's quest targets, for their locator bar (quests.SkyQuests).
+		PayloadTypeRegistry.serverboundPlay().register(QuestTargets.TYPE, QuestTargets.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(QuestTargets.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			context.server().execute(() -> dev.skycraft.quests.SkyQuests.onGuestTargets(player, payload.data()));
 		});
 	}
 

@@ -131,3 +131,23 @@ net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents
 -c net.minecraft.server.players.PlayerList saveAll
 net.minecraft.world.item.component.DyedItemColor
 -c net.minecraft.core.component.DataComponents DYED_COLOR
+# Quest markers (quests/SkyQuests): Skyrim's quest targets as waypoints at a fixed block, sent to one player's locator bar the way
+# the server tells a client about another player (TRACK replaces an id the client has; UNTRACK takes it away), in a waypoint style
+# of SkyCraft's own (assets/skycraft/waypoint_style/quest_marker.json, sprites under textures/gui/sprites/hud/locator_bar_dot/)
+list:net/minecraft/world/waypoints/
+list:net/minecraft/client/waypoints/
+net.minecraft.world.waypoints.Waypoint
+-c net.minecraft.world.waypoints.Waypoint$Icon
+-c net.minecraft.world.waypoints.TrackedWaypoint setPosition
+-c net.minecraft.world.waypoints.TrackedWaypoint empty
+net.minecraft.world.waypoints.WaypointStyleAsset
+-c net.minecraft.world.waypoints.WaypointStyleAssets
+-c net.minecraft.network.protocol.game.ClientboundTrackedWaypointPacket addWaypointPosition
+-c net.minecraft.network.protocol.game.ClientboundTrackedWaypointPacket removeWaypoint
+net.minecraft.network.protocol.game.ClientboundTrackedWaypointPacket$Operation
+-c net.minecraft.client.waypoints.ClientWaypointManager
+-c net.minecraft.client.gui.contextualbar.LocatorBarRenderer
+-c net.minecraft.world.entity.Entity getEyePosition
+list:assets/minecraft/waypoint_style/
+assets/minecraft/waypoint_style/default.json
+list:assets/minecraft/textures/gui/sprites/hud/locator_bar_dot/
