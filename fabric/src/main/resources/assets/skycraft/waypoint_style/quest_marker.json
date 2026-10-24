@@ -1,0 +1,10 @@
+{
+  "near_distance": 32,
+  "far_distance": 512,
+  "sprites": [
+    "skycraft:quest_marker_0",
+    "skycraft:quest_marker_1",
+    "skycraft:quest_marker_2",
+    "skycraft:quest_marker_3"
+  ]
+}

@@ -83,6 +83,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Creatures and light | `creatures_and_light` | Skeevers and Falmer keep out of strong Minecraft light: within a torch's 6 blocks (a lantern's or glowstone's 7, light level 8 or more as Minecraft's light falls off) they're pushed back the way NPCs are pushed out of blocks. Skyrim's undead (draugr, skeletons, vampires; not essential ones) outdoors in Skyrim's daylight (6 to 19:30) under open sky, not wet, catch fire the way zombies do; the fire's damage reaches Skyrim credited to no one, with flames on the body. Which actors are light-shy or undead comes from the race (`CreatureKinds.h`) | `creatures/SkyCreatures` (`sunlight`), `combat/SkyrimActorEntity` (sun fire) | `Creatures.cpp` (`ShyFromLight`), `CreatureKinds.h`, `BlockLights.cpp` (`LightAt`), `Combat.cpp` (actor table bits) | none | `SkyCraft-creatures` | Written |
 | Paired backups | `paired_backups` | Each time Skyrim loads a save with Minecraft connected, both are backed up as a pair under one stamp (the time of the load): Skyrim copies the save (its `.ess` and `.skse` co-save) to `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>`, Minecraft zips its world to `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder. The newest 5 pairs are kept. Minecraft saves its world first and holds its autosaves while the zip is written; both copies run on threads of their own, so neither game waits. A save loaded before Minecraft is connected is backed up once it is; a guest's world is backed up when they're back in their own. Death reloads and quickloads make pairs too. See [Paired backups](#paired-backups) | `backup/` (SkyBackups, BackupRequest, BackupNames, WorldZip, BackupRules), client `InputBridge` (`IN_PAIRED_BACKUP`) | `Backups.cpp`, `BackupNames.h`, `main.cpp` (kPreLoadGame, kPostLoadGame), `Combat.cpp` (`kEvPairedBackup`), bit `kFeatPairedBackups` | `skycraft-backups.txt` | `SkyCraft-backup`; `paired backups` in SkyCraft.log | Written |
 | Far block detail | `far_block_detail` (off by default) | Block sections more than 64 blocks from the camera aren't drawn into the sun's shadow map, so each is drawn once less a frame: they cast no sun shadows (on Skyrim's ground or on other blocks) and aren't shaded by other far blocks; Skyrim's own shadows still fall on them, and everything nearer is as before. With it on or off, SkyCraft.log's perf line (every minute) has the block drawing time and how many sections and triangles were drawn, and latest.log what meshing them cost Minecraft. See [Far block detail and profiling](#far-block-detail-and-profiling) | client `render/WorldExporter` (meshing stats) | `WorldRender.cpp` (`RenderPasses`), `Perf.h` (`kBlocks`, block amounts), bit `kFeatFarBlockDetail` | none | `perf:` and `far block detail` in SkyCraft.log; `SkyCraft-render` | Written |
+| Quest markers | `quest_markers` | The targets Skyrim's compass shows for your active quests are markers on Minecraft's locator bar (the bar over the hotbar, where Minecraft shows other players), each its own marker: Skyrim's quest arrow, a small triangle pointing down, white, the main quest's gold. A target in an interior or another worldspace is marked at the door Skyrim's compass points to, and the marker moves on as you go through. Looking toward a marker names its quest on the action bar ("Bleak Falls Barrow, 230 blocks, ahead"). In the Skyrim mirror only; each guest sees their own Skyrim's. See [Quests](#quests) | `quests/` (SkyQuests, QuestRules, QuestTable, QuestCodec), `link/SkyLink` (`readQuestTargets`), `net/SkyNet` (QuestTargets), client `QuestClient`; the waypoint style `assets/skycraft/waypoint_style/quest_marker.json` and its sprites | `Quests.cpp` (the compass's quest targets, twice a second), `QuestTargets.h` (order, texts cut to fit; tested in `tests/QuestTargetsTest.cpp`), `Link.cpp` (`WriteQuestTargets`), bit `kFeatQuestMarkers` | `skycraft-quests.txt` | `SkyCraft-quests` (both halves) | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -1399,6 +1400,67 @@ Minecraft: SkyCraft.log says `far block detail on: block sections more than 64 b
 lines show fewer shadow-casting sections and triangles, and `block drawing` should be lower. Far blocks' shadows go; near ones
 stay.
 
+## Quests
+
+### Quest markers
+
+Switch `quest_markers` (on by default; Skyrim's side runs only with a Minecraft that sends the switch, `kFeatQuestMarkers`).
+Skyrim's compass shows where the active quests in your journal want you to go. The same targets are now markers on Minecraft's
+locator bar, the bar over the hotbar that Minecraft uses for other players since 1.21.6 (while it has markers it takes the
+experience bar's place, as in multiplayer).
+
+How it works:
+
+- **Skyrim** (`Quests.cpp`), twice a second while Minecraft is in its world: the quest targets Skyrim keeps for its compass
+  (the player's quest target map, `PlayerCharacter` `questTargets`, read under its lock), each resolved to the reference it's on
+  now with Skyrim's own `TESQuestTarget::GetTrackingRef` (`GetTargetRef` if that gives none). A target in the player's world
+  (the same worldspace, or the same interior cell) is marked where it is. A target in another world is marked at the first
+  load door of the way Skyrim worked out to it (`TESQuestTarget` `teleportPath`) that stands in the player's world, which is
+  where Skyrim's compass points; a target with no such door is left out, never guessed at (SkyCraft.log counts them). An item
+  the player carries is no marker. Tracked (active) quests first, then nearest first, at most 16, into the quest table with the
+  quest's name and the objective's text cut to fit, its objective, its type, and flags: tracked, through a door, inside (the
+  target is in an interior), the main quest, on an actor.
+- **Minecraft** (`quests/SkyQuests`, on the server): the host's markers from the link, moved into the space of the Skyrim
+  world the table names (as the actors are); a guest's from their own client (`client/QuestClient` reads their own link and
+  sends `SkyNet.QuestTargets` when they change), held to the guest's own world's space. In the Skyrim mirror only, each
+  player's markers are waypoints at a fixed block sent to that player alone (`ClientboundTrackedWaypointPacket`, an id of their
+  own per quest and reference), so nobody else's bar shows them and Minecraft's own player waypoints are untouched. They go
+  away in another dimension, when Skyrim loads, and at once when the switch goes off.
+- **Looking toward a marker** (within `look_angle` degrees of the middle of the view) names its quest on the action bar, once
+  each time the look comes to it: "Bleak Falls Barrow, 230 blocks, ahead", "The Golden Claw, 40 blocks to the door, ahead"
+  for a target behind a door, "..., here" once reached, "Dragon Rising and 1 more" when two targets share a marker. A quest
+  with no name (Skyrim lists those objectives under Miscellaneous) is named by its objective's text, or "Miscellaneous" when
+  that holds tags Skyrim's journal fills in.
+
+**`skycraft-quests.txt`**:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `max_markers` | 16 | The most markers at once (1 to 16) |
+| `untracked` | off | Also mark the targets of quests that aren't active in the journal (grey), if Skyrim's quest target map holds them |
+| `style` | `skycraft:quest_marker` | The waypoint style: SkyCraft's quest arrow, or Minecraft's `minecraft:default` / `minecraft:bowtie` |
+| `main_color`, `tracked_color`, `untracked_color` | `FFC93C`, `FFFFFF`, `9A9A9A` | Marker colours (RRGGBB) |
+| `look_angle` | 5 | Degrees either side of the middle of the view within which looking toward a marker names it |
+| `locator_bar` | on | off: no markers on the bar; the action bar names the nearest active quest's target every 5 seconds instead |
+
+If Minecraft ever refuses the waypoints, latest.log says `SkyCraft-quests: Minecraft's locator bar won't take the quest markers`
+and the action bar names the nearest target every 5 seconds from then on, as with `locator_bar = off`.
+
+**Try it**: take a quest with a target near you (Lucan's "The Golden Claw" in Riverwood, or any quest after Helgen) and check
+it's active in Skyrim's journal (J). In the mirror, the locator bar shows a white triangle where Skyrim's compass shows the
+quest marker; turn toward it and the action bar names the quest with its distance. For a target in Bleak Falls Barrow the
+marker is on the barrow's door; go through it and the marker moves to the target inside (or the next door on the way). Make
+the quest inactive in the journal: its marker goes within half a second. `/skyview` to the Nether: the markers go; back in the
+mirror they return. Switch **Quest markers** off in SkyCraft settings: they go at once. A friend with their own Skyrim sees
+their own quests' markers, not yours. SkyCraft.log says `SkyCraft-quests: n quest markers for Minecraft's locator bar (n of m
+targets tracked), the first <quest>` when the set changes (and how many it had to leave out); latest.log says
+`SkyCraft-quests: <player>'s locator bar: n quest markers (the first <quest> at x y z, its door)`.
+
+Not tried in a game yet: whether Skyrim's quest target map also holds the targets of quests that aren't active (`untracked =
+on` shows them if it does), whether the first door of a target's way that stands in the player's world is always the one the
+compass points to, and how the quest arrow sprite looks at the bar's size. Not done: the objective's own text on the action
+bar (it can hold tags only Skyrim's journal fills in), and markers in other dimensions.
+
 ## Planned
 
 | Feature | Notes |
@@ -1568,6 +1630,18 @@ Far block detail added this within 13 (an older Minecraft never sets the bit, so
 | Addition | Direction | Used by |
 |---|---|---|
 | `FeatureBits` `kFeatFarBlockDetail` (bit 29) in `McState.features` | Minecraft to Skyrim | `far_block_detail` is on: block sections more than 64 blocks away cast no sun shadows |
+
+Quest markers added these within 13, without a version bump (the table sits where nothing was, between the input ring's end at
+0x11080 and the actor table, so an older plugin leaves it all zeros, sequence 0, which Minecraft reads as nothing yet, and an
+older Minecraft never reads it; an older Minecraft never sets the bit, so Skyrim leaves the table empty):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `QuestTargetTable` at `kOffQuestTargets` 0x11100 (0x690 bytes, seqlock like the actor table; within the 0x700 set aside, before 0x11800): u32 seq (0 never written), u32 count, u32 worldId (the Skyrim world the positions are in, as `SkyState.worldId`), u32 pad, then 16 `QuestTargetRecord`s of 104 bytes: f32 x, y, z (the marker, MC coords in worldId's terms) @0, u32 quest (FormID) @12, u32 ref (the reference the marker is on: the target, or its door) @16, u16 objective (QOBJ index, 0xFFFF none) @20, u8 flags @22, u8 questType (`QUEST_DATA::Type`: 1 main quest, 6 miscellaneous, ...) @23, char name[40] @24, char objectiveText[40] @64 (UTF-8, NUL-terminated, cut at a character's start) | Skyrim to Minecraft | Quest markers: the targets of Skyrim's compass, tracked quests first then nearest first, refreshed twice a second; empty while the switch is off, while loading and while Minecraft isn't in its world |
+| `QuestTargetFlags` `kQuestTracked` 1 (the quest is active in the journal), `kQuestViaDoor` 2 (the target is in another world: the marker is on the load door the compass points to), `kQuestInside` 4 (the target is in an interior), `kQuestMain` 8 (the main quest), `kQuestActor` 16 (the marker is on an actor) | Skyrim to Minecraft | Quest markers: which markers show (tracked ones), their colour, and the action bar line ("to the door") |
+| `FeatureBits` `kFeatQuestMarkers` (bit 4) in `McState.features` | Minecraft to Skyrim | `quest_markers` is on: Skyrim fills the table |
+
+The quests' event and input types (McEventType 33 and 34, InputType 29 and 30) are set aside and not used yet.
 
 ## Testing a build
 

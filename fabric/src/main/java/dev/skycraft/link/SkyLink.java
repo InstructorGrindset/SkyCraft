@@ -712,6 +712,54 @@ public final class SkyLink {
 		return -1;
 	}
 
+	// ---- quest target table (read) ---------------------------------------------------------
+
+	/**
+	 * Seqlock read of the quest target table (quest markers: the targets Skyrim's compass has, see QuestTargetTable in the
+	 * protocol header) into {@code out}, in Skyrim's order, their positions moved into the space of the world the table names.
+	 * Returns that world (SkyState worldId); 0 when Skyrim never wrote the table (an older plugin, or the switch never on) or
+	 * emptied it with no world; -1 when unlinked, on a torn read, or while a guest waits to hear where that world's space is.
+	 * {@code out} holds nothing unless the world is returned.
+	 */
+	public static int readQuestTargets(java.util.List<dev.skycraft.quests.QuestTable.Target> out) {
+		out.clear();
+		MemorySegment s = shm;
+		if (s == null) {
+			return -1;
+		}
+		long b = OFF_QUEST_TARGETS;
+		byte[] bytes = new byte[QUEST_TABLE_BYTES];
+		for (int attempt = 0; attempt < 16; attempt++) {
+			int seq1 = (int) INT.getAcquire(s, b + QT_SEQ);
+			if (seq1 == 0) {
+				return 0;
+			}
+			if ((seq1 & 1) != 0) {
+				Thread.onSpinWait();
+				continue;
+			}
+			MemorySegment.copy(s, JAVA_BYTE, b, bytes, 0, QUEST_TABLE_BYTES);
+			VarHandle.loadLoadFence();
+			if ((int) INT.getAcquire(s, b + QT_SEQ) != seq1) {
+				continue;
+			}
+			var table = dev.skycraft.quests.QuestTable.decode(java.nio.ByteBuffer.wrap(bytes));
+			if (table == null) {
+				return -1;
+			}
+			int space = SkySpace.space(table.world(), null);
+			if (space < 0) {
+				return -1;
+			}
+			double ox = WorldSpaces.originX(space), oz = WorldSpaces.originZ(space);
+			for (var t : table.targets()) {
+				out.add(t.moved(ox, oz));
+			}
+			return table.world();
+		}
+		return -1;
+	}
+
 	// ---- item ring (consume) ---------------------------------------------------------------
 
 	/** An item that landed in the Skyrim player's inventory (see ItemEvent in the protocol header). */

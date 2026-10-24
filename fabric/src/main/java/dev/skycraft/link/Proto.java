@@ -35,6 +35,8 @@ public final class Proto {
 	public static final long OFF_ITEM_RING = 0x1B100;
 	public static final long OFF_WORLD_ENTITIES = 0x1C000;
 	public static final long OFF_BREACH_TABLE = 0x1FC40;
+	/** Quest markers (added within 13): Skyrim's compass quest targets, see QuestTargetTable in the protocol header. */
+	public static final long OFF_QUEST_TARGETS = 0x11100;
 	public static final long OFF_RENDER_RING = OFF_OVERLAY_PIXELS + OVERLAY_SLOT_BYTES * OVERLAY_SLOTS;
 	public static final long RENDER_RING_BYTES = 64L << 20;
 	public static final long MAPPING_BYTES = OFF_RENDER_RING + RENDER_RING_BYTES;
@@ -260,6 +262,37 @@ public final class Proto {
 	/** EV_SPAWN_CREATURE weapon (SpawnOrigin, added within 13): a dug tunnel (deep creatures), or outdoors at night (night monsters). */
 	public static final int SPAWN_FROM_DARK = 0;
 	public static final int SPAWN_AT_NIGHT = 1;
+
+	// Quest target table (relative to OFF_QUEST_TARGETS): Skyrim -> MC, seqlock (seq 0: never written, an older plugin), see
+	// QuestTargetTable in the protocol header. Added within 13. Read by SkyLink.readQuestTargets, decoded by quests.QuestTable.
+	public static final int MAX_QUEST_TARGETS = 16;
+	public static final long QT_SEQ = 0x00;
+	public static final long QT_COUNT = 0x04;
+	public static final long QT_WORLD_ID = 0x08;
+	public static final long QT_RECORDS = 0x10;
+	public static final int QUEST_RECORD_BYTES = 104;
+	/** The whole table: the header and every record. */
+	public static final int QUEST_TABLE_BYTES = (int) QT_RECORDS + MAX_QUEST_TARGETS * QUEST_RECORD_BYTES;
+	// QuestTargetRecord fields: f32 x, y, z (MC coords, the Skyrim world's terms), u32 quest, u32 ref, u16 objective, u8 flags,
+	// u8 questType, char name[40], char objectiveText[40].
+	public static final int QR_X = 0, QR_Y = 4, QR_Z = 8, QR_QUEST = 12, QR_REF = 16, QR_OBJECTIVE = 20, QR_FLAGS = 22, QR_QUEST_TYPE = 23,
+		QR_NAME = 24, QR_OBJECTIVE_TEXT = 64;
+	public static final int QR_NAME_BYTES = 40, QR_OBJECTIVE_TEXT_BYTES = 40;
+	/** QuestTargetRecord objective when Skyrim found none. */
+	public static final int QUEST_NO_OBJECTIVE = 0xFFFF;
+	// QuestTargetFlags
+	/** The quest is active in Skyrim's journal: Skyrim's compass shows it. */
+	public static final int QUEST_TRACKED = 1;
+	/** The target is in another Skyrim world: the marker is on the load door Skyrim's compass points to. */
+	public static final int QUEST_VIA_DOOR = 1 << 1;
+	/** The target itself is in an interior cell. */
+	public static final int QUEST_INSIDE = 1 << 2;
+	/** The main quest (its type is QUEST_TYPE_MAIN). */
+	public static final int QUEST_MAIN = 1 << 3;
+	/** The marker is on an actor (it moves). */
+	public static final int QUEST_ACTOR = 1 << 4;
+	/** QuestTargetRecord questType (Skyrim's QUEST_DATA::Type) of the main quest; 6 is miscellaneous. */
+	public static final int QUEST_TYPE_MAIN = 1, QUEST_TYPE_MISC = 6;
 
 	// Item ring (relative to OFF_ITEM_RING): Skyrim -> MC, see ItemEvent in the protocol header.
 	public static final int ITEM_RING_ENTRIES = 64;
@@ -552,6 +585,8 @@ public final class Proto {
 	public static final int FEATURE_SNEAK_ATTACKS = 1 << 1;
 	public static final int FEATURE_POWER_ATTACKS = 1 << 2;
 	public static final int FEATURE_LIGHT_STEALTH = 1 << 3;
+	/** quest_markers: Skyrim writes its compass's quest targets into the quest table (OFF_QUEST_TARGETS). Added within 13. */
+	public static final int FEATURE_QUEST_MARKERS = 1 << 4;
 	/**
 	 * light_stealth: Minecraft's block light and sky light (0-15 each, bytes) at the player's eyes, and EYE_LIGHT_VALID in the
 	 * flags byte when they're this tick's. Added within protocol 13 (was reserved and zero).

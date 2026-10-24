@@ -105,7 +105,8 @@ public final class Features {
 			dev.skycraft.link.Proto.FEATURE_FAR_BLOCK_DETAIL),
 
 		// Quests
-		QUEST_MARKERS("quest_markers", "Skyrim's quest markers show on Minecraft's locator bar"),
+		QUEST_MARKERS("quest_markers", "the targets of your tracked Skyrim quests show on Minecraft's locator bar (a door when the target is behind one), and looking toward one names its quest (skycraft-quests.txt)",
+			true, dev.skycraft.link.Proto.FEATURE_QUEST_MARKERS),
 
 		// Magic
 		SHOUTS("shouts", "the shouts you know in Skyrim work from a Minecraft key, on Minecraft's mobs as well as Skyrim's people"),
