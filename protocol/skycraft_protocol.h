@@ -355,7 +355,7 @@ namespace skycraft::proto
 		kFeatPowerAttacks = 1u << 2,  // power_attacks: a hit with kHitPowerAttack is a Skyrim power attack (HitData kPowerAttack
 		                              // and the weapon's stagger); without it sprint hits and knockback count, as before
 		kFeatLightStealth = 1u << 3,  // light_stealth: Skyrim's light on the player for detection takes in McState's eye light
-		// Magic (added within version 13: an older Minecraft never sets them, so Skyrim fills no magic table and refuses
+		// Magic (added within version 13: an older Minecraft never sets them, so Skyrim leaves the magic table empty and refuses
 		// kEvShout and kEvCastSpell).
 		kFeatShouts = 1u << 5,  // shouts: Skyrim fills the magic table's shouts and shouts what kEvShout asks for
 		kFeatSpells = 1u << 6,  // spells: Skyrim fills the magic table's spells and casts what kEvCastSpell asks for

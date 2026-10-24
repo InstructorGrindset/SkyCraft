@@ -144,7 +144,6 @@ net.minecraft.client.gui.GuiGraphicsExtractor
 -c net.minecraft.client.gui.GuiGraphicsExtractor text
 -c net.minecraft.client.Minecraft font
 -c net.minecraft.client.Minecraft getWindow
--c net.minecraft.client.Options hideGui
 -c com.mojang.blaze3d.platform.Window getGuiScaledWidth
 -c net.minecraft.world.phys.AABB clip
 -c net.minecraft.world.entity.LivingEntity heal

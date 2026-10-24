@@ -25,8 +25,8 @@ final class MagicHud {
 	}
 
 	private static void draw(GuiGraphicsExtractor graphics) {
-		Minecraft minecraft = Minecraft.getInstance();
-		if (minecraft.options.hideGui || minecraft.player == null) {
+		Minecraft minecraft = Minecraft.getInstance(); // (F1 hides the hotbar's layer and what's attached to it)
+		if (minecraft.player == null) {
 			return;
 		}
 		int width = minecraft.getWindow().getGuiScaledWidth();

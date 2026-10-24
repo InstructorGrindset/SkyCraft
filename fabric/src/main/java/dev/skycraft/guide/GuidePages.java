@@ -16,6 +16,8 @@ public final class GuidePages {
 			+ "Coins, keys, books and quest items stay in Skyrim. The action bar says what became what.",
 		"Doors and people\n\nG uses what Skyrim's crosshair is on: doors, people, chests, levers. Right click with nothing to use "
 			+ "in your hand does the same.",
+		"Shouts and spells\n\nV shouts your Skyrim shout: tap it for one word, hold it for more. B picks another shout. R casts "
+			+ "your spell (hold it for Flames), N picks the next. Change the keys in Controls, under SkyCraft.",
 		"Merchants\n\nRight click a Skyrim merchant with an empty hand to trade with them, as with a villager. Prices follow the town.",
 		"Portals\n\nA Nether portal lit in Skyrim leads nowhere by itself. Use a filled Greater, Grand or Black soul gem on it, "
 			+ "then on a second lit portal: the two are bound, and stepping in takes you between them.",

@@ -1686,7 +1686,7 @@ Far block detail added this within 13 (an older Minecraft never sets the bit, so
 
 Shouts and spells added these within 13, without a version bump (an older plugin leaves the magic table all zeros and
 ignores the event types, so Minecraft has nothing to show and gives up on its requests after 3 seconds; an older Minecraft never
-sets the bits or reads the table, so Skyrim fills no table and refuses shouts and casts):
+sets the bits or reads the table, so Skyrim leaves both halves of the table empty and refuses shouts and casts):
 
 | Addition | Direction | Used by |
 |---|---|---|
