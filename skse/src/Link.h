@@ -36,6 +36,8 @@ namespace skycraft
 		void WriteActors(const proto::ActorRecord* a_records, std::uint32_t a_count);
 		// Breach table (producer, main thread): dungeon entrances near the player in worldspace a_worldId.
 		void WriteBreaches(const proto::BreachRecord* a_records, std::uint32_t a_count, std::uint32_t a_worldId);
+		// Map table (producer, main thread): Skyrim's map markers near the player and its last land sample (Skyrim maps).
+		void WriteMapTable(const proto::MapTable& a_table);
 		// Event ring (consumer, main thread). Returns false when empty.
 		bool PopEvent(proto::McEvent& a_out);
 		// Skyrim -> MC: an item the player just got (see proto::ItemEvent). Dropped if MC is a full ring behind.

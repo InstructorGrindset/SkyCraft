@@ -47,6 +47,7 @@ namespace skycraft::proto
 	inline constexpr std::uint64_t kOverlaySlotBytes = std::uint64_t(kMaxOverlayW) * kMaxOverlayH * 4;
 	inline constexpr std::uint32_t kOverlaySlots = 3;
 	inline constexpr std::uint64_t kOffActorTable = 0x12000;   // Skyrim -> MC, see ActorTable
+	inline constexpr std::uint64_t kOffMapTable = 0x16100;     // Skyrim -> MC, see MapTable (Skyrim maps; added within 13)
 	inline constexpr std::uint64_t kOffEventRing = 0x17000;    // MC -> Skyrim, see McEvent
 	inline constexpr std::uint64_t kOffItemRing = 0x1B100;     // Skyrim -> MC, see ItemEvent
 	inline constexpr std::uint64_t kOffWorldEntities = 0x1C000;  // MC -> Skyrim, see WorldEntities
@@ -382,6 +383,9 @@ namespace skycraft::proto
 		                                  // nearby Dwemer doors go to Minecraft (kInDwemerDoor), kEvRedstoneDoor works them
 		kFeatHearthfire = 1u << 18,       // hearthfire_blocks: Skyrim reports the Hearthfire plot the player stands on
 		                                  // (SkyState::hearthPlot). Bits 19 to 21 are set aside for towns
+		// Maps (added within version 13: an older Minecraft never sets it, so Skyrim leaves the map table alone).
+		kFeatSkyrimMaps = 1u << 7,  // skyrim_maps: Skyrim lists its map markers near the player in MapTable and answers
+		                            // kEvMapSample
 	};
 	static_assert(offsetof(McState, spaceWorld) == 0xC8 && offsetof(McState, spaceX) == 0xCC && offsetof(McState, spaceZ) == 0xD0);  // Proto.MS_SPACE_*
 	static_assert(sizeof(McState) <= 0x100);
@@ -471,6 +475,7 @@ namespace skycraft::proto
 		                       // (1 to kPairedBackupTextMax); then code 1, 2, ... each carry the next 12 bytes in a, b, c (little
 		                       // endian, byte 0 lowest in a). The text is UTF-8 "<stamp>|<save name>", the stamp Skyrim's local
 		                       // time as "YYYY-MM-DD_hh-mm-ss". Added within version 13 (an older Minecraft ignores the type)
+		// 35 and 36: set aside for maps (Skyrim maps answers through MapTable, not the input ring)
 	};
 
 	// Which shrine's blessing kInBlessing is, by the god the spell names. Added within version 13.
@@ -616,6 +621,94 @@ namespace skycraft::proto
 	};
 	static_assert(sizeof(ActorTable) == 0x40 + 64 * kMaxActors);
 
+	// ---- map table @0x16100 (Skyrim -> MC, seqlock: seq odd while Skyrim writes) ---------------
+	// Skyrim maps (skyrim_maps, kFeatSkyrimMaps): what Skyrim knows that a Minecraft map in the mirror draws, beside the
+	// collision Minecraft already holds. Added within version 13 in the unused space between the actor table's end
+	// (0x16040) and the event ring: an older Minecraft never reads it and an older plugin never writes it, and all zeros
+	// (seq 0) means nothing yet. Skyrim writes all of it under the seqlock whenever something in it changed: the markers
+	// (looked at about every two seconds) or a land sample answered (kEvMapSample). markerVersion moves only when the
+	// markers listed changed. Every position is in the current Skyrim world's terms (MC coords), like the rest of the link.
+	inline constexpr std::uint32_t kMaxMapMarkers = 48;
+	inline constexpr std::uint32_t kMapSampleSide = 20;     // land samples along each side of a kEvMapSample square
+	inline constexpr float         kMapMarkerReach = 1024.0f;  // blocks: markers this close to the player are listed
+	inline constexpr std::int16_t  kSampleUnknown = -32768;    // MapSample::height: not in a cell Skyrim has loaded
+
+	// MapMarkerRecord::flags, from the marker's MapMarkerData flags.
+	enum MapMarkerFlags : std::uint8_t
+	{
+		kMarkerVisible = 1u << 0,     // shown on Skyrim's own map (kVisible): seen, or heard of
+		kMarkerDiscovered = 1u << 1,  // discovered: the player can fast travel there (kCanTravelTo)
+	};
+
+	// MapMarkerRecord::type: what the place is, in RE::MARKER_TYPE's numbering (the location types; Skyrim lists no door,
+	// quest target or player-set markers).
+	enum MapMarkerType : std::uint16_t
+	{
+		kMarkerNone = 0, kMarkerCity = 1, kMarkerTown = 2, kMarkerSettlement = 3, kMarkerCave = 4, kMarkerCamp = 5, kMarkerFort = 6,
+		kMarkerNordicRuin = 7, kMarkerDwemerRuin = 8, kMarkerShipwreck = 9, kMarkerGrove = 10, kMarkerLandmark = 11,
+		kMarkerDragonLair = 12, kMarkerFarm = 13, kMarkerWoodMill = 14, kMarkerMine = 15, kMarkerImperialCamp = 16,
+		kMarkerStormcloakCamp = 17, kMarkerDoomstone = 18, kMarkerWheatMill = 19, kMarkerSmelter = 20, kMarkerStable = 21,
+		kMarkerImperialTower = 22, kMarkerClearing = 23, kMarkerPass = 24, kMarkerAltar = 25, kMarkerRock = 26,
+		kMarkerLighthouse = 27, kMarkerOrcStronghold = 28, kMarkerGiantCamp = 29, kMarkerShack = 30, kMarkerNordicTower = 31,
+		kMarkerNordicDwelling = 32, kMarkerDocks = 33, kMarkerShrine = 34,
+		kMarkerFirstCastle = 35,  // 35 to 52: the holds' castles and capitols (Riften castle 35, capitol 36, ... Dawnstar 52)
+		kMarkerLastCastle = 52,
+		kMarkerMiraakTemple = 53, kMarkerRavenRock = 54, kMarkerStandingStone = 55, kMarkerTelvanniTower = 56, kMarkerToSkyrim = 57,
+		kMarkerToSolstheim = 58, kMarkerCastleKarstaag = 59,
+		kMarkerTypeCount = 60,  // RE::MARKER_TYPE::kTotalLocationTypes: types from here on aren't places
+	};
+
+	struct MapMarkerRecord
+	{
+		float         x, z;      // the marker reference's position, MC coords (no y: a map is flat)
+		std::uint32_t formId;    // the map marker reference
+		std::uint16_t type;      // MapMarkerType
+		std::uint8_t  flags;     // MapMarkerFlags
+		std::uint8_t  pad;
+		char          name[24];  // the place's name (MapMarkerData::locationName), UTF-8, NUL-terminated (truncated)
+	};
+	static_assert(sizeof(MapMarkerRecord) == 40);
+	static_assert(offsetof(MapMarkerRecord, formId) == 8 && offsetof(MapMarkerRecord, type) == 12 && offsetof(MapMarkerRecord, flags) == 14 &&
+	              offsetof(MapMarkerRecord, name) == 16);  // Proto.MM_*
+
+	// One point of Skyrim's land (MapTable::samples).
+	struct MapSample
+	{
+		std::int16_t height;    // MC y x 4 of the land there, or of the water's surface when water is above 0; kSampleUnknown:
+		                        // not in a cell Skyrim has loaded
+		std::uint8_t material;  // DigMaterial the land's texture there digs into (kDigNone: not known)
+		std::uint8_t water;     // blocks of Skyrim water over the land there (0: none; at most 255)
+	};
+	static_assert(sizeof(MapSample) == 4);
+
+	struct MapTable
+	{
+		std::uint32_t   seq;               // 0x00
+		std::uint32_t   worldId;           // 0x04: the Skyrim world (as SkyState::worldId) the markers are in; 0 none (indoors)
+		std::uint32_t   markerCount;       // 0x08
+		std::uint32_t   markerVersion;     // 0x0C: moves when the markers listed change
+		float           centerX, centerZ;  // 0x10: where the player was (MC coords) when they were listed
+		float           markerReach;       // 0x18: blocks. Every visible marker closer than this to the centre is listed: up to
+		                                   // kMapMarkerReach, less when more than kMaxMapMarkers were (the nearest are listed)
+		std::uint32_t   markerPad;         // 0x1C
+		MapMarkerRecord markers[kMaxMapMarkers];  // 0x20: nearest first
+		// Skyrim's answer to the last kEvMapSample it took
+		std::uint32_t   sampleRequest;     // 0x7A0: its request number (0: none answered yet)
+		std::int32_t    sampleX, sampleZ;  // 0x7A4: MC block of samples[0], the north-west one; samples[z * kMapSampleSide + x] is
+		                                   // at sampleX + x * sampleSpacing, sampleZ + z * sampleSpacing
+		std::uint32_t   sampleSpacing;     // 0x7AC: blocks between samples
+		std::uint32_t   sampleWorld;       // 0x7B0: the Skyrim world the samples are of
+		std::uint32_t   sampleKnown;       // 0x7B4: how many are known (in a loaded cell)
+		std::uint32_t   samplePad[2];      // 0x7B8
+		MapSample       samples[kMapSampleSide * kMapSampleSide];  // 0x7C0
+	};
+	static_assert(sizeof(MapTable) == 0xE00);
+	static_assert(offsetof(MapTable, markers) == 0x20 && offsetof(MapTable, sampleRequest) == 0x7A0 && offsetof(MapTable, sampleSpacing) == 0x7AC &&
+	              offsetof(MapTable, samples) == 0x7C0);  // Proto.MAPT_*
+	// In the 0xF00 bytes set aside for maps, between the actor table and the event ring.
+	static_assert(kOffMapTable >= kOffActorTable + sizeof(ActorTable) && kOffMapTable + sizeof(MapTable) <= kOffMapTable + 0xF00 &&
+	              kOffMapTable + sizeof(MapTable) <= kOffEventRing);
+
 	// ---- event ring @0x17000 (MC -> Skyrim) ---------------------------------------------------
 	inline constexpr std::uint32_t kEventRingEntries = 512;  // power of two
 	inline constexpr std::uint64_t kEventRingHeadOff = 0x00;  // u64, written by MC
@@ -700,6 +793,13 @@ namespace skycraft::proto
 		                       // if Minecraft's world backup was written (0 failed), a = how many pairs to keep (0: all;
 		                       // Skyrim deletes its older copies past that), b = the world backup's size in MB. Added within
 		                       // version 13 (an older plugin ignores the type)
+		kEvMapSample = 39,     // Skyrim maps (kFeatSkyrimMaps): a Minecraft map in the mirror wants Skyrim's land under it. a, c =
+		                       // the north-west sample's x and z (MC block coords, the current world's terms), b = blocks between
+		                       // samples (1 to 256), flags = a request number (never 0). Skyrim samples kMapSampleSide x
+		                       // kMapSampleSide points from there east and south, the ones in its loaded cells (the land's
+		                       // height, what it's made of, its water), into MapTable's samples, and sets sampleRequest. Added
+		                       // within version 13 (an older plugin ignores the type, so Minecraft, getting no answer, stops
+		                       // asking for a while). 40 is set aside for maps
 	};
 
 	// What kEvMob says (its flags bits 0-7).
