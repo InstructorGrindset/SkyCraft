@@ -38,6 +38,7 @@ public final class FeatureAreas {
 			Feature.NIGHT_MONSTERS, Feature.HORSES_CARRY_OVER, Feature.CREATURES_AND_LIGHT)),
 		new Area("Controls and messages", List.of(Feature.CLICK_TO_ACTIVATE, Feature.CONVERSION_MESSAGES, Feature.GUIDE_BOOK)),
 		new Area("Multiplayer", List.of(Feature.GUEST_PARITY, Feature.SHARED_WORLD_EVENTS)),
+		new Area("Quests, magic and maps", List.of(Feature.QUEST_MARKERS, Feature.SHOUTS, Feature.SPELLS, Feature.SKYRIM_MAPS)),
 		new Area("Saves and performance", List.of(Feature.PAIRED_BACKUPS, Feature.FAR_BLOCK_DETAIL))
 	);
 

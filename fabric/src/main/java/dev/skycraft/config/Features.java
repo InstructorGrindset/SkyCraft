@@ -102,7 +102,17 @@ public final class Features {
 		PAIRED_BACKUPS("paired_backups", "loading a Skyrim save backs it up together with the Minecraft world, under one time stamp; the newest few pairs are kept (skycraft-backups.txt)", true,
 			dev.skycraft.link.Proto.FEATURE_PAIRED_BACKUPS),
 		FAR_BLOCK_DETAIL("far_block_detail", "Minecraft blocks more than 64 blocks away cast no sun shadows, for a higher frame rate where much is built (Skyrim's own shadows still fall on them)", false,
-			dev.skycraft.link.Proto.FEATURE_FAR_BLOCK_DETAIL);
+			dev.skycraft.link.Proto.FEATURE_FAR_BLOCK_DETAIL),
+
+		// Quests
+		QUEST_MARKERS("quest_markers", "Skyrim's quest markers show on Minecraft's locator bar"),
+
+		// Magic
+		SHOUTS("shouts", "the shouts you know in Skyrim work from a Minecraft key, on Minecraft's mobs as well as Skyrim's people"),
+		SPELLS("spells", "the spells you know in Skyrim can be cast from Minecraft, with Skyrim's magicka"),
+
+		// Maps
+		SKYRIM_MAPS("skyrim_maps", "a Minecraft map filled in the Skyrim world draws Skyrim's land, roads and water");
 
 		public final String key;
 		public final String about;
