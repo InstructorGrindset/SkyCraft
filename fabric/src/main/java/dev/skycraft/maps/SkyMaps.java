@@ -71,6 +71,7 @@ public final class SkyMaps {
 	private static int memoX = Integer.MIN_VALUE, memoZ = Integer.MIN_VALUE;
 	private static MapRules.@Nullable Ground memoGround;
 	private static int memoBlock;
+	private static boolean memoBlockKnown;
 
 	/** What each map has had from here: the markers on it, and the land sample asked for over it. */
 	private static final class MapState {
@@ -117,13 +118,15 @@ public final class SkyMaps {
 			int x = MapRules.columnStart(data.centerX, bpp, px) + bpp / 2;
 			int z = MapRules.columnStart(data.centerZ, bpp, pz) + bpp / 2;
 			// North first: it's the pixel vanilla stored just before this one, still memoised.
-			MapRules.Ground north = column(level, x, z - bpp);
-			int northBlock = memoBlock;
-			MapRules.Ground here = column(level, x, z);
-			int block = memoBlock;
+			MapRules.Ground north = column(x, z - bpp);
+			boolean northBlockKnown = memoBlockKnown;
+			int northBlockMemo = memoBlock;
+			MapRules.Ground here = column(x, z);
 			if (here == null) {
 				return vanilla;
 			}
+			int block = blockOf(level);
+			int northBlock = northBlockKnown ? northBlockMemo : topBlock(level, x, z - bpp, north == null ? Integer.MIN_VALUE : north.shadeY());
 			int northY = MapRules.shownY(north, northBlock);
 			boolean northSkyrim = north != null && MapRules.skyrimShows(northBlock, north);
 			boolean vanillaWater = (vanilla & 0xFF) >> 2 == MapColor.WATER.id;
@@ -143,17 +146,26 @@ public final class SkyMaps {
 		}
 	}
 
-	/** Skyrim's ground in a block column and the highest Minecraft block over it ({@link #memoBlock}), memoised for one. */
-	private static MapRules.@Nullable Ground column(Level level, int x, int z) {
+	/** Skyrim's ground in a block column, memoised for one column (with its highest block, {@link #blockOf}, once asked). */
+	private static MapRules.@Nullable Ground column(int x, int z) {
 		if (x == memoX && z == memoZ) {
 			return memoGround;
 		}
 		MapRules.Ground ground = groundAt(x, z);
-		memoBlock = topBlock(level, x, z, ground == null ? Integer.MIN_VALUE : ground.shadeY());
 		memoX = x;
 		memoZ = z;
 		memoGround = ground;
+		memoBlockKnown = false;
 		return ground;
+	}
+
+	/** The highest Minecraft block over the memoised column's ground (looked for once). */
+	private static int blockOf(Level level) {
+		if (!memoBlockKnown) {
+			memoBlock = topBlock(level, memoX, memoZ, memoGround == null ? Integer.MIN_VALUE : memoGround.shadeY());
+			memoBlockKnown = true;
+		}
+		return memoBlock;
 	}
 
 	/** Once per server tick: budgets reset, and what no longer holds is dropped. */
