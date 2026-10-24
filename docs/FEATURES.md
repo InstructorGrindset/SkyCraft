@@ -83,6 +83,7 @@ Minecraft side paths are under `fabric/src/main/java/dev/skycraft/`, Skyrim side
 | Creatures and light | `creatures_and_light` | Skeevers and Falmer keep out of strong Minecraft light: within a torch's 6 blocks (a lantern's or glowstone's 7, light level 8 or more as Minecraft's light falls off) they're pushed back the way NPCs are pushed out of blocks. Skyrim's undead (draugr, skeletons, vampires; not essential ones) outdoors in Skyrim's daylight (6 to 19:30) under open sky, not wet, catch fire the way zombies do; the fire's damage reaches Skyrim credited to no one, with flames on the body. Which actors are light-shy or undead comes from the race (`CreatureKinds.h`) | `creatures/SkyCreatures` (`sunlight`), `combat/SkyrimActorEntity` (sun fire) | `Creatures.cpp` (`ShyFromLight`), `CreatureKinds.h`, `BlockLights.cpp` (`LightAt`), `Combat.cpp` (actor table bits) | none | `SkyCraft-creatures` | Written |
 | Paired backups | `paired_backups` | Each time Skyrim loads a save with Minecraft connected, both are backed up as a pair under one stamp (the time of the load): Skyrim copies the save (its `.ess` and `.skse` co-save) to `Documents\My Games\Skyrim Special Edition\SkyCraft Backups\<stamp>`, Minecraft zips its world to `skycraft-backups\<stamp> <world>.zip` in the instance's `.minecraft` folder. The newest 5 pairs are kept. Minecraft saves its world first and holds its autosaves while the zip is written; both copies run on threads of their own, so neither game waits. A save loaded before Minecraft is connected is backed up once it is; a guest's world is backed up when they're back in their own. Death reloads and quickloads make pairs too. See [Paired backups](#paired-backups) | `backup/` (SkyBackups, BackupRequest, BackupNames, WorldZip, BackupRules), client `InputBridge` (`IN_PAIRED_BACKUP`) | `Backups.cpp`, `BackupNames.h`, `main.cpp` (kPreLoadGame, kPostLoadGame), `Combat.cpp` (`kEvPairedBackup`), bit `kFeatPairedBackups` | `skycraft-backups.txt` | `SkyCraft-backup`; `paired backups` in SkyCraft.log | Written |
 | Far block detail | `far_block_detail` (off by default) | Block sections more than 64 blocks from the camera aren't drawn into the sun's shadow map, so each is drawn once less a frame: they cast no sun shadows (on Skyrim's ground or on other blocks) and aren't shaded by other far blocks; Skyrim's own shadows still fall on them, and everything nearer is as before. With it on or off, SkyCraft.log's perf line (every minute) has the block drawing time and how many sections and triangles were drawn, and latest.log what meshing them cost Minecraft. See [Far block detail and profiling](#far-block-detail-and-profiling) | client `render/WorldExporter` (meshing stats) | `WorldRender.cpp` (`RenderPasses`), `Perf.h` (`kBlocks`, block amounts), bit `kFeatFarBlockDetail` | none | `perf:` and `far block detail` in SkyCraft.log; `SkyCraft-render` | Written |
+| Skyrim maps | `skyrim_maps` | A Minecraft map filled in the Skyrim world draws Skyrim. Where vanilla's map finds no block in a column, the pixel shows Skyrim's highest surface there, from the collision Minecraft holds round where you've been (so a map fills in as you explore, as vanilla's does): grass, dirt, rock, snow, ice, sand, mud and roads (the land's gravel and cobbles) by what the ground is made of, grass on a slope as dirt and cliffs as rock, buildings a light stone gray, trees and wood brown, and Skyrim's lakes and rivers in vanilla's water colour, darker where deeper. It's shaded north to south as vanilla shades its own ground, so hills read as hills. A block you place still shows over Skyrim's ground under it. Further out, the cells Skyrim has loaded (about 150 blocks round you) fill in coarsely from Skyrim's own land heights. The places on Skyrim's own map within 1024 blocks (cities, towns, dungeons, camps, shrines, ...) go on maps of that area as banners with their names, coloured by the kind of place (gray: heard of, not visited yet). Never in other dimensions. See [Maps](#maps) | `maps/` (SkyMaps, MapRules, MapSurface, MapMarkers, LandSamples, SkyMapLink), `mixin/MapItemMixin`, `mixin/MapItemSavedDataInvoker`, `world/SkyCollision` (its regions by column) | `Maps.cpp` (markers, land samples), `MapKinds.h` | none | `SkyCraft-maps` | Written |
 
 Shared pieces: `config/Config` reads and writes the config files, `config/Features` holds the
 switches, `link/` is the shared memory link, and `WorldState.cpp` on the Skyrim side reports the
@@ -1399,6 +1400,65 @@ Minecraft: SkyCraft.log says `far block detail on: block sections more than 64 b
 lines show fewer shadow-casting sections and triangles, and `block drawing` should be lower. Far blocks' shadows go; near ones
 stay.
 
+## Maps
+
+### Skyrim maps
+
+Minecraft's overworld is the mirror of Skyrim's world: a void where Skyrim's ground is triangles you collide with, plus the
+blocks players placed. A filled map there used to be empty apart from placed blocks. Now vanilla's own map update (on the
+server, for a map held in a hand) draws it, and where it finds no block in a column, the pixel shows Skyrim's instead
+(`MapItemMixin` wraps the one call that stores a pixel's colour, `MapItemSavedData.updateColor`, so vanilla's block search,
+shading and water stay as they are for every other pixel):
+
+- **What it shows.** Skyrim's highest surface over the column, from the triangles Minecraft holds (`SkyCollision`: the
+  regions Skyrim streams round the player, about 45 blocks each way, kept until you leave that Skyrim world). The land by
+  the material Skyrim sends with it: grass green, dirt, mud, sand, snow, ice, rock gray, and roads (the land's gravel and
+  cobbled stone) a pale earth tone. Grass on a slope over about 37 degrees shows as dirt and any land over about 60 degrees
+  as rock (snow holds to about 70), as Skyrim paints its cliffs. Rocks and cliffs that are objects are rock; trees (their
+  trunks: Skyrim's leaves have no collision) and wood are brown; buildings and other things that can't be dug a light stone
+  gray (Skyrim sends no material for them). The rules are `maps/MapRules` (unit tested).
+- **Shading.** Vanilla's own north to south shading: a pixel higher than the one north of it is brighter, lower darker, with
+  its checkered dither, so hills read as hills. A pixel next to nothing known (the edge of what's been seen) is shaded level,
+  not as a drop into the void.
+- **Water.** Skyrim's water over its ground is vanilla's water colour, darker where deeper: the water grid round you (16
+  blocks), remembered as you walk, and the water of the cells Skyrim has loaded (below).
+- **Your blocks.** A Minecraft block at or above Skyrim's ground in its column wins: the map shows it as vanilla does. A
+  block buried under Skyrim's ground (in a tunnel) doesn't show, as nothing under the ground does. A dug hole shows its floor.
+- **Further out.** Where Minecraft holds no collision yet, Minecraft asks Skyrim for a coarse square of samples over the map
+  near Skyrim's player (`kEvMapSample`, 20 x 20, at least a pixel apart). Skyrim answers for the cells it has loaded (about
+  150 blocks round its player): the land's height (`TES::GetLandHeight`), its texture's material (as digging reads it) and
+  the cell's water there. Minecraft keeps the answers (the newest 48) and draws them blended between samples, but only if
+  their land agrees with its own collision where both are known (a median within 2.5 blocks); otherwise it logs
+  `DISAGREES` and leaves them out. It asks again once Skyrim's player has moved 48 blocks, or after 30 seconds.
+- **Markers.** Skyrim lists, about every two seconds, the map markers its own map shows within 1024 blocks of the player
+  (seen or heard of, or discovered; the nearest 48). Minecraft puts each on a map of that area as a banner with the place's
+  name: yellow for cities, towns and the holds' castles, lime for farms, mills and other homesteads, red for caves, ruins,
+  mines and other dungeons, orange for camps and forts, purple for shrines, standing stones and other sacred places, cyan for
+  the ships to and from Solstheim, white for landmarks and anything else; light gray while it's only been heard of. A
+  marker comes off a map once Skyrim no longer shows it (and would have listed it). Indoors the banners stay as they were.
+- **Never in other dimensions**: a map of the Nether, Tamriel Wilds or Home is vanilla's.
+
+**Try it**: `/give @s minecraft:map`, then right click with it in Skyrim's outdoors (near Riverwood, say) and hold the
+filled map.
+
+1. The ground round you appears at once: green grass, the road through the village pale, its houses gray, the river blue,
+   the slopes shaded. Within a few seconds the rest of the map fills in more coarsely. The log says
+   `SkyCraft-maps: Skyrim's land sampled from X Z every 7 blocks: N of 400 known; agrees with its collision at M points`
+   (Skyrim's SkyCraft.log: `land under a Minecraft map sampled from ...: N of 400 in loaded cells`).
+2. Walk on with the map in hand: it fills in as you go, as a vanilla map does.
+3. Place a few blocks: they show over the ground. Dig a hole: its floor shows darker.
+4. Riverwood shows as a yellow banner named Riverwood; Bleak Falls Barrow, if heard of but not visited, as a gray one. The
+   log says `SkyCraft-maps: Skyrim's markers on a map at X Z: N shown, 0 taken off` (Skyrim's: `N map markers in Tamriel`,
+   then `N map markers within 1024 blocks of the player (D discovered), the nearest ...`). Discover a new place: its banner
+   turns its colour within a couple of seconds.
+5. Take a map in the Nether: vanilla's. Switch `skyrim_maps` off: maps draw as before, and Skyrim's banners come off the next
+   time a map is held.
+
+Limits: a map shows only what Minecraft has of Skyrim's world (round where you've walked in that Skyrim world, and Skyrim's
+loaded cells), though what's drawn stays on the map. Skyrim's banners aren't saved with the map (vanilla saves only its own
+banners): they come back when it's held near the place again. In multiplayer only the host's Skyrim counts: its collision,
+its land samples, its markers and discoveries. A map made inside a dungeon draws the tops of its rooms.
+
 ## Planned
 
 | Feature | Notes |
@@ -1568,6 +1628,16 @@ Far block detail added this within 13 (an older Minecraft never sets the bit, so
 | Addition | Direction | Used by |
 |---|---|---|
 | `FeatureBits` `kFeatFarBlockDetail` (bit 29) in `McState.features` | Minecraft to Skyrim | `far_block_detail` is on: block sections more than 64 blocks away cast no sun shadows |
+
+Skyrim maps added these within 13, without a version bump (an older Minecraft never sets the bit, so Skyrim leaves the table
+alone, and never reads it; an older plugin never writes the table, which stays all zeros, "nothing yet", and ignores the event,
+so Minecraft, getting no answer three times running, stops asking for a minute):
+
+| Addition | Direction | Used by |
+|---|---|---|
+| `FeatureBits` `kFeatSkyrimMaps` (bit 7) in `McState.features` | Minecraft to Skyrim | `skyrim_maps` is on: Skyrim lists its map markers in the map table and answers `kEvMapSample` |
+| `MapTable` at `kOffMapTable` 0x16100 (0xE00 bytes, in the 0xF00 set aside for maps between the actor table's end, 0x16040, and the event ring; seqlock, written whole when something in it changed) | Skyrim to Minecraft | worldId (0x04, the worldspace the markers are in; 0 indoors), markerCount (0x08), markerVersion (0x0C, moves when the markers change), centerX, centerZ (0x10, where the player was), markerReach (0x18: every visible marker closer than this to the centre is listed, 1024 or less when more than 48 were), then 48 `MapMarkerRecord`s from 0x20, nearest first: x, z (floats, MC coords), formId (the marker reference), u16 type (`MapMarkerType`, RE::MARKER_TYPE's numbering, places only), u8 flags (`kMarkerVisible` 1: on Skyrim's map; `kMarkerDiscovered` 2: can fast travel there), name[24]. From 0x7A0 the answer to the last `kEvMapSample`: sampleRequest (its request number), sampleX, sampleZ (the north-west sample's block), sampleSpacing, sampleWorld, sampleKnown, then 20 x 20 `MapSample`s from 0x7C0: i16 height (MC y x 4 of the land, or of the water's surface when water > 0; `kSampleUnknown` -32768 outside the loaded cells), u8 material (DigMaterial), u8 water (blocks deep) |
+| `kEvMapSample` (39) | Minecraft to Skyrim | A map wants Skyrim's land under it: a, c = the north-west sample's x and z (MC block coords, the current world's terms), b = blocks between samples (1 to 256), flags = request number (never 0). Event 40 and input types 35 and 36 are set aside for maps |
 
 ## Testing a build
 
