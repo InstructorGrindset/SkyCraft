@@ -28,7 +28,10 @@ public final class SkyMapLink {
 		return s == null ? 0 : (int) INT.getAcquire(s, OFF_MAP_TABLE + MAPT_SEQ);
 	}
 
-	/** Where Skyrim listed its markers from: every visible marker closer than {@code reach} to {@code x, z} is listed. */
+	/**
+	 * Where Skyrim listed its markers from: every visible marker closer than {@code reach} to {@code x, z} is listed. World 0:
+	 * none (Skyrim's player is indoors).
+	 */
 	public record Listing(int world, int version, double x, double z, double reach) {
 	}
 
@@ -62,7 +65,7 @@ public final class SkyMapLink {
 			}
 			VarHandle.loadLoadFence();
 			if ((int) INT.getAcquire(s, b + MAPT_SEQ) == seq1) {
-				return world == 0 ? null : listing;
+				return listing;
 			}
 			out.clear();
 		}

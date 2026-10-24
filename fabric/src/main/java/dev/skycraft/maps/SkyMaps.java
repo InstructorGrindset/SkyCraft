@@ -82,6 +82,7 @@ public final class SkyMaps {
 
 	private static final Map<MapItemSavedData, MapState> MAPS = new WeakHashMap<>();
 	private static final List<MapMarkers.Marker> LISTED = new ArrayList<>();
+	private static final List<MapMarkers.Marker> READING = new ArrayList<>();
 	private static SkyMapLink.@Nullable Listing listing;
 	private static int listedSeq = -1;
 
@@ -311,20 +312,22 @@ public final class SkyMaps {
 	private static void markers(Level level, MapItemSavedData data, MapState state, boolean on) {
 		int seq = SkyMapLink.seq();
 		if (seq != listedSeq) {
-			listedSeq = seq;
-			listing = SkyMapLink.readMarkers(LISTED);
-			if (listing == null) {
+			SkyMapLink.Listing read = SkyMapLink.readMarkers(READING);
+			if (read != null || seq == 0) { // a torn read is tried again next tick
+				listedSeq = seq;
+				listing = read;
 				LISTED.clear();
+				LISTED.addAll(READING);
 			}
 		}
-		if (on && state.markersSeq == seq) {
+		if (on && state.markersSeq == listedSeq) {
 			return;
 		}
-		SkyMapLink.Listing from = listing;
+		SkyMapLink.Listing from = listing != null && listing.world() != 0 ? listing : null;
 		if (from == null && on) {
-			return; // nothing from Skyrim yet (or indoors): what's on the map stays
+			return; // nothing from Skyrim yet, or its player is indoors: what's on the map stays
 		}
-		state.markersSeq = seq;
+		state.markersSeq = listedSeq;
 		MapMarkers.Plan plan = MapMarkers.plan(LISTED, from == null ? 0 : from.x(), from == null ? 0 : from.z(), from == null ? 0 : from.reach(),
 			state.placed, data.centerX, data.centerZ, 1 << data.scale, on);
 		MapItemSavedDataInvoker decorations = (MapItemSavedDataInvoker) data;
